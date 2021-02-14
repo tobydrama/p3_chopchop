@@ -11,13 +11,4 @@ parser.add_argument("-o", "--outputDir", default="./", metavar="OUTPUT_DIR", hel
 
 args = parser.parse_args()
 
-data = {'a list': [1, 42, 3.141, 1337, 'help', u'€'],
-        'a string': 'bla',
-        'another dict': {'foo': 'bar',
-                         'key': 'value',
-                         'the answer': 42}}
-
-with open(os.path.join(args.outputDir + 'results.json'), 'w') as f:
-  json.dump(data, f, ensure_ascii=False)
-
 
