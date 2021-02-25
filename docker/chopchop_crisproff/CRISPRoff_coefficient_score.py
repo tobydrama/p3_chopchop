@@ -14,7 +14,9 @@ def main():
 
     result = CRISPRoff_score(args.guide_seq)
 
-    print(result)
+    # Print result to stdout so that it can be caught by CHOPCHOP
+    # TODO make sure floating point precision is the same as in CHOPCHOP 2.7
+    print("%0.14f" % result)
 
 
 if __name__ == '__main__':
