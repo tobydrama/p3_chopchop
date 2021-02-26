@@ -3,6 +3,11 @@
 ##
 ## TALEN SPECIFIC FUNCTIONS
 ##
+from Vars import TALEN_OFF_TARGET_MIN, TALEN_OFF_TARGET_MAX, PRIMER_OFF_TARGET_MIN
+from classes import Nickase
+from operator import attrgetter
+from classes.PAIR import Pair
+
 
 def pairTalens(taleList, fastaSeq, guideSize, taleMinDistance, taleMaxDistance,
                enzymeCo, maxOffTargets, g_RVD, minResSiteLen):

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import pandas
+import numpy
 import argparse
 import resource
 import pickle
@@ -14,6 +16,7 @@ from functions.TALEN_Specific_Functions import *
 
 soft, HARD_LIMIT = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (HARD_LIMIT, HARD_LIMIT))
+
 def parseArguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("-Target", "--targets", type=str, help="Target genes or regions", required=True)
@@ -118,6 +121,7 @@ def parseArguments():
                         help="Create .tsv table with off-targets. Not all off-targets will be reported when early stopping will work on a guide! Limited also to CRISPR mode only and limited by --limitPrintResults option.")
     return parser.parse_args()
 
+
 def getCoordinatesForJsonVisualization(args, visCoords, sequences, strand, resultCoords):
     # Coordinates for gene
     visCoordsFile = open('%s/viscoords.json' % args.outputDir, 'w')
@@ -163,6 +167,226 @@ def getCoordinatesForJsonVisualization(args, visCoords, sequences, strand, resul
     return cutcoords
 
 
+def scoringMethodCHARI_2005(args, results):
+    try:
+        # make file to score
+        svmInputFile = '%s/chari_score.SVMInput.txt' % args.outputDir
+        svmOutputFile = '%s/chari_score.SVMOutput.txt' % args.outputDir
+        encoding = defaultdict(str)
+        encoding['A'] = '0001'
+        encoding['C'] = '0010'
+        encoding['T'] = '0100'
+        encoding['G'] = '1000'
+
+        svmFile = open(svmInputFile, 'w')
+
+        for guide in results:
+            seq = guide.downstream5prim + guide.strandedGuideSeq[:-len(guide.PAM)]
+            PAM = guide.strandedGuideSeq[-len(guide.PAM):]
+            sequence = (seq[-20:] + PAM).upper()
+            x = 0
+            tw = '-1'
+            # end index
+            if len(sequence) == 27:
+                endIndex = 22
+            else:
+                endIndex = 21
+
+            while x < endIndex:
+                y = 0
+                while y < 4:
+                    tw = tw + ' ' + str(x + 1) + str(y + 1) + ':' + encoding[sequence[x]][y]
+                    y += 1
+                x += 1
+            svmFile.write(tw + '\n')
+        svmFile.close()
+        newScores = scoreChari_2015(svmInputFile, svmOutputFile, args.PAM, args.genome)
+
+        for i, guide in enumerate(results):
+            guide.CoefficientsScore["CHARI_2015"] = newScores[i]
+            if args.scoringMethod == "CHARI_2015":
+                guide.score -= (guide.CoefficientsScore["CHARI_2015"] / 100) * SCORE['COEFFICIENTS']
+    except:
+        pass
+
+
+def scoringMethodZHANG_2009(args, results):
+    try:
+        zhangInputFile = '%s/zhang_score.txt' % args.outputDir
+        zhangFile = open(zhangInputFile, 'w')
+        for guide in results:
+            zhangFile.write(guide.downstream5prim[-4:] + guide.strandedGuideSeq + guide.downstream3prim[:3] + '\n')
+        zhangFile.close()
+
+        prog = Popen("%s/uCRISPR/uCRISPR -on %s" % (f_p, zhangInputFile), stdout=PIPE, stderr=PIPE, shell=True)
+        output = prog.communicate()
+        output = output[0].splitlines()
+        output = output[1:]
+        # distribution calculated on 100k random guides
+        output = [ss.norm.cdf(float(x.split()[1]), loc=11.92658, scale=0.2803797) for x in output]
+        for i, guide in enumerate(results):
+            guide.CoefficientsScore["ZHANG_2019"] = output[i] * 100
+            if args.scoringMethod == "ZHANG_2019":
+                guide.score -= (guide.CoefficientsScore["ZHANG_2019"] / 100) * SCORE['COEFFICIENTS']
+    except:
+        pass
+
+
+def scoringMethodKIM_2018(results):
+    # noinspection PyBroadException
+    try:
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore")
+
+            os.environ['KERAS_BACKEND'] = 'theano'
+            stderr = sys.stderr  # keras prints welcome message to stderr! lolz!
+            sys.stderr = open(os.devnull, 'w')
+
+            from keras.models import Model
+            from keras.layers import Input
+            from keras.layers.merge import Multiply
+            from keras.layers.core import Dense, Dropout, Activation, Flatten
+            from keras.layers.convolutional import Convolution1D, AveragePooling1D
+            sys.stderr = stderr
+
+            seq_deep_cpf1_input_seq = Input(shape=(34, 4))
+            seq_deep_cpf1_c1 = Convolution1D(80, 5, activation='relu')(seq_deep_cpf1_input_seq)
+            seq_deep_cpf1_p1 = AveragePooling1D(2)(seq_deep_cpf1_c1)
+            seq_deep_cpf1_f = Flatten()(seq_deep_cpf1_p1)
+            seq_deep_cpf1_do1 = Dropout(0.3)(seq_deep_cpf1_f)
+            seq_deep_cpf1_d1 = Dense(80, activation='relu')(seq_deep_cpf1_do1)
+            seq_deep_cpf1_do2 = Dropout(0.3)(seq_deep_cpf1_d1)
+            seq_deep_cpf1_d2 = Dense(40, activation='relu')(seq_deep_cpf1_do2)
+            seq_deep_cpf1_do3 = Dropout(0.3)(seq_deep_cpf1_d2)
+            seq_deep_cpf1_d3 = Dense(40, activation='relu')(seq_deep_cpf1_do3)
+            seq_deep_cpf1_do4 = Dropout(0.3)(seq_deep_cpf1_d3)
+            seq_deep_cpf1_output = Dense(1, activation='linear')(seq_deep_cpf1_do4)
+            seq_deep_cpf1 = Model(inputs=[seq_deep_cpf1_input_seq], outputs=[seq_deep_cpf1_output])
+            seq_deep_cpf1.load_weights(f_p + '/models/Seq_deepCpf1_weights.h5')
+
+            # process data
+            data_n = len(results)
+            one_hot = numpy.zeros((data_n, 34, 4), dtype=int)
+
+            for l in range(0, data_n):
+                prim5 = results[l].downstream5prim[-4:]
+                if len(prim5) < 4:  # cover weird genomic locations
+                    prim5 = "N" * (4 - len(prim5)) + prim5
+                guide_seq = results[l].strandedGuideSeq
+                prim3 = results[l].downstream3prim[:6]
+                if len(prim3) < 6:
+                    prim5 = "N" * (6 - len(prim5)) + prim5
+                seq = prim5 + guide_seq + prim3
+
+                for i in range(34):
+                    if seq[i] in "Aa":
+                        one_hot[l, i, 0] = 1
+                    elif seq[i] in "Cc":
+                        one_hot[l, i, 1] = 1
+                    elif seq[i] in "Gg":
+                        one_hot[l, i, 2] = 1
+                    elif seq[i] in "Tt":
+                        one_hot[l, i, 3] = 1
+                    elif seq[i] in "Nn":  # N will activate all nodes
+                        one_hot[l, i, 0] = 1
+                        one_hot[l, i, 1] = 1
+                        one_hot[l, i, 2] = 1
+                        one_hot[l, i, 3] = 1
+
+            seq_deep_cpf1_score = seq_deep_cpf1.predict([one_hot], batch_size=50, verbose=0)
+
+        for i, guide in enumerate(results):
+            guide.CoefficientsScore = seq_deep_cpf1_score[i][0]
+            guide.score -= (guide.CoefficientsScore / 100) * SCORE['COEFFICIENTS']
+    except:
+        pass
+
+"""
+def scoringMethodDOENCH_2016(args, results):
+    # noinspection PyBroadException
+    try:
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore")
+            with open(f_p + '/models/Doench_2016_18.01_model_nopos.pickle', 'rb') as f:
+                model = pickle.load(f)
+
+        model, learn_options = model
+        learn_options["V"] = 2
+
+        results_ok = []
+        sequences_d2016 = []
+        for i, guide in enumerate(results):
+            seq_d2016 = guide.downstream5prim + guide.strandedGuideSeq[:-len(guide.PAM)]
+            pam_d2016 = guide.strandedGuideSeq[-len(guide.PAM):]
+            tail_d2016 = guide.downstream3prim
+            if len(seq_d2016) < 24 or len(pam_d2016) < 3 or len(tail_d2016) < 3:
+                results_ok.append(False)
+            else:
+                results_ok.append(True)
+                dada = seq_d2016[-24:] + pam_d2016 + tail_d2016[:3]
+                sequences_d2016.append(dada)
+
+        sequences_d2016 = numpy.array(sequences_d2016)
+        xdf = pandas.DataFrame(columns=[u'30mer', u'Strand'],
+                               data=zip(sequences_d2016, numpy.repeat('NA', sequences_d2016.shape[0])))
+        gene_position = pandas.DataFrame(columns=[u'Percent Peptide', u'Amino Acid Cut position'],
+                                         data=zip(numpy.ones(sequences_d2016.shape[0]) * -1,
+                                                  numpy.ones(sequences_d2016.shape[0]) * -1))
+        feature_sets = feat.featurize_data(xdf, learn_options, pandas.DataFrame(), gene_position, pam_audit=True,
+                                           length_audit=False)
+        inputs = concatenate_feature_sets(feature_sets)[0]
+        outputs = model.predict(inputs)
+
+        j = 0
+        for i, guide in enumerate(results):
+            if results_ok[i]:
+                if outputs[j] > 1:
+                    outputs[j] = 1
+                elif outputs[j] < 0:
+                    outputs[j] = 0
+                guide.CoefficientsScore["DOENCH_2016"] = outputs[j] * 100
+                j += 1
+                if args.scoringMethod == "DOENCH_2016":
+                    guide.score -= (guide.CoefficientsScore["DOENCH_2016"] / 100) * SCORE['COEFFICIENTS']
+    except:
+        pass
+
+
+def getClusterPairsTALENS(results, sequences, args):
+    pairs = pairTalens(results, sequences, args.guideSize, int(args.taleMin), int(args.taleMax), args.enzymeCo,
+                       args.maxOffTargets, args.g_RVD, args.minResSiteLen)
+
+    if (not len(pairs)):
+        sys.stderr.write("No TALEN pairs could be generated for this region.\n")
+        sys.exit(EXIT['GENE_ERROR'])
+
+    if args.rm1perfOff and args.fasta:
+        for pair in pairs:
+            if pair.diffStrandOffTarget > 0:
+                pair.score = pair.score - SCORE["OFFTARGET_PAIR_DIFF_STRAND"]
+            if pair.sameStrandOffTarget > 0:
+                pair.score = pair.score - SCORE["OFFTARGET_PAIR_SAME_STRAND"]
+
+    cluster, results = clusterPairs(pairs)
+    return cluster, results
+
+
+def getClusterPairsNICKASE(results, sequences, args):
+    pairs = pairCas9(results, sequences, args.guideSize, int(args.nickaseMin), int(args.nickaseMax), args.enzymeCo,
+                     args.maxOffTargets, args.minResSiteLen, args.offtargetMaxDist)
+
+    if (not len(pairs)):
+        sys.stderr.write("No Cas9 nickase pairs could be generated for this region.\n")
+        sys.exit(EXIT['GENE_ERROR'])
+
+    if args.rm1perfOff and args.fasta:
+        for pair in pairs:
+            if pair.diffStrandOffTarget > 0:
+                pair.score = pair.score - SCORE["OFFTARGET_PAIR_DIFF_STRAND"]
+
+    cluster, results = clusterPairs(pairs)
+    return cluster, results
+"""
 
 def main():
     # Parse arguments
@@ -207,7 +431,8 @@ def main():
             padSize = args.guideSize
 
     # Set default functions for different modes
-    evalSequence, guideClass, sortOutput = set_default_modes(args)
+    # new function
+    countMM, evalSequence, guideClass, sortOutput = set_default_modes(args)
 
     # Connect to database if requested
     if args.database:
@@ -244,6 +469,259 @@ def main():
     if len(sequences) == 0:
         sys.stderr.write("No target sites\n")
         sys.exit()
+
+    # Run bowtie and get results
+    bowtieResultsFile = runBowtie(len(args.PAM), args.uniqueMethod_Cong, candidate_fasta_file, args.outputDir,
+                                  int(args.maxOffTargets),
+                                  CONFIG["PATH"]["ISOFORMS_INDEX_DIR"] if ISOFORMS else CONFIG["PATH"][
+                                      "BOWTIE_INDEX_DIR"],
+                                  args.genome, int(args.maxMismatches))
+    results = parseBowtie(guideClass, bowtieResultsFile, True, args.scoreGC, args.scoreSelfComp,
+                          args.backbone, args.replace5P, args.maxOffTargets, countMM, args.PAM,
+                          args.MODE != ProgramMode.TALENS,
+                          args.scoringMethod, args.genome, gene, isoform, gene_isoforms)  # TALENS: MAKE_PAIRS + CLUSTER
+
+
+
+    ########## -Scoring part- ###########
+    if args.rm1perfOff and args.fasta:
+        for guide in results:
+            if guide.offTargetsMM[0] > 0:
+                guide.score -= SINGLE_OFFTARGET_SCORE[0]
+
+    if ISOFORMS:
+        for guide in results:
+            if guide.isoform in ["union", "intersection"]: # calculate base pair probabilities of folding
+                # iterate all isoforms
+                bpp = []
+                for tx_id in guide.gene_isoforms:
+                    tx_start, tx_end = tx_relative_coordinates(visCoords, tx_id, guide.start, guide.end)
+                    if tx_start is not -1:
+                        bpp.append(rna_folding_metric(args.genome, tx_id, tx_start, tx_end))
+                guide.meanBPP = 100 if len(bpp) == 0 else max(bpp) # penalize guide that has no real target!
+            else:
+                if not args.fasta:
+                    tx_start, tx_end = tx_relative_coordinates(visCoords, guide.isoform, guide.start, guide.end)
+                    guide.meanBPP = rna_folding_metric(args.genome, guide.isoform, tx_start, tx_end)
+
+            guide.score += guide.meanBPP / 100 * SCORE['COEFFICIENTS']
+
+            if guide.isoform in guide.gene_isoforms:
+                guide.gene_isoforms.remove(guide.isoform)
+
+            if guide.isoform in guide.offTargetsIso[0]:
+                guide.offTargetsIso[0].remove(guide.isoform)
+
+            guide.constitutive = int(guide.gene_isoforms == guide.offTargetsIso[0])
+
+    # Scoring methods
+    if (args.scoringMethod == "CHARI_2015" or args.scoringMethod == "ALL") and (args.PAM == "NGG" or args.PAM == "NNAGAAW") and (args.genome == "hg19" or args.genome == "mm10") and not ISOFORMS:
+        # new function
+        scoringMethodCHARI_2005(args, results)
+
+    if (args.scoringMethod == "ZHANG_2019" or args.scoringMethod == "ALL") and (args.PAM == "NGG") and not ISOFORMS:
+        # new function
+        scoringMethodZHANG_2009(args, results)
+
+    if (args.scoringMethod == "KIM_2018" or args.scoringMethod == "ALL") and args.PAM in "TTTN" \
+            and not ISOFORMS and args.MODE == ProgramMode.CPF1:
+        # new function
+        scoringMethodKIM_2018(results)
+
+    #if (args.scoringMethod == "DOENCH_2016" or args.scoringMethod == "ALL") and not ISOFORMS and args.MODE == ProgramMode.CRISPR:
+        # new function
+        #scoringMethodDOENCH_2016(args, results)
+
+    if args.repairPredictions is not None and not ISOFORMS and args.MODE == ProgramMode.CRISPR:
+        sys.path.append(f_p + '/models/inDelphi-model/')
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore")
+            import inDelphi
+            inDelphi.init_model(celltype=args.repairPredictions)
+            for i, guide in enumerate(results):
+                # noinspection PyBroadException
+                try:
+                    left_seq = guide.downstream5prim + guide.strandedGuideSeq[:-(len(guide.PAM) + 3)]
+                    left_seq = left_seq[-60:]
+                    right_seq = guide.strandedGuideSeq[-(len(guide.PAM) + 3):] + guide.downstream3prim
+                    right_seq = right_seq[:60]
+                    seq = left_seq + right_seq
+                    cutsite = len(left_seq)
+                    pred_df, stats = inDelphi.predict(seq, cutsite)
+                    pred_df = pred_df.sort_values(pred_df.columns[4], ascending=False)
+                    guide.repProfile = pred_df
+                    guide.repStats = stats
+                except:
+                    pass
+
+
+    if args.MODE == ProgramMode.CRISPR or args.MODE == ProgramMode.CPF1 or ISOFORMS:
+        cluster = 0
+    elif args.MODE == ProgramMode.TALENS:
+        pairs = pairTalens(results, sequences, args.guideSize, int(args.taleMin), int(args.taleMax), args.enzymeCo,
+                           args.maxOffTargets, args.g_RVD, args.minResSiteLen)
+
+        if (not len(pairs)):
+            sys.stderr.write("No TALEN pairs could be generated for this region.\n")
+            sys.exit(EXIT['GENE_ERROR'])
+
+        if args.rm1perfOff and args.fasta:
+            for pair in pairs:
+                if pair.diffStrandOffTarget > 0:
+                    pair.score = pair.score - SCORE["OFFTARGET_PAIR_DIFF_STRAND"]
+                if pair.sameStrandOffTarget > 0:
+                    pair.score = pair.score - SCORE["OFFTARGET_PAIR_SAME_STRAND"]
+
+        cluster, results = clusterPairs(pairs)
+        return cluster, results
+
+    elif args.MODE == ProgramMode.NICKASE:
+        pairs = pairCas9(results, sequences, args.guideSize, int(args.nickaseMin), int(args.nickaseMax), args.enzymeCo, args.maxOffTargets, args.minResSiteLen, args.offtargetMaxDist)
+
+        if (not len(pairs)):
+            sys.stderr.write("No Cas9 nickase pairs could be generated for this region.\n")
+            sys.exit(EXIT['GENE_ERROR'])
+
+        if args.rm1perfOff and args.fasta:
+            for pair in pairs:
+                if pair.diffStrandOffTarget > 0:
+                    pair.score = pair.score - SCORE["OFFTARGET_PAIR_DIFF_STRAND"]
+
+        cluster, results = clusterPairs(pairs)
+
+    # Sorts pairs according to score/penalty and cluster
+    if strand == "-" and not ISOFORMS:
+        results.reverse()
+
+    sortedOutput = sortOutput(results)
+
+    # Write individual results to file
+    listOfClusters = writeIndividualResults(args.outputDir, args.maxOffTargets, sortedOutput, args.guideSize, args.MODE, cluster, args.limitPrintResults, args.offtargetsTable)
+
+    if args.makePrimers:
+        if args.fasta:
+            make_primers_fasta(sortedOutput, args.outputDir, args.primerFlanks, args.displaySeqFlanks, args.genome, args.limitPrintResults, CONFIG["PATH"]["BOWTIE_INDEX_DIR"], fastaSequence, args.primer3options, args.guidePadding, args.enzymeCo, args.minResSiteLen, "sequence", args.maxOffTargets)
+        else:
+            make_primers_genome(sortedOutput, args.outputDir, args.primerFlanks, args.displaySeqFlanks, args.genome, args.limitPrintResults, CONFIG["PATH"]["BOWTIE_INDEX_DIR"], CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"], args.primer3options, args.guidePadding, args.enzymeCo, args.minResSiteLen, strand, args.targets, args.maxOffTargets)
+
+
+
+
+    #########- Print part -##########
+    ## Print results
+    resultCoords = []
+
+    if ISOFORMS:
+        print ("Rank\tTarget sequence\tGenomic location\tGene\tIsoform\tGC content (%)\tSelf-complementarity\tLocal structure\tMM0\tMM1\tMM2\tMM3\tConstitutive\tIsoformsMM0\tIsoformsMM1\tIsoformsMM2\tIsoformsMM3")
+        for i in range(len(sortedOutput)):
+            print ("%s\t%s" % (i+1, sortedOutput[i]))
+            resultCoords.append([sortedOutput[i].start, sortedOutput[i].score, sortedOutput[i].guideSize, sortedOutput[i].strand])
+    else:
+        if args.MODE == ProgramMode.CRISPR:
+            common_header = "Rank\tTarget sequence\tGenomic location\tStrand\tGC content (%)\tSelf-complementarity\tMM0\tMM1\tMM2\tMM3"
+            if args.scoringMethod == "ALL":
+                print(common_header + "\tXU_2015\tDOENCH_2014\tDOENCH_2016\tMORENO_MATEOS_2015\tCHARI_2015\tG_20\tALKAN_2018\tZHANG_2019")
+            else:
+                print(common_header + "\tEfficiency")
+            for i in range(len(sortedOutput)):
+                print ("%s\t%s" % (i+1, sortedOutput[i]))
+                resultCoords.append([sortedOutput[i].start, sortedOutput[i].score, sortedOutput[i].guideSize, sortedOutput[i].strand])
+
+        elif args.MODE == ProgramMode.CPF1:
+            print ("Rank\tTarget sequence\tGenomic location\tStrand\tGC content (%)\tSelf-complementarity\tEfficiency\tMM0\tMM1\tMM2\tMM3")
+            for i in range(len(sortedOutput)):
+                print ("%s\t%s" % (i+1, sortedOutput[i]))
+                resultCoords.append([sortedOutput[i].start, sortedOutput[i].score, sortedOutput[i].guideSize, sortedOutput[i].strand])
+
+        elif args.MODE == ProgramMode.TALENS or args.MODE == ProgramMode.NICKASE:
+
+            if args.MODE == ProgramMode.TALENS:
+                print ("Rank\tTarget sequence\tGenomic location\tTALE 1\tTALE 2\tCluster\tOff-target pairs\tOff-targets MM0\tOff-targets MM1\tOff-targets MM2\tOff-targets MM3\tRestriction sites\tBest ID")
+            else:
+                print ("Rank\tTarget sequence\tGenomic location\tCluster\tOff-target pairs\tOff-targets MM0\tOff-targets MM1\tOff-targets MM2\tOff-targets MM3\tRestriction sites\tBest ID")
+            finalOutput = []
+            for cluster in listOfClusters:  ## FIX: WHY ARE THERE EMPTY CLUSTERS???
+                if len(cluster) == 0:
+                    continue
+
+                finalOutput.append(cluster[0])
+
+            sortedFinalOutput = sortOutput(finalOutput)
+            resultCoords = [[j+1, sortedFinalOutput[j].spacerStart, sortedFinalOutput[j].score, sortedFinalOutput[j].spacerSize, sortedFinalOutput[j].strand, sortedFinalOutput[j].ID, sortedFinalOutput[j].tale1.start, sortedFinalOutput[j].tale2.end] for j in range(len(sortedFinalOutput))]
+
+            for i in range(len(sortedFinalOutput)):
+                print ("%s\t%s\t%s" % (i+1,sortedFinalOutput[i], sortedFinalOutput[i].ID))
+
+    # Print gene annotation files
+    # FASTA file
+    geneFile = open('%s/gene_file.fa' % args.outputDir, 'w')
+    geneFile.write(">%s\n" % args.targets)
+    geneFile.write(fastaSequence)
+    geneFile.close()
+
+
+    # Visualize with json
+    if args.jsonVisualize:
+
+        # new function
+        cutcoords = getCoordinatesForJsonVisualization(args, visCoords, sequences, strand, resultCoords)
+
+        info = open("%s/run.info" % args.outputDir, 'w')
+        info.write("%s\t%s\t%s\t%s\t%s\n" % ("".join(args.targets), args.genome, args.MODE, args.uniqueMethod_Cong,
+                                             args.guideSize))
+        info.close()
+
+        if args.BED:
+            print_bed(args.MODE, visCoords, cutcoords, '%s/results.bed' % args.outputDir,
+                      visCoords[0]["name"] if args.fasta else args.targets)
+
+        if args.GenBank:
+            if args.fasta:
+                seq = fastaSequence
+                chrom = visCoords[0]["name"]
+                start = 0
+                finish = len(fastaSequence)
+            else:
+                # targets min-max (with introns)
+                regions = targets
+                chrom = regions[0][0:regions[0].rfind(':')]
+                start = []
+                finish = []
+                targets = []
+                for region in regions:
+                    start_r = int(region[region.rfind(':') + 1:region.rfind('-')])
+                    start_r = max(start_r, 0)
+                    start.append(start_r)
+                    finish_r = int(region[region.rfind('-') + 1:])
+                    finish.append(finish_r)
+                    targets.append([chrom, start_r, finish_r])
+                start = min(start)
+                finish = max(finish)
+
+                prog = Popen("%s -seq=%s -start=%d -end=%d %s/%s.2bit stdout 2> %s/twoBitToFa.err" % (
+                    CONFIG["PATH"]["TWOBITTOFA"], chrom, start, finish, CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
+                    args.genome, args.outputDir), stdout=PIPE, shell=True)
+                output = prog.communicate()
+                if prog.returncode != 0:
+                    sys.stderr.write("Running twoBitToFa failed when creating GenBank file\n")
+                    sys.exit(EXIT['TWOBITTOFA_ERROR'])
+
+                output = output[0]
+                output = output.split("\n")
+                seq = ''.join(output[1:]).upper()
+
+            print_genbank(args.MODE, chrom if args.fasta else args.targets, seq,
+                          [] if args.fasta else targets, cutcoords, chrom, start, finish,
+                          strand, '%s/results.gb' % args.outputDir, "CHOPCHOP results")
+
+
+    # remove .sam files as they take up wayyy to much space
+    for fl in os.listdir(args.outputDir):
+        if fl.endswith(".sam"):
+            os.remove(os.path.join(args.outputDir, fl))
+
+
+
 
 
 if __name__ == '__main__':

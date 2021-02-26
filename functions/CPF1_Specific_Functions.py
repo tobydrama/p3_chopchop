@@ -6,8 +6,8 @@ from functions.Helper_Functions import comaprePAM, selfComp, permPAM
 ##
 ## CPF1 SPECIFIC FUNCTIONS
 ##
-from Bio.Seq import Seq
-from Functions import comaprePAM
+
+
 
 def eval_CPF1_sequence(name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim, PAM,
     filterGCmin, filterGCmax, filterSelfCompMax, replace5prime = None, backbone = None):

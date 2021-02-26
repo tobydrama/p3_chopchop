@@ -1,7 +1,8 @@
-import re
-import sys
-import json
-import numpy
+#####################
+##
+## FUNCTIONS ONLY USED IN MAIN
+##
+
 import scipy.stats as ss
 import warnings
 
@@ -307,7 +308,7 @@ def writeIndividualResults(outputDir, maxOffTargets, sortedOutput, guideSize, mo
         f = fileHandler[current.ID]
 
         # Add the current TALE pair to the appropriate list in the list of lists, depending on its cluster number
-        if mode == TALENS or mode == NICKASE:
+        if mode == ProgramMode.TALENS or mode == ProgramMode.NICKASE:
             clusterID = current.cluster
             clusters[clusterID-1].append(current)
 
@@ -317,17 +318,17 @@ def writeIndividualResults(outputDir, maxOffTargets, sortedOutput, guideSize, mo
 
         f.write(str(current.strandedGuideSeq)+"\n"+offTargets+"\n")
 
-        if mode == CRISPR and not ISOFORMS and current.repStats is not None:
+        if mode == ProgramMode.CRISPR and not ISOFORMS and current.repStats is not None:
             stats_file = '%s/%s_repStats.json' % (outputDir, current.ID)
             with open(stats_file, 'w') as fp:
                 json.dump(current.repStats, fp)
             fp.close()
 
-        if mode == CRISPR and not ISOFORMS and current.repProfile is not None:
+        if mode == ProgramMode.CRISPR and not ISOFORMS and current.repProfile is not None:
             profile_file = '%s/%s_repProfile.csv' % (outputDir, current.ID)
             current.repProfile.to_csv(profile_file, index=False)
 
-        if mode == CRISPR and not ISOFORMS and offtargetsTable:
+        if mode == ProgramMode.CRISPR and not ISOFORMS and offtargetsTable:
             off_table = '%s/offtargetsTable.csv' % outputDir
             label = "%s:%s,%s,%s" % (current.chrom, current.start, current.strand, current.strandedGuideSeq)
             off_for_table = map(lambda x: x.asOffTargetString(label, maxOffTargets), current.offTargets)
@@ -700,16 +701,16 @@ def mode_select(var, index, MODE):
     if var is not None:
         return var
 
-    if MODE == CRISPR:
+    if MODE == ProgramMode.CRISPR:
         return CRISPR_DEFAULT[index]
 
-    elif MODE == TALENS:
+    elif MODE == ProgramMode.TALENS:
         return TALEN_DEFAULT[index]
 
-    elif MODE == CPF1:
+    elif MODE == ProgramMode.CPF1:
         return CPF1_DEFAULT[index]
 
-    elif MODE == NICKASE:
+    elif MODE == ProgramMode.NICKASE:
         return NICKASE_DEFAULT[index]
 
     sys.stderr.write("Unknown model %s\n" % MODE)
@@ -719,11 +720,11 @@ def mode_select(var, index, MODE):
 def print_bed(mode, vis_cords, targets, output_file, description): # bed is 0-based
     bed_file = open(output_file, 'w')
 
-    if mode == CRISPR:
+    if mode == ProgramMode.CRISPR:
         thresholds = [0, 1000]
-    elif mode == CPF1:
+    elif mode == ProgramMode.CPF1:
         thresholds = [300, 1000]
-    elif mode == NICKASE:
+    elif mode == ProgramMode.NICKASE:
         thresholds = [3000, 6000]
     else:
         thresholds = [10000, 15000]
@@ -746,7 +747,7 @@ def print_bed(mode, vis_cords, targets, output_file, description): # bed is 0-ba
             if target[2] >= thresholds[1]:
                 color = "255,0,0"  # red
 
-            if mode == CRISPR or mode == CPF1:
+            if mode == ProgramMode.CRISPR or mode == ProgramMode.CPF1:
                 start = target[1] - 1
                 stop = target[1] + target[3] - 1
             else:
@@ -777,7 +778,7 @@ def print_genbank(mode, name, seq, exons, targets, chrom, seq_start, seq_end, st
             if ISOFORMS:
                 ts = gene_strand
 
-            if mode == CRISPR or mode == CPF1:
+            if mode == ProgramMode.CRISPR or mode == ProgramMode.CPF1:
                 start = target[1] - 1
                 stop = target[1] + target[3] - 1
             else:

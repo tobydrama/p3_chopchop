@@ -1,9 +1,11 @@
+
+
 #####################
 ##
 ## CRISPR SPECIFIC FUNCTIONS
 ##
-
-from Functions import gccontent
+from functions.Helper_Functions import permPAM, attrgetter, selfComp, comaprePAM
+from Vars import ISOFORMS
 from Bio.SeqUtils import GC
 from Bio.Seq import Seq
 
