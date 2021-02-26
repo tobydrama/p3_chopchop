@@ -3,13 +3,51 @@ import sys
 import json
 import numpy
 import scipy.stats as ss
-import pandas
+import warnings
 
-from Vars import ISOFORMS, EXIT, CONFIG
-from subprocess import Popen, PIPE
-from Bio.Seq import Seq
+from functions.Helper_Functions import *
+from functions.CRISPR_Specific_Functions import eval_CRISPR_sequence, sort_CRISPR_guides
+from functions.CPF1_Specific_Functions import eval_CPF1_sequence
+from functions.TALEN_Specific_Functions import sort_TALEN_pairs, eval_TALENS_sequence
+import classes.Cas9 as Cas9
+import classes.Guide as Guide
+from Vars import CONFIG, EXIT, ISOFORMS, ProgramMode, TARGET_MAX, NICKASE_DEFAULT
+from Vars import DOWNSTREAM_NUC, CPF1_DEFAULT, TALEN_DEFAULT, CRISPR_DEFAULT
 
-from Functions import *
+#Used in main
+def set_default_modes(args):
+    if args.MODE == ProgramMode.CRISPR or ProgramMode.NICKASE:
+        # Set mismatch checking policy
+        (allowedMM, countMM) = getMismatchVectors(args.PAM, args.guideSize, args.uniqueMethod_Cong)
+        allowed = getAllowedFivePrime(args.fivePrimeEnd)
+        evalSequence = lambda name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim: eval_CRISPR_sequence(
+            name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim, allowed=allowed, PAM=args.PAM,
+            filterGCmin=args.filterGCmin, filterGCmax=args.filterGCmax,
+            filterSelfCompMax=args.filterSelfCompMax, replace5prime=args.replace5P, backbone=args.backbone)
+        if args.MODE == ProgramMode.CRISPR:
+            guideClass = Cas9 if not ISOFORMS else Guide
+            sortOutput = sort_CRISPR_guides
+        elif args.MODE == ProgramMode.NICKASE:
+            guideClass = Cas9
+            sortOutput = sort_TALEN_pairs
+
+    elif args.MODE == ProgramMode.CPF1:
+        (allowedMM, countMM) = getCpf1MismatchVectors(args.PAM, args.guideSize)
+        evalSequence = lambda name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim: eval_CPF1_sequence(
+            name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim, PAM=args.PAM,
+            filterGCmin=args.filterGCmin, filterGCmax=args.filterGCmax,
+            filterSelfCompMax=args.filterSelfCompMax, replace5prime=args.replace5P, backbone=args.backbone)
+        guideClass = ProgramMode.Cpf1 if not ISOFORMS else Guide
+        sortOutput = sort_CRISPR_guides
+
+    elif args.MODE == ProgramMode.TALENS:
+        (allowedMM, countMM) = getMismatchVectors(args.PAM, args.guideSize, None)
+        guideClass = Guide
+        evalSequence = eval_TALENS_sequence
+        sortOutput = sort_TALEN_pairs
+
+    return countMM, evalSequence, guideClass, sortOutput
+
 
 #Used in main
 def scoreChari_2015(svmInputFile, svmOutputFile, PAM, genome):  #Only one use in main

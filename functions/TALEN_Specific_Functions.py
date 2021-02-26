@@ -1,8 +1,3 @@
-from Vars import TALEN_OFF_TARGET_MIN, TALEN_OFF_TARGET_MAX, PRIMER_OFF_TARGET_MIN, PRIMER_OFF_TARGET_MAX
-import Nickase
-from operator import itemgetter, attrgetter
-from PAIR import Pair
-
 
 #####################
 ##

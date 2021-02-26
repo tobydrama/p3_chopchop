@@ -1,27 +1,10 @@
 #!/usr/bin/env python3
 import math
 
-from Guide import Guide
+from classes.Guide import Guide
 from Bio.Seq import Seq
-from Functions import gccontent
-
-SCORE = {"INPAIR_OFFTARGET_0": 5000,
-         "INPAIR_OFFTARGET_1": 3000,
-         "INPAIR_OFFTARGET_2": 2000,
-         "INPAIR_OFFTARGET_3": 1000,
-         "OFFTARGET_PAIR_SAME_STRAND": 10000,
-         "OFFTARGET_PAIR_DIFF_STRAND": 5000,
-         "PAM_IN_PENALTY": 1000,
-         "MAX_OFFTARGETS": 20000,  # FIX: SPECIFIC FOR TALEN AND CRISPR
-         "COEFFICIENTS": 100,  # also used for RNA folding in ISOFORM mode
-         "CRISPR_BAD_GC": 300,
-         "FOLDING": 1}
-
-STEM_LEN = 4
-
-GC_LOW = 40
-GC_HIGH = 70
-
+from functions.Helper_Functions import gccontent
+from Vars import SCORE, STEM_LEN, GC_LOW, GC_HIGH
 
 class Cas9(Guide):
 

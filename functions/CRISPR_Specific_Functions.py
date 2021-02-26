@@ -6,23 +6,7 @@
 from Functions import gccontent
 from Bio.SeqUtils import GC
 from Bio.Seq import Seq
-from operator import itemgetter, attrgetter
-import Vars
-STEM_LEN = Vars.STEM_LEN
 
-
-
-def selfComp(fwd, backbone):
-    rvs = str(fwd.reverse_complement())
-    fwd = str(fwd)
-    L = len(fwd) - STEM_LEN - 1
-    folding = 0
-    for i in range(0, len(fwd) - STEM_LEN):
-        if gccontent(fwd[i:i + STEM_LEN]) >= 0.5:
-            if fwd[i:i + STEM_LEN] in rvs[0:(L - i)] or any(
-                    [fwd[i:i + STEM_LEN] in item for item in backbone]):
-                folding += 1
-    return folding
 
 def eval_CRISPR_sequence(name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim, allowed, PAM,
                          filterGCmin, filterGCmax, filterSelfCompMax, replace5prime=None, backbone=None):
