@@ -1,3 +1,7 @@
+from Vars import ISOFORMS
+from Bio.Seq import Seq
+from Bio.SeqUtils import GC
+from functions.Helper_Functions import comaprePAM, selfComp, permPAM
 #####################
 ##
 ## CPF1 SPECIFIC FUNCTIONS

@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 
-import Vars
+from Vars import ISOFORMS, STEM_LEN, SCORE, GC_HIGH, GC_LOW, SINGLE_OFFTARGET_SCORE
 import re
 from Bio.Seq import Seq
 from operator import attrgetter
-from Functions import gccontent
 
-ISOFORMS = Vars.ISOFORMS
-STEM_LEN = Vars.STEM_LEN
-SCORE = Vars.SCORE
-GC_HIGH = Vars.GC_HIGH
-GC_LOW = Vars.GC_LOW
-SINGLE_OFFTARGET_SCORE = Vars.SINGLE_OFFTARGET
+#So it doesn't crash
+def gccontent(seq):
+    gc = 0
+    for i in seq:
+        if i == 'G' or i == 'g' or i == 'C' or i == 'c':
+            gc += 1
+    return float(gc) / float(len(seq))
 
-
-#Used in Guide
+# Used in Guide
 def get_mismatch_pos(mismatch_string):
     mismatches = []
 

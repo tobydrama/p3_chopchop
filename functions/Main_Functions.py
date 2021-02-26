@@ -825,3 +825,54 @@ def tx_relative_coordinates(visCoords, tx_id, start, end):
         tx_end = tx_start + end - start
 
     return tx_start, tx_end
+
+#
+def FastaToViscoords(sequences, strand):
+    """ Makes the exons in 'sequences' array generated in coordToFasta json readable for visualization"""
+    exonstart = []
+    exonend = []
+    exonsequence = []
+
+    for exon in sequences:
+        # sys.stderr.write("%s\n" % exon)
+        exonlist = exon.split(':')
+        exoncoord = exonlist[2].split('-')
+        exonstart.append(exoncoord[0])
+        exonend.append(exoncoord[1])
+        seq = sequences[exon]
+        if strand == "-":
+            seq = complement(seq)
+
+        exonsequence.append(seq)
+
+    return zip(exonstart, exonend, exonsequence)
+
+#Used in main
+def clusterPairs(pairs):
+    """ Clusters paired sequences according to overlap, so user knows which TALE pairs are redundant """
+
+    # Sets the starting pair of TALEs to be compared to
+    first = pairs[0]
+    cluster = 1
+    first.cluster = cluster
+    inCluster = 0
+
+    # Compares each TALE pair to previous pair in list to see whether redundant. Assigns cluster number accordingly
+    for i in range(1,len(pairs)):
+        cur = pairs[i]
+        prev = pairs[i-1]
+
+        # Specifically, compares location of spacer (by comparing location of tales) to see whether there is overlap,
+        # and therefore TALE pairs are redundant
+        if ((cur.spacerStart <= prev.spacerEnd) and (cur.spacerEnd >= prev.spacerStart) and
+                    inCluster < PRIMER_OFF_TARGET_MIN):
+
+            cur.cluster = cluster
+            inCluster += 1
+        else:
+            # If not redundant, increase cluster number
+            cluster += 1
+            cur.cluster = cluster
+            inCluster = 0
+
+    return (cluster, pairs)
