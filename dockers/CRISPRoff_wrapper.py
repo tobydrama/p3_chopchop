@@ -1,5 +1,6 @@
 import subprocess
-
+import pickle
+import codecs
 
 # TODO find a good solution to permissions problem
 def run_coefficient_score(stranded_guide_seq: str) -> float:
@@ -22,4 +23,4 @@ def run_coefficient_score(stranded_guide_seq: str) -> float:
     the subprocess will raise a 'CalledProcessError' with captured STDERR"""
     crisproff = subprocess.run(command, capture_output=True, text=True, check=True)
 
-    return float(crisproff.stdout)
+    return pickle.loads(codecs.decode(crisproff.stdout.encode(), 'base64'), encoding='latin1')

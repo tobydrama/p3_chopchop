@@ -1,6 +1,8 @@
 #!/usr/bin/env python2.7
 
 import argparse
+import pickle
+import codecs
 
 from CRISPRoff.CRISPRoff_specificity import CRISPRoff_score
 
@@ -17,7 +19,7 @@ def main():
 
     # Print result to stdout so that it can be caught by CHOPCHOP
     # TODO make sure floating point precision is the same as in CHOPCHOP 2.7
-    print("%0.14f" % result)
+    print codecs.encode(pickle.dumps(result).decode(), 'base64').decode()
 
 
 if __name__ == '__main__':
