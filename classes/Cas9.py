@@ -81,7 +81,7 @@ class Cas9(Guide):
             self.score -= self.CoefficientsScore[self.scoringMethod] * SCORE['COEFFICIENTS']
 
         if self.scoringMethod == "ALKAN_2018" or self.scoringMethod == "ALL":
-            from docker.CRISPRoff_wrapper import run_coefficient_score
+            from dockers.CRISPRoff_wrapper import run_coefficient_score
             self.CoefficientsScore[self.scoringMethod] = run_coefficient_score(self.strandedGuideSeq)
             self.score -= self.CoefficientsScore[self.scoringMethod] * SCORE['COEFFICIENTS']
 
