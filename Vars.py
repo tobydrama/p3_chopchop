@@ -1,7 +1,6 @@
 import sys
 import os
 import json
-from enum import Enum
 
 #Dict
 CRISPR_DEFAULT = {"GUIDE_SIZE": 20,
@@ -161,13 +160,6 @@ codes = {
 #Array
 SINGLE_OFFTARGET_SCORE = [1000, 800, 600, 400]
 
-
-#const
-class ProgramMode(Enum):
-    CRISPR = 1
-    TALENS = 2
-    CPF1 = 3
-    NICKASE = 4
 
 ISOFORMS = False
 

@@ -10,12 +10,17 @@ from Vars import *
 from collections import defaultdict
 from operator import itemgetter
 from subprocess import Popen, PIPE
+
+from classes.ProgramMode import ProgramMode, ProgramModeAction
 from functions.Main_Functions import *
 from functions.Helper_Functions import *
 from functions.TALEN_Specific_Functions import *
 
+import dockers
+
 soft, HARD_LIMIT = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (HARD_LIMIT, HARD_LIMIT))
+
 
 def parseArguments():
     parser = argparse.ArgumentParser()
@@ -48,7 +53,7 @@ def parseArguments():
     # TO FOLDING/SELF-COMPL
     parser.add_argument("-t", "--target", default="CODING", dest="targetRegion",
                         help="Target the whole gene CODING/WHOLE/UTR5/UTR3/SPLICE. Default is CODING.")
-    parser.add_argument("-T", "--MODE", default=1, type=int, choices=[1, 2, 3, 4],
+    parser.add_argument("-T", "--MODE", default=1, type=int, action=ProgramModeAction, choices=[1, 2, 3, 4],
                         help="Set mode (int): default is Cas9 = 1, Talen = 2, Cpf1 = 3, Nickase = 4")
     parser.add_argument("-taleMin", "--taleMin", default=14, type=int,
                         help="Minimum distance between TALENs. Default is 14.")  # 14 + 18(length of TALE) = 32
@@ -528,7 +533,8 @@ def main():
         # new function
         scoringMethodKIM_2018(results)
 
-    #if (args.scoringMethod == "DOENCH_2016" or args.scoringMethod == "ALL") and not ISOFORMS and args.MODE == ProgramMode.CRISPR:
+    if (args.scoringMethod == "DOENCH_2016" or args.scoringMethod == "ALL") and not ISOFORMS and args.MODE == ProgramMode.CRISPR:
+        guides = dockers.doench_2016_wrapper.run_doench_2016(args.scoringMethod, results)
         # new function
         #scoringMethodDOENCH_2016(args, results)
 
