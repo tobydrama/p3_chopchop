@@ -11,7 +11,7 @@ from collections import defaultdict
 from operator import itemgetter
 from subprocess import Popen, PIPE
 
-from classes.ProgramMode import ProgramMode, ProgramModeAction
+from classes.ProgramMode import *
 from functions.Main_Functions import *
 from functions.Helper_Functions import *
 from functions.TALEN_Specific_Functions import *
@@ -564,7 +564,7 @@ def main():
                 bpp = []
                 for tx_id in guide.gene_isoforms:
                     tx_start, tx_end = tx_relative_coordinates(visCoords, tx_id, guide.start, guide.end)
-                    if tx_start is not -1:
+                    if tx_start != -1:
                         bpp.append(rna_folding_metric(args.genome, tx_id, tx_start, tx_end))
                 guide.meanBPP = 100 if len(bpp) == 0 else max(bpp) # penalize guide that has no real target!
             else:
@@ -788,9 +788,6 @@ def main():
     for fl in os.listdir(args.outputDir):
         if fl.endswith(".sam"):
             os.remove(os.path.join(args.outputDir, fl))
-
-
-
 
 
 if __name__ == '__main__':
