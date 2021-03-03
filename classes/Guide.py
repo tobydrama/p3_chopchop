@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from Vars import ISOFORMS, STEM_LEN, SCORE, GC_HIGH, GC_LOW, SINGLE_OFFTARGET_SCORE
+from Vars import *
 import re
 from Bio.Seq import Seq
 from operator import attrgetter
@@ -185,7 +185,7 @@ class Guide(object):
             return
 
         # Do not count off targets twice, e.g. for TALENs valid on both strands.
-        if self.offTarget_hash in hit_id:
+        if hit_id in self.offTarget_hash:
             return
 
         # Reverse count+allowed arrays if on the reverse strand

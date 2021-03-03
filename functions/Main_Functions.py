@@ -16,7 +16,8 @@ from classes.Guide import Guide
 from Vars import CONFIG, EXIT, ISOFORMS, TARGET_MAX, NICKASE_DEFAULT
 from Vars import DOWNSTREAM_NUC, CPF1_DEFAULT, TALEN_DEFAULT, CRISPR_DEFAULT
 
-#Used in main
+
+# Used in main
 def set_default_modes(args):
     if args.MODE == ProgramMode.CRISPR or ProgramMode.NICKASE:
         # Set mismatch checking policy
@@ -151,7 +152,7 @@ def coordToFasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc, n
             sys.stderr.write("Running twoBitToFa failed\n")
             sys.exit(EXIT['TWOBITTOFA_ERROR'])
 
-        output = output[0]
+        output = output[0].decode()
         exons = output.split("\n")
         dna = ''.join(exons[1:]).upper()
         ext_dna = dna
@@ -169,7 +170,7 @@ def coordToFasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc, n
         name = "C:%s:%d-%d" % (chrom, start, finish)
 
         # Loop over exon sequence, write every g-mer into file in which g-mer ends in PAM in fasta format
-        positions = range(0, len(dna)-(targetSize-1))
+        positions = list(range(0, len(dna)-(targetSize-1)))
         while len(positions) != 0:
             num = positions.pop(0)
             downstream_5prim = ext_dna[num:(num + ext)]

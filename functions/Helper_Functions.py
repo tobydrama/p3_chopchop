@@ -6,8 +6,9 @@ import csv
 import json
 import pandas
 import numpy
-import classes.Hit as Hit
-import classes.Guide as Guide
+
+from classes.Hit import Hit
+from classes.Guide import Guide
 
 from Bio import SeqIO
 from Bio.Restriction import Analysis, RestrictionBatch

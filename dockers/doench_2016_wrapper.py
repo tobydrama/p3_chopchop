@@ -3,7 +3,7 @@ import subprocess
 import pickle
 import codecs
 
-from Cas9 import Cas9
+from classes.Cas9 import Cas9
 
 
 def convert_cas9_to_tuple(key: int, guide: Cas9) -> (int, str, str, str, str, float, float):
@@ -28,11 +28,11 @@ def run_doench_2016(scoring_method: str, guides: [Cas9]) -> [Cas9]:
     for key, guide in enumerate(guides):
         keyed_tuples.append(convert_cas9_to_tuple(key, guide))
 
-    encoded = codecs.encode(pickle.dumps(keyed_tuples), 'base64').decode()
+    encoded = codecs.encode(pickle.dumps(keyed_tuples, protocol=2), 'base64').decode()
 
     command = ['docker', 'run', '-i', 'chopchop_doench_2016', '-s', scoring_method]
 
-    doench_2016 = subprocess.run(command, capture_output=True, text=True, check=True, input=encoded)
+    doench_2016 = subprocess.run(command, capture_output=True, text=True, input=encoded)
 
     # encoding='latin1' is for backwards compatibility.
     results = pickle.loads(codecs.decode(doench_2016.stdout.encode(), 'base64'), encoding='latin1')

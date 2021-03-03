@@ -4,7 +4,8 @@ import math
 from classes.Guide import Guide
 from Bio.Seq import Seq
 from functions.Helper_Functions import gccontent
-from Vars import SCORE, STEM_LEN, GC_LOW, GC_HIGH
+from Vars import *
+
 
 class Cas9(Guide):
 
@@ -38,15 +39,15 @@ class Cas9(Guide):
                     self.downstream5prim + self.strandedGuideSeq[:-len(self.PAM)],
                     self.strandedGuideSeq[-len(self.PAM):], self.downstream3prim, globals()[met])
 
-    def scoregRNA(seq, PAM, tail, lookup):
+    def scoregRNA(self, seq, PAM, tail, lookup):
         """ Calculate score from model coefficients. score is 0-1, higher is better """
         score = 0
-        if lookup in "Intercept":
+        if "Intercept" in lookup:
             score = lookup["Intercept"]
 
         seq = seq[::-1]  # we calculate from PAM in a way: 321PAM123
 
-        if lookup in "gc_low":
+        if "gc_low" in lookup:
             gc = seq[:20].count('G') + seq[:20].count('C')
             if gc < 10:
                 score = score + (abs(gc - 10) * lookup["gc_low"])
@@ -55,37 +56,37 @@ class Cas9(Guide):
 
         for i in range(len(seq)):
             key = seq[i] + str(i + 1)
-            if lookup in key:
+            if key in lookup:
                 score += lookup[key]
 
             if i + 1 < len(seq):
                 double_key = seq[i] + seq[i + 1] + str(i + 1)
-                if lookup in double_key:
+                if double_key in lookup:
                     score += lookup[double_key]
 
             if i == 0:
                 double_key = PAM[0] + seq[0] + str(0)
-                if lookup in double_key:
+                if double_key in lookup:
                     score += lookup[double_key]
 
         for i in range(len(PAM)):
             key = 'PAM' + PAM[i] + str(i + 1)
-            if lookup in key:
+            if key in lookup:
                 score += lookup[key]
 
             if i + 1 < len(PAM):
                 double_key = 'PAM' + PAM[i] + PAM[i + 1] + str(i + 1)
-                if lookup in double_key:
+                if double_key in lookup:
                     score += lookup[double_key]
 
         for i in range(len(tail)):
             key = str(i + 1) + tail[i]
-            if lookup in key:
+            if key in lookup:
                 score += lookup[key]
 
             if i + 1 < len(tail):
                 double_key = str(i + 1) + tail[i] + tail[i + 1]
-                if lookup in double_key:
+                if double_key in lookup:
                     score += lookup[double_key]
 
         score = 1 / (1 + math.e ** -score)
