@@ -211,7 +211,7 @@ class Guide(object):
 
                 # ugly repeat to save time from iterating all isoforms
                 if ISOFORMS and checkMismatch:
-                    if hit.chrom in self.gene_isoforms: # and hit.chrom not in self.offTargetsIso[mm]:
+                    if self.gene_isoforms in hit.chrom: # and hit.chrom not in self.offTargetsIso[mm]:
                         self.offTargetsIso[mm].add(hit.chrom)
                         # don't count/score isoform mismatches but display which isoforms have them
                     else:

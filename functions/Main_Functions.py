@@ -6,13 +6,14 @@
 import scipy.stats as ss
 import warnings
 
+from classes.ProgramMode import ProgramMode
 from functions.Helper_Functions import *
 from functions.CRISPR_Specific_Functions import eval_CRISPR_sequence, sort_CRISPR_guides
 from functions.CPF1_Specific_Functions import eval_CPF1_sequence
 from functions.TALEN_Specific_Functions import sort_TALEN_pairs, eval_TALENS_sequence
-import classes.Cas9 as Cas9
-import classes.Guide as Guide
-from Vars import CONFIG, EXIT, ISOFORMS, ProgramMode, TARGET_MAX, NICKASE_DEFAULT
+from classes.Cas9 import Cas9
+from classes.Guide import Guide
+from Vars import CONFIG, EXIT, ISOFORMS, TARGET_MAX, NICKASE_DEFAULT
 from Vars import DOWNSTREAM_NUC, CPF1_DEFAULT, TALEN_DEFAULT, CRISPR_DEFAULT
 
 #Used in main
@@ -818,7 +819,7 @@ def tx_relative_coordinates(visCoords, tx_id, start, end):
             e_id = i
             break
 
-    if e_id is not -1:
+    if e_id != -1:
         for i in range(0, e_id) if exons[0][5] == "+" else range(e_id + 1, len(exons)):
             tx_start += exons[i][2] - exons[i][1]
 

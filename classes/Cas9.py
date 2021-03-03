@@ -8,6 +8,36 @@ from Vars import SCORE, STEM_LEN, GC_LOW, GC_HIGH
 
 class Cas9(Guide):
 
+    def __init__(self, *args, **kwargs):
+        super(Cas9, self).__init__(*args, **kwargs)
+        self.CoefficientsScore = {"XU_2015": 0,
+                                  "DOENCH_2014": 0,
+                                  "DOENCH_2016": 0,
+                                  "MORENO_MATEOS_2015": 0,
+                                  "CHARI_2015": 0,
+                                  "G_20": 0,
+                                  "ALKAN_2018": 0,
+                                  "ZHANG_2019": 0}
+        self.repProfile = None  # Shen et al 2018 prediction of repair profile
+        self.repStats = None
+
+        if self.scoringMethod not in ["CHARI_2015", "DOENCH_2016", "ALKAN_2018", "ZHANG_2019", "ALL"]:
+            self.CoefficientsScore[self.scoringMethod] = self.scoregRNA(
+                self.downstream5prim + self.strandedGuideSeq[:-len(self.PAM)],
+                self.strandedGuideSeq[-len(self.PAM):], self.downstream3prim, globals()[self.scoringMethod])
+            self.score -= self.CoefficientsScore[self.scoringMethod] * SCORE['COEFFICIENTS']
+
+        if self.scoringMethod == "ALKAN_2018" or self.scoringMethod == "ALL":
+            from dockers.CRISPRoff_wrapper import run_coefficient_score
+            self.CoefficientsScore[self.scoringMethod] = run_coefficient_score(self.strandedGuideSeq)
+            self.score -= self.CoefficientsScore[self.scoringMethod] * SCORE['COEFFICIENTS']
+
+        if self.scoringMethod == "ALL":
+            for met in ["XU_2015", "DOENCH_2014", "MORENO_MATEOS_2015", "G_20"]:
+                self.CoefficientsScore[met] = self.scoregRNA(
+                    self.downstream5prim + self.strandedGuideSeq[:-len(self.PAM)],
+                    self.strandedGuideSeq[-len(self.PAM):], self.downstream3prim, globals()[met])
+
     def scoregRNA(seq, PAM, tail, lookup):
         """ Calculate score from model coefficients. score is 0-1, higher is better """
         score = 0
@@ -60,36 +90,6 @@ class Cas9(Guide):
 
         score = 1 / (1 + math.e ** -score)
         return score
-
-    def __init__(self, *args, **kwargs):
-        super(Cas9, self).__init__(*args, **kwargs)
-        self.CoefficientsScore = {"XU_2015": 0,
-                                  "DOENCH_2014": 0,
-                                  "DOENCH_2016": 0,
-                                  "MORENO_MATEOS_2015": 0,
-                                  "CHARI_2015": 0,
-                                  "G_20": 0,
-                                  "ALKAN_2018": 0,
-                                  "ZHANG_2019": 0}
-        self.repProfile = None  # Shen et al 2018 prediction of repair profile
-        self.repStats = None
-
-        if self.scoringMethod not in ["CHARI_2015", "DOENCH_2016", "ALKAN_2018", "ZHANG_2019", "ALL"]:
-            self.CoefficientsScore[self.scoringMethod] = self.scoregRNA(
-                self.downstream5prim + self.strandedGuideSeq[:-len(self.PAM)],
-                self.strandedGuideSeq[-len(self.PAM):], self.downstream3prim, globals()[self.scoringMethod])
-            self.score -= self.CoefficientsScore[self.scoringMethod] * SCORE['COEFFICIENTS']
-
-        if self.scoringMethod == "ALKAN_2018" or self.scoringMethod == "ALL":
-            from dockers.CRISPRoff_wrapper import run_coefficient_score
-            self.CoefficientsScore[self.scoringMethod] = run_coefficient_score(self.strandedGuideSeq)
-            self.score -= self.CoefficientsScore[self.scoringMethod] * SCORE['COEFFICIENTS']
-
-        if self.scoringMethod == "ALL":
-            for met in ["XU_2015", "DOENCH_2014", "MORENO_MATEOS_2015", "G_20"]:
-                self.CoefficientsScore[met] = self.scoregRNA(
-                    self.downstream5prim + self.strandedGuideSeq[:-len(self.PAM)],
-                    self.strandedGuideSeq[-len(self.PAM):], self.downstream3prim, globals()[met])
 
     def __str__(self):
         self.sort_offTargets()
