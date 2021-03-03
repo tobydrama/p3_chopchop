@@ -455,6 +455,7 @@ def getClusterPairsNICKASE(results, sequences, args):
     return cluster, results
 """
 
+
 def main():
     # Parse arguments
     args = parse_arguments()
