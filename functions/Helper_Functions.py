@@ -14,7 +14,6 @@ from Bio import SeqIO
 from Bio.Restriction import Analysis, RestrictionBatch
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.Alphabet.IUPAC import IUPACAmbiguousDNA
 from Bio.SeqFeature import SeqFeature, FeatureLocation
 from operator import itemgetter, attrgetter
 from subprocess import Popen, PIPE
@@ -55,7 +54,7 @@ def gccontent(seq):
 # Used in Nickase, Pair, dump_restriction_sites
 def findRestrictionSites(sequence, enzymeCompany, minSize=1):
     # Take spacerSeq as DNA input for restriction site search
-    mySeq = Seq(sequence, IUPACAmbiguousDNA())
+    mySeq = Seq(sequence)
 
     # Restricts enzyme possibilities to NEB enzymes. Can ultimately change to any supplier.
     rb = RestrictionBatch(first=[], suppliers=[enzymeCompany])
@@ -504,7 +503,7 @@ def dump_genbank_file(seq, target, restSites, primers, outputDir, geneID, lociSt
 
     # Genbank file
     genbankFile = open('%s/%s_%s.gb' % (outputDir, geneID, target.ID), 'w')
-    record = SeqRecord(Seq(seq, IUPACAmbiguousDNA()), description=desc, name="CHOPCHOP", id=name)
+    record = SeqRecord(Seq(seq), description=desc, name="CHOPCHOP", id=name)
     record.annotation = annotation
 
     if target.strand == "+":
