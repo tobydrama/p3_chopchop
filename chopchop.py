@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import subprocess
+from typing import List, Callable, Union
 
 import pandas
 import numpy
@@ -7,6 +9,7 @@ import resource
 from Vars import *
 from collections import defaultdict
 
+from classes.Cas9 import Cas9
 from classes.ProgramMode import ProgramModeAction, ProgramMode
 import functions.Main_Functions
 from functions.Helper_Functions import *
@@ -62,7 +65,7 @@ def parse_arguments():
     parser.add_argument("-t", "--target", default="CODING", dest="targetRegion",
                         help="Target the whole gene CODING/WHOLE/UTR5/UTR3/SPLICE. Default is CODING.")
 
-    parser.add_argument("-T", "--MODE", type=int, default=1, choices=[1, 2, 3, 4], action=ProgramModeAction,
+    parser.add_argument("-T", "--MODE", type=int, default=1, choices=[1, 2, 3, 4],
                         help="Set mode (int): default is Cas9 = 1, Talen = 2, Cpf1 = 3, Nickase = 4")
 
     # 14 + 18(length of TALE) = 32
@@ -183,7 +186,11 @@ def parse_arguments():
                              "stopping will work on a guide! Limited also to CRISPR mode only and limited by "
                              "--limitPrintResults option.")
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    args.MODE = ProgramMode(args.MODE)
+
+    return args
 
 
 def getCoordinatesForJsonVisualization(args, visCoords, sequences, strand, resultCoords):
@@ -454,8 +461,95 @@ def getClusterPairsNICKASE(results, sequences, args):
 
 
 
-def print_scores():
-    return 0
+def print_scores(sorted_output: Union[List[Guide], List[Pair]],
+                 mode: ProgramMode = ProgramMode.CRISPR,
+                 scoring_method: str = "G20",
+                 isoforms: bool = False) -> None:
+    if isoforms:
+        print("Rank\tTarget sequence\tGenomic location\tGene\tIsoform\tGC content (%)\tSelf-complementarity\t"
+              "Local structure\tMM0\tMM1\tMM2\tMM3\tConstitutive\tIsoformsMM0\tIsoformsMM1\tIsoformsMM2\tIsoformsMM3")
+        for i, guide in enumerate(sorted_output):
+            print("%s\t%s" % (i + 1, guide))
+
+    else:
+        if mode == ProgramMode.CRISPR:
+            common_header = "Rank\tTarget sequence\tGenomic location\tStrand\tGC content (%)\tSelf-complementarity\t" \
+                            "MM0\tMM1\tMM2\tMM3 "
+
+            if scoring_method == "ALL":
+                print(common_header + "\tXU_2015\tDOENCH_2014\tDOENCH_2016\tMORENO_MATEOS_2015\tCHARI_2015\tG_20\t"
+                                      "ALKAN_2018\tZHANG_2019")
+            else:
+                print(common_header + "\tEfficiency")
+
+            for i, guide in enumerate(sorted_output):
+                print("%s\t%s" % (i + 1, guide))
+
+        elif mode == ProgramMode.CPF1:
+            print("Rank\tTarget sequence\tGenomic location\tStrand\tGC content (%)\tSelf-complementarity\tEfficiency\t"
+                  "MM0\tMM1\tMM2\tMM3")
+
+            for i, guide in enumerate(sorted_output):
+                print("%s\t%s" % (1 + i, guide))
+
+        elif mode == ProgramMode.TALENS or mode == ProgramMode.NICKASE:
+            if mode == ProgramMode.TALENS:
+                print("Rank\tTarget sequence\tGenomic location\tTALE 1\tTALE 2\tCluster\tOff-target pairs\t"
+                      "Off-targets MM0\tOff-targets MM1\tOff-targets MM2\tOff-targets MM3\tRestriction sites\tBest ID")
+            else:
+                print("Rank\tTarget sequence\tGenomic location\tCluster\tOff-target pairs\t"
+                      "Off-targets MM0\tOff-targets MM1\tOff-targets MM2\tOff-targets MM3\tRestriction sites\tBest ID")
+
+            for i, guide in enumerate(sorted_output):
+                print("%s\t%s\t%s" % (i + 1, guide, guide.ID))
+
+
+def generate_result_coordinates(sorted_output: Union[List[Guide], List[Pair]],
+                                clusters: List[List[Pair]],
+                                sort_function: Callable[[List[Guide]], List[Guide]],
+                                mode: ProgramMode = ProgramMode.CRISPR,
+                                isoforms: bool = False) -> List[List[any]]:
+    result_coordinates = []
+
+    if isoforms:
+        for i, guide in enumerate(sorted_output):
+            result_coordinates.append([guide.start,
+                                       guide.score,
+                                       guide.guideSize,
+                                       guide.strand])
+
+    else:
+        if mode == ProgramMode.CRISPR:
+            for i, guide in enumerate(sorted_output):
+                result_coordinates.append([guide.start,
+                                           guide.score,
+                                           guide.guideSize,
+                                           guide.strand])
+        elif mode == ProgramMode.CPF1:
+            for i, guide in enumerate(sorted_output):
+                result_coordinates.append([guide.start,
+                                           guide.score,
+                                           guide.guideSize,
+                                           guide.strand])
+
+        elif mode == ProgramMode.TALENS or mode == ProgramMode.NICKASE:
+            final_output = []
+            for cluster in clusters:
+                if len(cluster) == 0:
+                    continue
+                final_output.append(cluster[0])
+
+            sorted_output = sort_function(final_output)
+            for guide in sorted_output:
+                result_coordinates.append([guide.spacerStart,
+                                           guide.score,
+                                           guide.spacerSize,
+                                           guide.strand,
+                                           guide.ID,
+                                           guide.tale1.start,
+                                           guide.tale2.end])
+
+    return result_coordinates
 
 
 def main():
@@ -666,48 +760,13 @@ def main():
 
     #########- Print part -##########
     ## Print results
-    resultCoords = []
+    print_scores(sortedOutput, args.MODE, args.scoringMethod, args.isoforms)
 
-    if ISOFORMS:
-        print ("Rank\tTarget sequence\tGenomic location\tGene\tIsoform\tGC content (%)\tSelf-complementarity\tLocal structure\tMM0\tMM1\tMM2\tMM3\tConstitutive\tIsoformsMM0\tIsoformsMM1\tIsoformsMM2\tIsoformsMM3")
-        for i in range(len(sortedOutput)):
-            print ("%s\t%s" % (i+1, sortedOutput[i]))
-            resultCoords.append([sortedOutput[i].start, sortedOutput[i].score, sortedOutput[i].guideSize, sortedOutput[i].strand])
-    else:
-        if args.MODE == functions.Main_Functions.ProgramMode.CRISPR:
-            common_header = "Rank\tTarget sequence\tGenomic location\tStrand\tGC content (%)\tSelf-complementarity\tMM0\tMM1\tMM2\tMM3"
-            if args.scoringMethod == "ALL":
-                print(common_header + "\tXU_2015\tDOENCH_2014\tDOENCH_2016\tMORENO_MATEOS_2015\tCHARI_2015\tG_20\tALKAN_2018\tZHANG_2019")
-            else:
-                print(common_header + "\tEfficiency")
-            for i in range(len(sortedOutput)):
-                print ("%s\t%s" % (i+1, sortedOutput[i]))
-                resultCoords.append([sortedOutput[i].start, sortedOutput[i].score, sortedOutput[i].guideSize, sortedOutput[i].strand])
-
-        elif args.MODE == functions.Main_Functions.ProgramMode.CPF1:
-            print ("Rank\tTarget sequence\tGenomic location\tStrand\tGC content (%)\tSelf-complementarity\tEfficiency\tMM0\tMM1\tMM2\tMM3")
-            for i in range(len(sortedOutput)):
-                print ("%s\t%s" % (i+1, sortedOutput[i]))
-                resultCoords.append([sortedOutput[i].start, sortedOutput[i].score, sortedOutput[i].guideSize, sortedOutput[i].strand])
-
-        elif args.MODE == functions.Main_Functions.ProgramMode.TALENS or args.MODE == functions.Main_Functions.ProgramMode.NICKASE:
-
-            if args.MODE == functions.Main_Functions.ProgramMode.TALENS:
-                print ("Rank\tTarget sequence\tGenomic location\tTALE 1\tTALE 2\tCluster\tOff-target pairs\tOff-targets MM0\tOff-targets MM1\tOff-targets MM2\tOff-targets MM3\tRestriction sites\tBest ID")
-            else:
-                print ("Rank\tTarget sequence\tGenomic location\tCluster\tOff-target pairs\tOff-targets MM0\tOff-targets MM1\tOff-targets MM2\tOff-targets MM3\tRestriction sites\tBest ID")
-            finalOutput = []
-            for cluster in listOfClusters:  ## FIX: WHY ARE THERE EMPTY CLUSTERS???
-                if len(cluster) == 0:
-                    continue
-
-                finalOutput.append(cluster[0])
-
-            sortedFinalOutput = sortOutput(finalOutput)
-            resultCoords = [[j+1, sortedFinalOutput[j].spacerStart, sortedFinalOutput[j].score, sortedFinalOutput[j].spacerSize, sortedFinalOutput[j].strand, sortedFinalOutput[j].ID, sortedFinalOutput[j].tale1.start, sortedFinalOutput[j].tale2.end] for j in range(len(sortedFinalOutput))]
-
-            for i in range(len(sortedFinalOutput)):
-                print ("%s\t%s\t%s" % (i+1,sortedFinalOutput[i], sortedFinalOutput[i].ID))
+    resultCoords = generate_result_coordinates(sortedOutput,
+                                               listOfClusters,
+                                               sortOutput,
+                                               args.MODE,
+                                               args.isoforms)
 
     # Print gene annotation files
     # FASTA file

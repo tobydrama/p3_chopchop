@@ -20,7 +20,7 @@ from Vars import DOWNSTREAM_NUC, CPF1_DEFAULT, TALEN_DEFAULT, CRISPR_DEFAULT
 
 # Used in main
 def set_default_modes(args):
-    if args.MODE == ProgramMode.CRISPR or ProgramMode.NICKASE:
+    if args.MODE == ProgramMode.CRISPR or args.MODE == ProgramMode.NICKASE:
         # Set mismatch checking policy
         (allowedMM, countMM) = getMismatchVectors(args.PAM, args.guideSize, args.uniqueMethod_Cong)
         allowed = getAllowedFivePrime(args.fivePrimeEnd)
