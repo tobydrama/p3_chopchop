@@ -415,6 +415,7 @@ def scoringMethodDOENCH_2016(args, results):
     except:
         pass
 
+"""
 
 def getClusterPairsTALENS(results, sequences, args):
     pairs = pairTalens(results, sequences, args.guideSize, int(args.taleMin), int(args.taleMax), args.enzymeCo,
@@ -450,7 +451,11 @@ def getClusterPairsNICKASE(results, sequences, args):
 
     cluster, results = clusterPairs(pairs)
     return cluster, results
-"""
+
+
+
+def print_scores():
+    return 0
 
 
 def main():
@@ -624,38 +629,13 @@ def main():
 
     if args.MODE == ProgramMode.CRISPR or args.MODE == ProgramMode.CPF1 or ISOFORMS:
         cluster = 0
-    elif args.MODE == ProgramMode.TALENS:
-        pairs = pairTalens(results, sequences, args.guideSize, int(args.taleMin), int(args.taleMax), args.enzymeCo,
-                           args.maxOffTargets, args.g_RVD, args.minResSiteLen)
+    elif args.MODE == functions.Main_Functions.ProgramMode.TALENS:
+        # New function
+        cluster, results = getClusterPairsTALENS(results, sequences, args)
 
-        if (not len(pairs)):
-            sys.stderr.write("No TALEN pairs could be generated for this region.\n")
-            sys.exit(EXIT['GENE_ERROR'])
-
-        if args.rm1perfOff and args.fasta:
-            for pair in pairs:
-                if pair.diffStrandOffTarget > 0:
-                    pair.score = pair.score - SCORE["OFFTARGET_PAIR_DIFF_STRAND"]
-                if pair.sameStrandOffTarget > 0:
-                    pair.score = pair.score - SCORE["OFFTARGET_PAIR_SAME_STRAND"]
-
-        cluster, results = functions.Main_Functions.clusterPairs(pairs)
-        return cluster, results
-
-    elif args.MODE == ProgramMode.NICKASE:
-        pairs = pairCas9(results, sequences, args.guideSize, int(args.nickaseMin), int(args.nickaseMax), args.enzymeCo,
-                         args.maxOffTargets, args.minResSiteLen, args.offtargetMaxDist)
-
-        if (not len(pairs)):
-            sys.stderr.write("No Cas9 nickase pairs could be generated for this region.\n")
-            sys.exit(EXIT['GENE_ERROR'])
-
-        if args.rm1perfOff and args.fasta:
-            for pair in pairs:
-                if pair.diffStrandOffTarget > 0:
-                    pair.score = pair.score - SCORE["OFFTARGET_PAIR_DIFF_STRAND"]
-
-        cluster, results = functions.Main_Functions.clusterPairs(pairs)
+    elif args.MODE == functions.Main_Functions.ProgramMode.NICKASE:
+        # New function
+        cluster, results = getClusterPairsNICKASE(results, sequences, args)
 
     # Sorts pairs according to score/penalty and cluster
     if strand == "-" and not ISOFORMS:
