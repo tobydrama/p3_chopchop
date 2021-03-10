@@ -2,6 +2,7 @@
 ##
 ## FUNCTIONS ONLY USED IN MAIN
 ##
+from typing import Union, List
 
 import scipy.stats as ss
 import warnings
@@ -696,27 +697,28 @@ def getCpf1MismatchVectors(pam, gLength):
 
     return allowed, count
 
-#Used in main
-def mode_select(var, index, MODE):
-    """ Selects a default depending on mode for options that have not been set """
 
+#Used in main
+def mode_select(var: any, index: str, mode: ProgramMode):
+    """ Selects a default depending on mode for options that have not been set """
     if var is not None:
         return var
 
-    if MODE == ProgramMode.CRISPR:
+    if mode == ProgramMode.CRISPR:
         return CRISPR_DEFAULT[index]
 
-    elif MODE == ProgramMode.TALENS:
+    elif mode == ProgramMode.TALENS:
         return TALEN_DEFAULT[index]
 
-    elif MODE == ProgramMode.CPF1:
+    elif mode == ProgramMode.CPF1:
         return CPF1_DEFAULT[index]
 
-    elif MODE == ProgramMode.NICKASE:
+    elif mode == ProgramMode.NICKASE:
         return NICKASE_DEFAULT[index]
 
-    sys.stderr.write("Unknown model %s\n" % MODE)
+    sys.stderr.write("Unknown model %s\n" % mode)
     sys.exit(EXIT['PYTHON_ERROR'])
+
 
 #Used in main
 def print_bed(mode, vis_cords, targets, output_file, description): # bed is 0-based

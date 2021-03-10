@@ -6,15 +6,12 @@ import argparse
 import resource
 from Vars import *
 from collections import defaultdict
-from operator import itemgetter
-from subprocess import Popen, PIPE
 
-from classes.ProgramMode import ProgramModeAction
+from classes.ProgramMode import ProgramModeAction, ProgramMode
 import functions.Main_Functions
 from functions.Helper_Functions import *
 from functions.TALEN_Specific_Functions import *
 
-from dockers.CRISPRoff_wrapper import run_coefficient_score
 from dockers.doench_2016_wrapper import run_doench_2016
 
 soft, HARD_LIMIT = resource.getrlimit(resource.RLIMIT_NOFILE)
@@ -207,10 +204,10 @@ def getCoordinatesForJsonVisualization(args, visCoords, sequences, strand, resul
     for i in range(len(resultCoords)):
         el = []
 
-        if args.MODE == functions.Main_Functions.ProgramMode.CRISPR or args.MODE == functions.Main_Functions.ProgramMode.CPF1:
+        if args.MODE == ProgramMode.CRISPR or args.MODE == ProgramMode.CPF1:
             el.append(i + 1)
             el.extend(resultCoords[i])
-        elif args.MODE == functions.Main_Functions.ProgramMode.TALENS or args.MODE == functions.Main_Functions.ProgramMode.NICKASE:
+        elif args.MODE == ProgramMode.TALENS or args.MODE == ProgramMode.NICKASE:
             el.extend(resultCoords[i])
 
         cutcoords.append(el)
@@ -456,6 +453,10 @@ def getClusterPairsNICKASE(results, sequences, args):
 """
 
 
+def print_scores():
+    return 0
+
+
 def main():
     # Parse arguments
     args = parse_arguments()
@@ -491,16 +492,18 @@ def main():
     if args.padSize != -1:
         padSize = args.padSize
     else:
-        if args.MODE == functions.Main_Functions.ProgramMode.TALENS:
+        if args.MODE == ProgramMode.TALENS:
             padSize = args.taleMax
-        elif args.MODE == functions.Main_Functions.ProgramMode.NICKASE:
+        elif args.MODE == ProgramMode.NICKASE:
             padSize = args.nickaseMax
-        elif args.MODE == functions.Main_Functions.ProgramMode.CRISPR or args.MODE == functions.Main_Functions.ProgramMode.CPF1:
+        elif args.MODE == ProgramMode.CRISPR or args.MODE == ProgramMode.CPF1:
             padSize = args.guideSize
 
     # Set default functions for different modes
     # new function
     countMM, evalSequence, guideClass, sortOutput = functions.Main_Functions.set_default_modes(args)
+
+    ### General ARGPARSE done, upcoming Target parsing
 
     # Connect to database if requested
     if args.database:
@@ -592,16 +595,16 @@ def main():
         scoringMethodZHANG_2009(args, results)
 
     if (args.scoringMethod == "KIM_2018" or args.scoringMethod == "ALL") and args.PAM in "TTTN" \
-            and not ISOFORMS and args.MODE == functions.Main_Functions.ProgramMode.CPF1:
+            and not ISOFORMS and args.MODE == ProgramMode.CPF1:
         # new function
         scoringMethodKIM_2018(results)
 
-    if (args.scoringMethod == "DOENCH_2016" or args.scoringMethod == "ALL") and not ISOFORMS and args.MODE == functions.Main_Functions.ProgramMode.CRISPR:
+    if (args.scoringMethod == "DOENCH_2016" or args.scoringMethod == "ALL") and not ISOFORMS and args.MODE == ProgramMode.CRISPR:
         guides = run_doench_2016(args.scoringMethod, results)
         # new function
         #scoringMethodDOENCH_2016(args, results)
 
-    if args.repairPredictions is not None and not ISOFORMS and args.MODE == functions.Main_Functions.ProgramMode.CRISPR:
+    if args.repairPredictions is not None and not ISOFORMS and args.MODE == ProgramMode.CRISPR:
         sys.path.append(f_p + '/models/inDelphi-model/')
         with functions.Main_Functions.warnings.catch_warnings(record=True):
             functions.Main_Functions.warnings.simplefilter("ignore")
@@ -623,10 +626,9 @@ def main():
                 except:
                     pass
 
-
-    if args.MODE == functions.Main_Functions.ProgramMode.CRISPR or args.MODE == functions.Main_Functions.ProgramMode.CPF1 or ISOFORMS:
+    if args.MODE == ProgramMode.CRISPR or args.MODE == ProgramMode.CPF1 or ISOFORMS:
         cluster = 0
-    elif args.MODE == functions.Main_Functions.ProgramMode.TALENS:
+    elif args.MODE == ProgramMode.TALENS:
         pairs = pairTalens(results, sequences, args.guideSize, int(args.taleMin), int(args.taleMax), args.enzymeCo,
                            args.maxOffTargets, args.g_RVD, args.minResSiteLen)
 
@@ -644,8 +646,9 @@ def main():
         cluster, results = functions.Main_Functions.clusterPairs(pairs)
         return cluster, results
 
-    elif args.MODE == functions.Main_Functions.ProgramMode.NICKASE:
-        pairs = pairCas9(results, sequences, args.guideSize, int(args.nickaseMin), int(args.nickaseMax), args.enzymeCo, args.maxOffTargets, args.minResSiteLen, args.offtargetMaxDist)
+    elif args.MODE == ProgramMode.NICKASE:
+        pairs = pairCas9(results, sequences, args.guideSize, int(args.nickaseMin), int(args.nickaseMax), args.enzymeCo,
+                         args.maxOffTargets, args.minResSiteLen, args.offtargetMaxDist)
 
         if (not len(pairs)):
             sys.stderr.write("No Cas9 nickase pairs could be generated for this region.\n")
@@ -665,16 +668,25 @@ def main():
     sortedOutput = sortOutput(results)
 
     # Write individual results to file
-    listOfClusters = functions.Main_Functions.writeIndividualResults(args.outputDir, args.maxOffTargets, sortedOutput, args.guideSize, args.MODE, cluster, args.limitPrintResults, args.offtargetsTable)
+    listOfClusters = functions.Main_Functions.writeIndividualResults(args.outputDir, args.maxOffTargets, sortedOutput,
+                                                                     args.guideSize, args.MODE, cluster,
+                                                                     args.limitPrintResults, args.offtargetsTable)
 
     if args.makePrimers:
         if args.fasta:
-            functions.Main_Functions.make_primers_fasta(sortedOutput, args.outputDir, args.primerFlanks, args.displaySeqFlanks, args.genome, args.limitPrintResults, CONFIG["PATH"]["BOWTIE_INDEX_DIR"], fastaSequence, args.primer3options, args.guidePadding, args.enzymeCo, args.minResSiteLen, "sequence", args.maxOffTargets)
+            functions.Main_Functions.make_primers_fasta(sortedOutput, args.outputDir, args.primerFlanks,
+                                                        args.displaySeqFlanks, args.genome, args.limitPrintResults,
+                                                        CONFIG["PATH"]["BOWTIE_INDEX_DIR"], fastaSequence,
+                                                        args.primer3options, args.guidePadding, args.enzymeCo,
+                                                        args.minResSiteLen, "sequence", args.maxOffTargets)
         else:
-            functions.Main_Functions.make_primers_genome(sortedOutput, args.outputDir, args.primerFlanks, args.displaySeqFlanks, args.genome, args.limitPrintResults, CONFIG["PATH"]["BOWTIE_INDEX_DIR"], CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"], args.primer3options, args.guidePadding, args.enzymeCo, args.minResSiteLen, strand, args.targets, args.maxOffTargets)
-
-
-
+            functions.Main_Functions.make_primers_genome(sortedOutput, args.outputDir, args.primerFlanks,
+                                                         args.displaySeqFlanks, args.genome, args.limitPrintResults,
+                                                         CONFIG["PATH"]["BOWTIE_INDEX_DIR"],
+                                                         CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS
+                                                         else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"], args.primer3options,
+                                                         args.guidePadding, args.enzymeCo, args.minResSiteLen, strand,
+                                                         args.targets, args.maxOffTargets)
 
     #########- Print part -##########
     ## Print results
