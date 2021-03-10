@@ -772,7 +772,7 @@ def print_genbank(mode, name, seq, exons, targets, chrom, seq_start, seq_end, st
         name = name[-10:]
     if len(loci) > 10: # almost always...
         loci = name[-10:]
-    record = SeqRecord(Seq(seq, IUPACAmbiguousDNA()), description=description,
+    record = SeqRecord(Seq(seq), description=description,
                        name=name, id=loci)
     gene_strand = 1 if strand == "+" else -1
     # genbank is 0-based

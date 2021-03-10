@@ -1,5 +1,6 @@
 from unittest import TestCase
 from functions.Helper_Functions import gccontent, comaprePAM, permPAM
+from functions.Main_Functions import getAllowedFivePrime
 
 
 class Test(TestCase):
@@ -35,8 +36,9 @@ class Test(TestCase):
         self.assertEqual(["AC", "TC", "AG", "TG"], permPAM("WS"))
         self.assertNotEqual(["T"], permPAM("A"))
 
-
-
+    def test_getAllowedFivePrime(self):
+        self.assertEqual(("AA", "AC", "AG", "AT", "CA", "CC", "CG", "CT", "GA", "GC", "GG", "GT", "TA", "TC", "TG",
+                          "TT"), getAllowedFivePrime("NN"))
 
 
 

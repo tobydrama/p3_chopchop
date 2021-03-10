@@ -30,8 +30,8 @@ class Cas9(Guide):
 
         if self.scoringMethod == "ALKAN_2018" or self.scoringMethod == "ALL":
             from dockers.CRISPRoff_wrapper import run_coefficient_score
-            self.CoefficientsScore[self.scoringMethod] = run_coefficient_score(self.strandedGuideSeq)
-            self.score -= self.CoefficientsScore[self.scoringMethod] * SCORE['COEFFICIENTS']
+            self.CoefficientsScore["ALKAN_2018"] = run_coefficient_score(self.strandedGuideSeq)
+            self.score -= self.CoefficientsScore["ALKAN_2018"] * SCORE['COEFFICIENTS']
 
         if self.scoringMethod == "ALL":
             for met in ["XU_2015", "DOENCH_2014", "MORENO_MATEOS_2015", "G_20"]:

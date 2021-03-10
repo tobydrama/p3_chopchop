@@ -453,10 +453,6 @@ def getClusterPairsNICKASE(results, sequences, args):
 """
 
 
-def print_scores():
-    return 0
-
-
 def main():
     # Parse arguments
     args = parse_arguments()
