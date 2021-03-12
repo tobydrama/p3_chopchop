@@ -21,7 +21,7 @@ soft, HARD_LIMIT = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (HARD_LIMIT, HARD_LIMIT))
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("-Target", "--targets", type=str, required=True,
                         help="Target genes or regions")
@@ -188,7 +188,31 @@ def parse_arguments():
 
     args = parser.parse_args()
 
+    # Change args.MODE type from int to ProgramMode
     args.MODE = ProgramMode(args.MODE)
+
+    # Add TALEN length
+    args.taleMin += 18
+    args.taleMax += 18
+
+    # Set mode specific parameters if not set by user
+    args.scoreGC = functions.Main_Functions.mode_select(args.scoreGC, "SCORE_GC", args.MODE)
+    args.scoreSelfComp = functions.Main_Functions.mode_select(args.noScoreSelfComp, "SCORE_FOLDING", args.MODE)
+    args.PAM = functions.Main_Functions.mode_select(args.PAM, "PAM", args.MODE)
+    args.guideSize = functions.Main_Functions.mode_select(args.guideSize, "GUIDE_SIZE", args.MODE) + len(args.PAM)
+    args.maxMismatches = functions.Main_Functions.mode_select(args.maxMismatches, "MAX_MISMATCHES", args.MODE)
+    args.maxOffTargets = functions.Main_Functions.mode_select(args.maxOffTargets, "MAX_OFFTARGETS", args.MODE)
+
+    # Add TALEN length
+    args.nickaseMin += args.guideSize
+    args.nickaseMax += args.guideSize
+
+    if args.scoreSelfComp:
+        if args.backbone:
+            tmp = args.backbone.strip().split(",")
+            args.backbone = [str(Seq(el).reverse_complement()) for el in tmp]
+        else:
+            args.backbone = []
 
     return args
 
@@ -559,29 +583,6 @@ def main():
     # set isoforms to global as it is influencing many steps
     global ISOFORMS
     ISOFORMS = args.isoforms
-
-    # Add TALEN length
-    args.taleMin += 18
-    args.taleMax += 18
-
-    # Set mode specific parameters if not set by user
-    args.scoreGC = functions.Main_Functions.mode_select(args.scoreGC, "SCORE_GC", args.MODE)
-    args.scoreSelfComp = functions.Main_Functions.mode_select(args.noScoreSelfComp, "SCORE_FOLDING", args.MODE)
-    args.PAM = functions.Main_Functions.mode_select(args.PAM, "PAM", args.MODE)
-    args.guideSize = functions.Main_Functions.mode_select(args.guideSize, "GUIDE_SIZE", args.MODE) + len(args.PAM)
-    args.maxMismatches = functions.Main_Functions.mode_select(args.maxMismatches, "MAX_MISMATCHES", args.MODE)
-    args.maxOffTargets = functions.Main_Functions.mode_select(args.maxOffTargets, "MAX_OFFTARGETS", args.MODE)
-
-    # Add TALEN length
-    args.nickaseMin += args.guideSize
-    args.nickaseMax += args.guideSize
-
-    if args.scoreSelfComp:
-        if args.backbone:
-            tmp = args.backbone.strip().split(",")
-            args.backbone = [str(Seq(el).reverse_complement()) for el in tmp]
-        else:
-            args.backbone = []
 
     # Pad each exon equal to guidesize unless
     if args.padSize != -1:
