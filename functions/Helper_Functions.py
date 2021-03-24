@@ -1,3 +1,5 @@
+import logging
+
 from Vars import codes, EXIT, PRIMER3_CONFIG, CONFIG, STEM_LEN, PRIMER_OFF_TARGET_MIN
 import re
 import os
@@ -292,6 +294,7 @@ def parseBowtie(guideClass, bowtieResultsFile, checkMismatch, scoreGC, scoreSelf
                 backbone, replace5prime, maxOffTargets, countMM, PAM, mode, scoringMethod=None,
                 genome=None, gene=None, isoform=None, gene_isoforms=None):
     """ Parses bowtie hits and build list of guides"""
+    logging.info("Parsing bowtie file '%s'." % bowtieResultsFile)
 
     curr_guide = None
     guide_list = []
@@ -339,6 +342,8 @@ def parseBowtie(guideClass, bowtieResultsFile, checkMismatch, scoreGC, scoreSelf
 
         # Adds hit to off-target list of current guide.
         curr_guide.addOffTarget(Hit(line), checkMismatch, maxOffTargets, countMM)
+
+    logging.debug("Parsed %d guides from bowtie file '%s'." % (len(guide_list), bowtieResultsFile))
 
     return guide_list
 

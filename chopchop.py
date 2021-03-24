@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import logging
 import subprocess
 from operator import itemgetter
 from typing import List, Callable, Union
@@ -186,7 +187,16 @@ def parse_arguments() -> argparse.Namespace:
                              "stopping will work on a guide! Limited also to CRISPR mode only and limited by "
                              "--limitPrintResults option.")
 
+    parser.add_argument("--logLevel", type=str, default="ERROR",
+                        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], dest="log_level",
+                        help="Set logging level.")
+
     args = parser.parse_args()
+
+    # Logging
+    logging.basicConfig(level=logging.getLevelName(args.log_level.upper()),
+                        format="%(levelname)-8s:: %(message)s")
+    logging.debug("Log level set to %s." % args.log_level)
 
     # Change args.MODE type from int to ProgramMode
     args.MODE = ProgramMode(args.MODE)
@@ -213,6 +223,8 @@ def parse_arguments() -> argparse.Namespace:
             args.backbone = [str(helperFunctions.Seq(el).reverse_complement()) for el in tmp]
         else:
             args.backbone = []
+
+    logging.debug("Finished parsing arguments.")
 
     return args
 

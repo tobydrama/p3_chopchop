@@ -198,6 +198,7 @@ def coordToFasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc, n
 #Used in main
 def runBowtie(PAMlength, unique_method_cong, fasta_file, output_dir,
               max_off_targets, index_dir, genome, max_mismatches):
+    logging.info("Running bowtie.")
 
     bwt_results_file = '%s/output.sam' % output_dir
     if unique_method_cong and not ISOFORMS:
@@ -223,6 +224,8 @@ def runBowtie(PAMlength, unique_method_cong, fasta_file, output_dir,
     if prog.returncode != 0:
         sys.stderr.write("Running bowtie failed\n")
         sys.exit(EXIT['BOWTIE_ERROR'])
+
+    logging.debug("Finished running bowtie.")
 
     return bwt_results_file
 
