@@ -20,15 +20,15 @@ import dockers.doench_2016_wrapper as doench_2016
 
 
 class ScoringMethod(Enum):
-    ALL = 0,
-    XU_2015 = 1,
-    DOENCH_2014 = 2,
-    DOENCH_2016 = 3,
-    MORENO_MATEOS_2015 = 4,
-    CHARI_2015 = 5,
-    G_20 = 6,
-    KIM_2018 = 7,
-    ALKAN_2018 = 8,
+    ALL = 0
+    XU_2015 = 1
+    DOENCH_2014 = 2
+    DOENCH_2016 = 3
+    MORENO_MATEOS_2015 = 4
+    CHARI_2015 = 5
+    G_20 = 6
+    KIM_2018 = 7
+    ALKAN_2018 = 8
     ZHANG_2019 = 9
 
 
