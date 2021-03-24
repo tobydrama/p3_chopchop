@@ -6,6 +6,8 @@ import pandas
 import numpy
 import argparse
 import resource
+
+import scoring
 from Vars import *
 from collections import defaultdict
 
@@ -648,110 +650,39 @@ def main():
                           args.MODE != functions.Main_Functions.ProgramMode.TALENS,
                           args.scoringMethod, args.genome, gene, isoform, gene_isoforms)  # TALENS: MAKE_PAIRS + CLUSTER
 
+    # TODO this is a temporary fix, args.scoringMethod should be converted to type ScoringMethod like args.MODE
+    scoring_method = scoring.ScoringMethod.G_20
+    for sm in scoring.ScoringMethod:
+        if args.scoringMethod == sm.name:
+            scoring_method = sm
+            break
 
+    cluster_info = scoring.ClusterInfo(sequences, args.guideSize,
+                                       args.taleMin if args.MODE == ProgramMode.TALENS else args.nickaseMin,
+                                       args.taleMax if args.MODE == ProgramMode.TALENS else args.nickaseMax,
+                                       args.enzymeCo, args.maxOffTargets, args.g_RVD, args.minResSiteLen,
+                                       args.offtargetMaxDist)
 
-    ########## -Scoring part- ###########
-    if args.rm1perfOff and args.fasta:
-        for guide in results:
-            if guide.offTargetsMM[0] > 0:
-                guide.score -= SINGLE_OFFTARGET_SCORE[0]
+    info = scoring.ScoringInfo(args.genome, args.PAM, strand, sortOutput, cluster_info, args.outputDir,
+                               args.repairPredictions is not None, args.repairPredictions, args.isoforms,
+                               visCoords, args.fasta, args.rm1perfOff, args.MODE, scoring_method)
 
-    if ISOFORMS:
-        for guide in results:
-            if guide.isoform in ["union", "intersection"]: # calculate base pair probabilities of folding
-                # iterate all isoforms
-                bpp = []
-                for tx_id in guide.gene_isoforms:
-                    tx_start, tx_end = functions.Main_Functions.tx_relative_coordinates(visCoords, tx_id, guide.start, guide.end)
-                    if tx_start != -1:
-                        bpp.append(functions.Main_Functions.rna_folding_metric(args.genome, tx_id, tx_start, tx_end))
-                guide.meanBPP = 100 if len(bpp) == 0 else max(bpp) # penalize guide that has no real target!
-            else:
-                if not args.fasta:
-                    tx_start, tx_end = functions.Main_Functions.tx_relative_coordinates(visCoords, guide.isoform, guide.start, guide.end)
-                    guide.meanBPP = functions.Main_Functions.rna_folding_metric(args.genome, guide.isoform, tx_start, tx_end)
-
-            guide.score += guide.meanBPP / 100 * SCORE['COEFFICIENTS']
-
-            if guide.isoform in guide.gene_isoforms:
-                guide.gene_isoforms.remove(guide.isoform)
-
-            if guide.isoform in guide.offTargetsIso[0]:
-                guide.offTargetsIso[0].remove(guide.isoform)
-
-            guide.constitutive = int(guide.gene_isoforms == guide.offTargetsIso[0])
-
-    # Scoring methods
-    if (args.scoringMethod == "CHARI_2015" or args.scoringMethod == "ALL") and (args.PAM == "NGG" or args.PAM == "NNAGAAW") and (args.genome == "hg19" or args.genome == "mm10") and not ISOFORMS:
-        # new function
-        scoringMethodCHARI_2005(args, results)
-
-    if (args.scoringMethod == "ZHANG_2019" or args.scoringMethod == "ALL") and (args.PAM == "NGG") and not ISOFORMS:
-        # new function
-        scoringMethodZHANG_2009(args, results)
-
-    if (args.scoringMethod == "KIM_2018" or args.scoringMethod == "ALL") and args.PAM in "TTTN" \
-            and not ISOFORMS and args.MODE == ProgramMode.CPF1:
-        # new function
-        scoringMethodKIM_2018(results)
-
-    if (args.scoringMethod == "DOENCH_2016" or args.scoringMethod == "ALL") and not ISOFORMS and args.MODE == ProgramMode.CRISPR:
-        guides = run_doench_2016(args.scoringMethod, results)
-        # new function
-        #scoringMethodDOENCH_2016(args, results)
-
-    if args.repairPredictions is not None and not ISOFORMS and args.MODE == ProgramMode.CRISPR:
-        sys.path.append(f_p + '/models/inDelphi-model/')
-        with functions.Main_Functions.warnings.catch_warnings(record=True):
-            functions.Main_Functions.warnings.simplefilter("ignore")
-            import inDelphi
-            inDelphi.init_model(celltype=args.repairPredictions)
-            for i, guide in enumerate(results):
-                # noinspection PyBroadException
-                try:
-                    left_seq = guide.downstream5prim + guide.strandedGuideSeq[:-(len(guide.PAM) + 3)]
-                    left_seq = left_seq[-60:]
-                    right_seq = guide.strandedGuideSeq[-(len(guide.PAM) + 3):] + guide.downstream3prim
-                    right_seq = right_seq[:60]
-                    seq = left_seq + right_seq
-                    cutsite = len(left_seq)
-                    pred_df, stats = inDelphi.predict(seq, cutsite)
-                    pred_df = pred_df.sort_values(pred_df.columns[4], ascending=False)
-                    guide.repProfile = pred_df
-                    guide.repStats = stats
-                except:
-                    pass
-
-    if args.MODE == ProgramMode.CRISPR or args.MODE == ProgramMode.CPF1 or ISOFORMS:
-        cluster = 0
-    elif args.MODE == functions.Main_Functions.ProgramMode.TALENS:
-        # New function
-        cluster, results = getClusterPairsTALENS(results, sequences, args)
-
-    elif args.MODE == functions.Main_Functions.ProgramMode.NICKASE:
-        # New function
-        cluster, results = getClusterPairsNICKASE(results, sequences, args)
-
-    # Sorts pairs according to score/penalty and cluster
-    if strand == "-" and not ISOFORMS:
-        results.reverse()
-
-    sortedOutput = sortOutput(results)
+    sorted_output, cluster = scoring.score_guides(results, info)
 
     # Write individual results to file
-    listOfClusters = functions.Main_Functions.writeIndividualResults(args.outputDir, args.maxOffTargets, sortedOutput,
+    listOfClusters = functions.Main_Functions.writeIndividualResults(args.outputDir, args.maxOffTargets, sorted_output,
                                                                      args.guideSize, args.MODE, cluster,
                                                                      args.limitPrintResults, args.offtargetsTable)
 
     if args.makePrimers:
         if args.fasta:
-            functions.Main_Functions.make_primers_fasta(sortedOutput, args.outputDir, args.primerFlanks,
+            functions.Main_Functions.make_primers_fasta(sorted_output, args.outputDir, args.primerFlanks,
                                                         args.displaySeqFlanks, args.genome, args.limitPrintResults,
                                                         CONFIG["PATH"]["BOWTIE_INDEX_DIR"], fastaSequence,
                                                         args.primer3options, args.guidePadding, args.enzymeCo,
                                                         args.minResSiteLen, "sequence", args.maxOffTargets)
         else:
-            functions.Main_Functions.make_primers_genome(sortedOutput, args.outputDir, args.primerFlanks,
+            functions.Main_Functions.make_primers_genome(sorted_output, args.outputDir, args.primerFlanks,
                                                          args.displaySeqFlanks, args.genome, args.limitPrintResults,
                                                          CONFIG["PATH"]["BOWTIE_INDEX_DIR"],
                                                          CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS
@@ -761,9 +692,9 @@ def main():
 
     #########- Print part -##########
     ## Print results
-    print_scores(sortedOutput, args.MODE, args.scoringMethod, args.isoforms)
+    print_scores(sorted_output, args.MODE, args.scoringMethod, args.isoforms)
 
-    resultCoords = generate_result_coordinates(sortedOutput,
+    resultCoords = generate_result_coordinates(sorted_output,
                                                listOfClusters,
                                                sortOutput,
                                                args.MODE,
