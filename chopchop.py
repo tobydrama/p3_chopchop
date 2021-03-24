@@ -1,23 +1,21 @@
 #!/usr/bin/env python3
 import subprocess
+from operator import itemgetter
 from typing import List, Callable, Union
 
-import pandas
-import numpy
 import argparse
 import resource
 
 import scoring
 from Vars import *
-from collections import defaultdict
 
-from classes.Cas9 import Cas9
-from classes.ProgramMode import ProgramModeAction, ProgramMode
-import functions.Main_Functions
-from functions.Helper_Functions import *
-from functions.TALEN_Specific_Functions import *
+from classes.Guide import Guide
+from classes.PAIR import Pair
+from classes.ProgramMode import ProgramMode
+import functions.Main_Functions as mainFunctions
+import functions.Helper_Functions as helperFunctions
+import functions.TALEN_Specific_Functions as talenFunctions
 
-from dockers.doench_2016_wrapper import run_doench_2016
 
 soft, HARD_LIMIT = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (HARD_LIMIT, HARD_LIMIT))
@@ -198,12 +196,12 @@ def parse_arguments() -> argparse.Namespace:
     args.taleMax += 18
 
     # Set mode specific parameters if not set by user
-    args.scoreGC = functions.Main_Functions.mode_select(args.scoreGC, "SCORE_GC", args.MODE)
-    args.scoreSelfComp = functions.Main_Functions.mode_select(args.noScoreSelfComp, "SCORE_FOLDING", args.MODE)
-    args.PAM = functions.Main_Functions.mode_select(args.PAM, "PAM", args.MODE)
-    args.guideSize = functions.Main_Functions.mode_select(args.guideSize, "GUIDE_SIZE", args.MODE) + len(args.PAM)
-    args.maxMismatches = functions.Main_Functions.mode_select(args.maxMismatches, "MAX_MISMATCHES", args.MODE)
-    args.maxOffTargets = functions.Main_Functions.mode_select(args.maxOffTargets, "MAX_OFFTARGETS", args.MODE)
+    args.scoreGC = mainFunctions.mode_select(args.scoreGC, "SCORE_GC", args.MODE)
+    args.scoreSelfComp = mainFunctions.mode_select(args.noScoreSelfComp, "SCORE_FOLDING", args.MODE)
+    args.PAM = mainFunctions.mode_select(args.PAM, "PAM", args.MODE)
+    args.guideSize = mainFunctions.mode_select(args.guideSize, "GUIDE_SIZE", args.MODE) + len(args.PAM)
+    args.maxMismatches = mainFunctions.mode_select(args.maxMismatches, "MAX_MISMATCHES", args.MODE)
+    args.maxOffTargets = mainFunctions.mode_select(args.maxOffTargets, "MAX_OFFTARGETS", args.MODE)
 
     # Add TALEN length
     args.nickaseMin += args.guideSize
@@ -212,7 +210,7 @@ def parse_arguments() -> argparse.Namespace:
     if args.scoreSelfComp:
         if args.backbone:
             tmp = args.backbone.strip().split(",")
-            args.backbone = [str(Seq(el).reverse_complement()) for el in tmp]
+            args.backbone = [str(helperFunctions.Seq(el).reverse_complement()) for el in tmp]
         else:
             args.backbone = []
 
@@ -223,12 +221,12 @@ def getCoordinatesForJsonVisualization(args, visCoords, sequences, strand, resul
     # Coordinates for gene
     visCoordsFile = open('%s/viscoords.json' % args.outputDir, 'w')
     # visCoords = sorted(visCoords,  key=itemgetter(1))
-    json.dump(visCoords, visCoordsFile)
+    helperFunctions.json.dump(visCoords, visCoordsFile)
 
     # Coordinates for sequence
-    seqvis = functions.Main_Functions.FastaToViscoords(sequences, strand)
+    seqvis = mainFunctions.FastaToViscoords(sequences, strand)
     seqvisFile = open('%s/seqviscoords.json' % args.outputDir, 'w')
-    json.dump(seqvis, seqvisFile)
+    helperFunctions.json.dump(seqvis, seqvisFile)
 
     # Coordinates for cutters
     cutCoord_file = open('%s/cutcoords.json' % args.outputDir, 'w')
@@ -259,18 +257,18 @@ def getCoordinatesForJsonVisualization(args, visCoords, sequences, strand, resul
 
         coord.append(t)
 
-    json.dump(cutcoords, cutCoord_file)
+    helperFunctions.json.dump(cutcoords, cutCoord_file)
 
     return cutcoords
 
 
 def getClusterPairsTALENS(results, sequences, args):
-    pairs = pairTalens(results, sequences, args.guideSize, int(args.taleMin), int(args.taleMax), args.enzymeCo,
-                       args.maxOffTargets, args.g_RVD, args.minResSiteLen)
+    pairs = talenFunctions.pairTalens(results, sequences, args.guideSize, int(args.taleMin), int(args.taleMax), args.enzymeCo,
+                                      args.maxOffTargets, args.g_RVD, args.minResSiteLen)
 
     if (not len(pairs)):
         sys.stderr.write("No TALEN pairs could be generated for this region.\n")
-        sys.exit(EXIT['GENE_ERROR'])
+        sys.exit(helperFunctions.EXIT['GENE_ERROR'])
 
     if args.rm1perfOff and args.fasta:
         for pair in pairs:
@@ -279,26 +277,25 @@ def getClusterPairsTALENS(results, sequences, args):
             if pair.sameStrandOffTarget > 0:
                 pair.score = pair.score - SCORE["OFFTARGET_PAIR_SAME_STRAND"]
 
-    cluster, results = clusterPairs(pairs)
+    cluster, results = talenFunctions.clusterPairs(pairs)
     return cluster, results
 
 
 def getClusterPairsNICKASE(results, sequences, args):
-    pairs = pairCas9(results, sequences, args.guideSize, int(args.nickaseMin), int(args.nickaseMax), args.enzymeCo,
-                     args.maxOffTargets, args.minResSiteLen, args.offtargetMaxDist)
+    pairs = talenFunctions.pairCas9(results, sequences, args.guideSize, int(args.nickaseMin), int(args.nickaseMax), args.enzymeCo,
+                                    args.maxOffTargets, args.minResSiteLen, args.offtargetMaxDist)
 
     if (not len(pairs)):
         sys.stderr.write("No Cas9 nickase pairs could be generated for this region.\n")
-        sys.exit(EXIT['GENE_ERROR'])
+        sys.exit(helperFunctions.EXIT['GENE_ERROR'])
 
     if args.rm1perfOff and args.fasta:
         for pair in pairs:
             if pair.diffStrandOffTarget > 0:
                 pair.score = pair.score - SCORE["OFFTARGET_PAIR_DIFF_STRAND"]
 
-    cluster, results = clusterPairs(pairs)
+    cluster, results = talenFunctions.clusterPairs(pairs)
     return cluster, results
-
 
 
 def print_scores(sorted_output: Union[List[Guide], List[Pair]],
@@ -413,13 +410,13 @@ def main():
 
     # Set default functions for different modes
     # new function
-    countMM, evalSequence, guideClass, sortOutput = functions.Main_Functions.set_default_modes(args)
+    countMM, evalSequence, guideClass, sortOutput = mainFunctions.set_default_modes(args)
 
     ### General ARGPARSE done, upcoming Target parsing
 
     # Connect to database if requested
     if args.database:
-        cdb = functions.Main_Functions.connect_db(args.database)
+        cdb = mainFunctions.connect_db(args.database)
         db = cdb.cursor()
         use_db = True
     else:
@@ -435,18 +432,18 @@ def main():
     candidate_fasta_file = '%s/sequence.fa' % args.outputDir
     gene, isoform, gene_isoforms = (None, None, set())
     if args.fasta:
-        sequences, targets, visCoords, fastaSequence, strand = functions.Main_Functions.parseFastaTarget(
+        sequences, targets, visCoords, fastaSequence, strand = mainFunctions.parseFastaTarget(
             args.targets, candidate_fasta_file, args.guideSize, evalSequence)
     else:
-        targets, visCoords, strand, gene, isoform, gene_isoforms = functions.Main_Functions.parseTargets(
+        targets, visCoords, strand, gene, isoform, gene_isoforms = mainFunctions.parseTargets(
             args.targets, args.genome, use_db, db, padSize, args.targetRegion, args.exons,
             args.targetUpstreamPromoter, args.targetDownstreamPromoter,
-            CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
+            helperFunctions.CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
             args.outputDir, args.consensusUnion, args.jsonVisualize, args.guideSize)
-        sequences, fastaSequence = functions.Main_Functions.coordToFasta(
+        sequences, fastaSequence = mainFunctions.coordToFasta(
             targets, candidate_fasta_file, args.outputDir, args.guideSize, evalSequence, args.nonOverlapping,
-            CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
-            args.genome, strand, functions.Main_Functions.DOWNSTREAM_NUC)
+            helperFunctions.CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
+            args.genome, strand, mainFunctions.DOWNSTREAM_NUC)
 
     # Converts genomic coordinates to fasta file of all possible k-mers
     if len(sequences) == 0:
@@ -454,15 +451,15 @@ def main():
         sys.exit()
 
     # Run bowtie and get results
-    bowtieResultsFile = functions.Main_Functions.runBowtie(len(args.PAM), args.uniqueMethod_Cong, candidate_fasta_file, args.outputDir,
-                                                           int(args.maxOffTargets),
-                                                           CONFIG["PATH"]["ISOFORMS_INDEX_DIR"] if ISOFORMS else CONFIG["PATH"][
+    bowtieResultsFile = mainFunctions.runBowtie(len(args.PAM), args.uniqueMethod_Cong, candidate_fasta_file, args.outputDir,
+                                                int(args.maxOffTargets),
+                                                helperFunctions.CONFIG["PATH"]["ISOFORMS_INDEX_DIR"] if ISOFORMS else helperFunctions.CONFIG["PATH"][
                                       "BOWTIE_INDEX_DIR"],
-                                                           args.genome, int(args.maxMismatches))
-    results = parseBowtie(guideClass, bowtieResultsFile, True, args.scoreGC, args.scoreSelfComp,
-                          args.backbone, args.replace5P, args.maxOffTargets, countMM, args.PAM,
-                          args.MODE != functions.Main_Functions.ProgramMode.TALENS,
-                          args.scoringMethod, args.genome, gene, isoform, gene_isoforms)  # TALENS: MAKE_PAIRS + CLUSTER
+                                                args.genome, int(args.maxMismatches))
+    results = helperFunctions.parseBowtie(guideClass, bowtieResultsFile, True, args.scoreGC, args.scoreSelfComp,
+                                          args.backbone, args.replace5P, args.maxOffTargets, countMM, args.PAM,
+                                          args.MODE != mainFunctions.ProgramMode.TALENS,
+                                          args.scoringMethod, args.genome, gene, isoform, gene_isoforms)  # TALENS: MAKE_PAIRS + CLUSTER
 
     # TODO this is a temporary fix, args.scoringMethod should be converted to type ScoringMethod like args.MODE
     scoring_method = scoring.ScoringMethod.G_20
@@ -484,25 +481,25 @@ def main():
     sorted_output, cluster = scoring.score_guides(results, info)
 
     # Write individual results to file
-    listOfClusters = functions.Main_Functions.writeIndividualResults(args.outputDir, args.maxOffTargets, sorted_output,
-                                                                     args.guideSize, args.MODE, cluster,
-                                                                     args.limitPrintResults, args.offtargetsTable)
+    listOfClusters = mainFunctions.writeIndividualResults(args.outputDir, args.maxOffTargets, sorted_output,
+                                                          args.guideSize, args.MODE, cluster,
+                                                          args.limitPrintResults, args.offtargetsTable)
 
     if args.makePrimers:
         if args.fasta:
-            functions.Main_Functions.make_primers_fasta(sorted_output, args.outputDir, args.primerFlanks,
-                                                        args.displaySeqFlanks, args.genome, args.limitPrintResults,
-                                                        CONFIG["PATH"]["BOWTIE_INDEX_DIR"], fastaSequence,
-                                                        args.primer3options, args.guidePadding, args.enzymeCo,
-                                                        args.minResSiteLen, "sequence", args.maxOffTargets)
+            mainFunctions.make_primers_fasta(sorted_output, args.outputDir, args.primerFlanks,
+                                             args.displaySeqFlanks, args.genome, args.limitPrintResults,
+                                             CONFIG["PATH"]["BOWTIE_INDEX_DIR"], fastaSequence,
+                                             args.primer3options, args.guidePadding, args.enzymeCo,
+                                             args.minResSiteLen, "sequence", args.maxOffTargets)
         else:
-            functions.Main_Functions.make_primers_genome(sorted_output, args.outputDir, args.primerFlanks,
-                                                         args.displaySeqFlanks, args.genome, args.limitPrintResults,
-                                                         CONFIG["PATH"]["BOWTIE_INDEX_DIR"],
-                                                         CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS
+            mainFunctions.make_primers_genome(sorted_output, args.outputDir, args.primerFlanks,
+                                              args.displaySeqFlanks, args.genome, args.limitPrintResults,
+                                              CONFIG["PATH"]["BOWTIE_INDEX_DIR"],
+                                              CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS
                                                          else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"], args.primer3options,
-                                                         args.guidePadding, args.enzymeCo, args.minResSiteLen, strand,
-                                                         args.targets, args.maxOffTargets)
+                                              args.guidePadding, args.enzymeCo, args.minResSiteLen, strand,
+                                              args.targets, args.maxOffTargets)
 
     #########- Print part -##########
     ## Print results
@@ -534,8 +531,8 @@ def main():
         info.close()
 
         if args.BED:
-            functions.Main_Functions.print_bed(args.MODE, visCoords, cutcoords, '%s/results.bed' % args.outputDir,
-                                               visCoords[0]["name"] if args.fasta else args.targets)
+            mainFunctions.print_bed(args.MODE, visCoords, cutcoords, '%s/results.bed' % args.outputDir,
+                                    visCoords[0]["name"] if args.fasta else args.targets)
 
         if args.GenBank:
             if args.fasta:
@@ -560,9 +557,9 @@ def main():
                 start = min(start)
                 finish = max(finish)
 
-                prog = Popen("%s -seq=%s -start=%d -end=%d %s/%s.2bit stdout 2> %s/twoBitToFa.err" % (
+                prog = subprocess.Popen("%s -seq=%s -start=%d -end=%d %s/%s.2bit stdout 2> %s/twoBitToFa.err" % (
                     CONFIG["PATH"]["TWOBITTOFA"], chrom, start, finish, CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
-                    args.genome, args.outputDir), stdout=PIPE, shell=True)
+                    args.genome, args.outputDir), stdout=subprocess.PIPE, shell=True)
                 output = prog.communicate()
                 if prog.returncode != 0:
                     sys.stderr.write("Running twoBitToFa failed when creating GenBank file\n")
@@ -572,9 +569,9 @@ def main():
                 output = output.split("\n")
                 seq = ''.join(output[1:]).upper()
 
-            functions.Main_Functions.print_genbank(args.MODE, chrom if args.fasta else args.targets, seq,
-                                                   [] if args.fasta else targets, cutcoords, chrom, start, finish,
-                                                   strand, '%s/results.gb' % args.outputDir, "CHOPCHOP results")
+            mainFunctions.print_genbank(args.MODE, chrom if args.fasta else args.targets, seq,
+                                        [] if args.fasta else targets, cutcoords, chrom, start, finish,
+                                        strand, '%s/results.gb' % args.outputDir, "CHOPCHOP results")
 
 
     # remove .sam files as they take up wayyy to much space
