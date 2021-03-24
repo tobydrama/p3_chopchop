@@ -343,9 +343,7 @@ def run_repair_predictions(guides: List[Guide], repair_predictions: str) -> List
     # TODO 'Vars.f_p' isn't very pretty, change it
     sys.path.append(Vars.f_p + "/models/inDelphi-model/")
 
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter("ignore")
-
+    try:
         import inDelphi
         inDelphi.init_model(celltype=repair_predictions)
 
@@ -365,8 +363,17 @@ def run_repair_predictions(guides: List[Guide], repair_predictions: str) -> List
 
                 guide.repProfile = pred_df
                 guide.repStats = stats
-            except:  # TODO what exceptions are caught here?
+            except ValueError:
+                # On error, inDelphi.predict returns a string, rather than a tuple.
+                logging.warning("inDelphi.predict returned an error on guide %d." % i)
                 pass
+
+    except ModuleNotFoundError as module_error:
+        logging.error("Failed to import 'inDelphi' module: %s" % module_error)
+        pass
+    except ImportError as import_error:  # TODO what exceptions are caught here?
+        logging.error("Failed to import 'inDelphi' module: %s" % import_error)
+        pass
 
     logging.debug("Finished running inDelphi repair predictions.")
 
