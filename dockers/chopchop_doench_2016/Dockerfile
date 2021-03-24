@@ -1,6 +1,6 @@
 FROM python:2.7
 
-WORKDIR /doench_2016
+WORKDIR /chopchop_doench_2016
 
 # biopython==1.76 is the last release to work with python2.7,
 # sckit-learn==0.18.1 is required for the doench_2016 model.

@@ -23,6 +23,7 @@ RUN ./configure \
  && make install \
  && make clean
 
+WORKDIR /chopchop_crisproff
 
 # Python script for calculations
 COPY CRISPRoff_coefficient_score.py .
