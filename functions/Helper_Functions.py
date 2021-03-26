@@ -266,10 +266,9 @@ def geneToCoord_db(gene, organism, db):
 # Used in parseTargets
 def geneToCoord_file(gene_in, table_file):
     """ Extracts coordinates of genomic regions to parse for suitable guide binding sites """
+    table_r = open(table_file,'r')
 
-    table_r = open(table_file, 'rb')
     tablereader = csv.DictReader(table_r, delimiter='\t', quoting=csv.QUOTE_NONE)
-
     tx_info = []
     gene = None
     # Look in genome table for gene of question
@@ -651,7 +650,7 @@ def bins(x):  # from ranges to bins
 # Used in ParseTargets
 def get_isoforms(gene, table_file):
     gene_isoforms = set()
-    tableR = open(table_file, 'rb')
+    tableR = open(table_file, 'r')
     tablereader = csv.DictReader(tableR, delimiter='\t', quoting=csv.QUOTE_NONE)
     for row in tablereader:
         if row['name2'] == gene:

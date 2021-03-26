@@ -339,7 +339,7 @@ def writeIndividualResults(outputDir, maxOffTargets, sortedOutput, guideSize, mo
             label = "%s:%s,%s,%s" % (current.chrom, current.start, current.strand, current.strandedGuideSeq)
             off_for_table = map(lambda x: x.asOffTargetString(label, maxOffTargets), current.offTargets)
             with open(off_table, "a") as append_file:
-                if len(off_for_table) > 0:
+                if len(list(off_for_table)) > 0:
                     append_file.write("\n".join(off_for_table))
                     append_file.write("\n")
 
@@ -460,8 +460,8 @@ def parseTargets(target_string, genome, use_db, data, pad_size, target_region, e
             ends = tx[2].split(",")
             del starts[-1]
             del ends[-1]
-            starts = map(int, starts)
-            ends = map(int, ends)
+            starts = list(map(int, starts))
+            ends = list(map(int, ends))
             starts_v = starts[:]
             ends_v = ends[:]
             tx_vis = {"exons": [], "ATG": [], "name": tx[3]}
@@ -495,7 +495,7 @@ def parseTargets(target_string, genome, use_db, data, pad_size, target_region, e
                     sys.stderr.write("Running twoBitToFa when searching isoform sequence failed\n")
                     sys.exit(EXIT['TWOBITTOFA_ERROR'])
 
-                iso_seq = iso_seq[0]
+                iso_seq = iso_seq[0].decode()
                 iso_seq = iso_seq.split("\n")
                 iso_seq = Seq(''.join(iso_seq[1:]).upper())
                 # splicing
@@ -525,7 +525,7 @@ def parseTargets(target_string, genome, use_db, data, pad_size, target_region, e
                 vis_coords.append(tx_vis)
 
             # restrict isoforms
-            coords = map(lambda x: [tx[0], x[0], x[1]], zip(starts, ends))
+            coords = list(map(lambda x: [tx[0], x[0], x[1]], zip(starts, ends)))
             if tx[6] == "-":
                 coords.reverse()
             coords = subsetExons(exon_subset, coords)
