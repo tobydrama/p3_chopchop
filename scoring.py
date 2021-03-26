@@ -3,6 +3,8 @@ import os
 import subprocess
 import sys
 import warnings
+import pandas
+from subprocess import Popen
 from collections import defaultdict
 from enum import Enum
 from typing import Callable, List, Tuple, Dict, Union
@@ -14,9 +16,8 @@ import Vars
 from classes.Cas9 import Cas9
 from classes.Guide import Guide
 from classes.ProgramMode import ProgramMode
-import functions.Main_Functions as mainFunctions
-import functions.TALEN_Specific_Functions as talenFunctions
-import dockers.doench_2016_wrapper as doench_2016
+from functions.TALEN_Specific_Functions import pairTalens, pairCas9, clusterPairs
+from dockers.doench_2016_wrapper import run_doench_2016
 
 
 class ScoringMethod(Enum):
@@ -131,6 +132,72 @@ def score_guides(guides: List[Guide], info: ScoringInfo) -> Tuple[List[Guide], i
     return sorted_guides, cluster
 
 
+def scoreChari_2015(svmInputFile, svmOutputFile, PAM, genome):  #Only one use in main
+    f_p = sys.path[0]
+    """ Calculate score from SVM model as in Chari 2015 20-NGG or 20-NNAGAAW, only for hg19 and mm10"""
+
+    model = f_p + '/models/293T_HiSeq_SP_Nuclease_100_SVM_Model.txt'
+    dist = f_p + '/models/Hg19_RefFlat_Genes_75bp_NoUTRs_SPSites_SVMOutput.txt'
+
+    if PAM == 'NGG' and genome == 'mm10':
+        model = f_p + '/models/293T_HiSeq_SP_Nuclease_100_SVM_Model.txt'
+        dist = f_p + '/models/Mm10_RefFlat_Genes_75bp_NoUTRs_SPSites_SVMOutput.txt'
+    elif PAM == 'NNAGAAW' and genome == 'hg19':
+        model = f_p + '/models/293T_HiSeq_ST1_Nuclease_100_V2_SVM_Model.txt'
+        dist = f_p + '/models/Hg19_RefFlat_Genes_75bp_NoUTRs_ST1Sites_SVMOutput.txt'
+    elif PAM == 'NNAGAAW' and genome == 'mm10':
+        model = f_p + '/models/293T_HiSeq_ST1_Nuclease_100_V2_SVM_Model.txt'
+        dist = f_p + '/models/Mm10_RefFlat_Genes_75bp_NoUTRs_ST1Sites_SVMOutput.txt'
+
+    prog = Popen("%s/svm_light/svm_classify -v 0 %s %s %s" % (f_p, svmInputFile, model, svmOutputFile), shell=True)
+    prog.communicate()
+
+    svmAll = open(dist,'r')
+    svmThis = open(svmOutputFile, 'r')
+
+    # first through go all scores and get the max and min
+    allData = []
+    for line in svmAll:
+        line = line.rstrip('\r\n')
+        allData.append(float(line))
+    svmAll.close()
+
+    scoreArray = []
+    for line in svmThis:
+        line = line.rstrip('\r\n')
+        scoreArray.append(float(line))
+
+    return [ss.percentileofscore(allData, i) for i in scoreArray]
+
+def tx_relative_coordinates(visCoords, tx_id, start, end):
+    tx_start, tx_end = -1, -1
+    exons = [e["exons"] for e in visCoords if e["name"] == tx_id][0]
+    e_id = -1
+    for i, e in enumerate(exons):
+        if e[1] <= (start - 1) and e[2] >= (end - 1):
+            e_id = i
+            break
+
+    if e_id != -1:
+        for i in range(0, e_id) if exons[0][5] == "+" else range(e_id + 1, len(exons)):
+            tx_start += exons[i][2] - exons[i][1]
+
+        tx_start += (exons[e_id][1] - start - 1) if exons[0][5] == "+" else (exons[e_id][2] - end - 1)
+        tx_end = tx_start + end - start
+
+    return tx_start, tx_end
+
+
+def rna_folding_metric(specie, tx_id, tx_start, tx_end):
+    mean_bpp = 0
+    file_path = Vars.CONFIG["PATH"]["ISOFORMS_MT_DIR"] + "/" + specie + "/" + tx_id + ".mt"
+    if os.path.isfile(file_path):
+        mt = pandas.read_csv(file_path, sep="\t", header=None, skiprows=tx_start, nrows=tx_end - tx_start)
+        mean_bpp = numpy.mean(mt[1].tolist())
+
+    return mean_bpp
+
+
 def score_isoforms(guides: List[Guide], info: ScoringInfo) -> List[Guide]:
     logging.info("Scoring isoforms.")
 
@@ -140,18 +207,18 @@ def score_isoforms(guides: List[Guide], info: ScoringInfo) -> List[Guide]:
             bpp = []
 
             for tx_id in guide.gene_isoforms:
-                tx_start, tx_end = mainFunctions.tx_relative_coordinates(info.vis_coords, tx_id, guide.start, guide.end)
+                tx_start, tx_end = tx_relative_coordinates(info.vis_coords, tx_id, guide.start, guide.end)
 
                 if tx_start != -1:
-                    bpp.append(mainFunctions.rna_folding_metric(info.genome, guide.isoform, guide.start, guide.end))
+                    bpp.append(rna_folding_metric(info.genome, guide.isoform, guide.start, guide.end))
 
             guide.meanBPP = 100 if len(bpp) == 0 else max(bpp)
         else:
             if not info.use_fasta:
-                tx_start, tx_end = mainFunctions.tx_relative_coordinates(info.vis_coords, guide.isoform,
+                tx_start, tx_end = tx_relative_coordinates(info.vis_coords, guide.isoform,
                                                                          guide.start, guide.end)
 
-                guide.meanBPP = mainFunctions.rna_folding_metric(info.genome, guide.isoform, tx_start, tx_end)
+                guide.meanBPP = rna_folding_metric(info.genome, guide.isoform, tx_start, tx_end)
 
         guide.score += guide.meanBPP / 100 * Vars.SCORE["COEFFICIENTS"]
 
@@ -202,7 +269,7 @@ def score_chari_2015(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
                 x += 1
             svm_file.write(tw + '\n')
         svm_file.close()
-        new_scores = mainFunctions.scoreChari_2015(svm_input_file, svm_output_file, info.pam, info.genome)
+        new_scores = scoreChari_2015(svm_input_file, svm_output_file, info.pam, info.genome)
 
         for i, guide in enumerate(guides):
             guide.CoefficientsScore["CHARI_2015"] = new_scores[i]
@@ -334,7 +401,7 @@ def score_kim_2018(guides: List[Guide]) -> List[Guide]:
 def score_doench_2016(guides: List[Guide], scoring_method: ScoringMethod) -> List[Guide]:
     logging.info("Running Doench 2016 scoring method.")
 
-    return doench_2016.run_doench_2016(scoring_method.name, guides)
+    return run_doench_2016(scoring_method.name, guides)
 
 
 def run_repair_predictions(guides: List[Guide], repair_predictions: str) -> List[Guide]:
@@ -387,13 +454,13 @@ def get_cluster_pairs(guides: List[Guide], info: ScoringInfo, program_mode: Prog
 
     cluster_info = info.cluster_info
     if program_mode == ProgramMode.TALENS:
-        pairs = talenFunctions.pairTalens(guides,
+        pairs = pairTalens(guides,
                                           cluster_info.sequences, cluster_info.guide_size,
                                           int(cluster_info.min_distance), int(cluster_info.max_distance),
                                           cluster_info.enzyme_company, cluster_info.max_off_targets,
                                           cluster_info.g_rvd, cluster_info.min_res_site_len)
     elif program_mode == ProgramMode.NICKASE:
-        pairs = talenFunctions.pairCas9(guides,
+        pairs = pairCas9(guides,
                                         cluster_info.sequences, cluster_info.guide_size,
                                         int(cluster_info.min_distance), int(cluster_info.max_distance),
                                         cluster_info.enzyme_company, cluster_info.max_off_targets,
@@ -412,7 +479,7 @@ def get_cluster_pairs(guides: List[Guide], info: ScoringInfo, program_mode: Prog
             if program_mode == ProgramMode.TALENS and pair.sameStrandOffTarget > 0:
                 pair.score -= Vars.SCORE["OFFTARGET_PAIR_SAME_STRAND"]
 
-    cluster, guides = talenFunctions.clusterPairs(pairs)
+    cluster, guides = clusterPairs(pairs)
 
     logging.debug("Got %d clusters." % cluster)
 

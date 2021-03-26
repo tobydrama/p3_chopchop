@@ -53,72 +53,7 @@ def set_default_modes(args):
     return countMM, evalSequence, guideClass, sortOutput
 
 
-#Used in main
-def scoreChari_2015(svmInputFile, svmOutputFile, PAM, genome):  #Only one use in main
-    f_p = sys.path[0]
-    """ Calculate score from SVM model as in Chari 2015 20-NGG or 20-NNAGAAW, only for hg19 and mm10"""
-
-    model = f_p + '/models/293T_HiSeq_SP_Nuclease_100_SVM_Model.txt'
-    dist = f_p + '/models/Hg19_RefFlat_Genes_75bp_NoUTRs_SPSites_SVMOutput.txt'
-
-    if PAM == 'NGG' and genome == 'mm10':
-        model = f_p + '/models/293T_HiSeq_SP_Nuclease_100_SVM_Model.txt'
-        dist = f_p + '/models/Mm10_RefFlat_Genes_75bp_NoUTRs_SPSites_SVMOutput.txt'
-    elif PAM == 'NNAGAAW' and genome == 'hg19':
-        model = f_p + '/models/293T_HiSeq_ST1_Nuclease_100_V2_SVM_Model.txt'
-        dist = f_p + '/models/Hg19_RefFlat_Genes_75bp_NoUTRs_ST1Sites_SVMOutput.txt'
-    elif PAM == 'NNAGAAW' and genome == 'mm10':
-        model = f_p + '/models/293T_HiSeq_ST1_Nuclease_100_V2_SVM_Model.txt'
-        dist = f_p + '/models/Mm10_RefFlat_Genes_75bp_NoUTRs_ST1Sites_SVMOutput.txt'
-
-    prog = Popen("%s/svm_light/svm_classify -v 0 %s %s %s" % (f_p, svmInputFile, model, svmOutputFile), shell=True)
-    prog.communicate()
-
-    svmAll = open(dist,'r')
-    svmThis = open(svmOutputFile, 'r')
-
-    # first through go all scores and get the max and min
-    allData = []
-    for line in svmAll:
-        line = line.rstrip('\r\n')
-        allData.append(float(line))
-    svmAll.close()
-
-    scoreArray = []
-    for line in svmThis:
-        line = line.rstrip('\r\n')
-        scoreArray.append(float(line))
-
-    return [ss.percentileofscore(allData, i) for i in scoreArray]
-
-#Used in main
-def concatenate_feature_sets(feature_sets):
-    '''
-    Given a dictionary of sets of features, each in a Pandas.DataFrame,
-    concatenate them together to form one big np.array, and get the dimension
-    of each set
-    Returns: inputs, dim
-    Source: Doench 2016
-    '''
-    assert feature_sets != {}, "no feature sets present"
-    F = feature_sets[feature_sets.keys()[0]].shape[0]
-    for fset in feature_sets.keys():
-        F2 = feature_sets[fset].shape[0]
-        assert F == F2, "not same # individuals for features %s and %s" % (feature_sets.keys()[0], fset)
-
-    N = feature_sets[feature_sets.keys()[0]].shape[0]
-    inputs = numpy.zeros((N, 0))
-    feature_names = []
-    dim = {}
-    dimsum = 0
-    for fset in feature_sets.keys():
-        inputs_set = feature_sets[fset].values
-        dim[fset] = inputs_set.shape[1]
-        dimsum += dim[fset]
-        inputs = numpy.hstack((inputs, inputs_set))
-        feature_names.extend(feature_sets[fset].columns.tolist())
-
-    return inputs, dim, dimsum, feature_names
+# Here lies concatenate_feature_sets
 
 #Used in main
 def coordToFasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc, nonOver, indexDir, genome, strand, ext):
@@ -229,7 +164,7 @@ def runBowtie(PAMlength, unique_method_cong, fasta_file, output_dir,
 
     return bwt_results_file
 
-#Used in main
+# Used in main, He lives once more
 def make_primers_fasta(targets, outputDir, flanks, displayFlanks, genome, limitPrintResults, bowtieIndexDir,
                        fastaSequence, primer3options, guidePadding, enzymeCo, minResSiteLen, geneID, maxOffTargets):
     primers = {}
@@ -258,7 +193,8 @@ def make_primers_fasta(targets, outputDir, flanks, displayFlanks, genome, limitP
     primerResults = runBowtiePrimers(primerFastaFileName, outputDir, genome, bowtieIndexDir, maxOffTargets)
     pairPrimers(primers, primerResults, outputDir)
 
-#Used in main
+
+# Used in main, Zombie funky
 def make_primers_genome(targets, outputDir, flanks, display_seq_len, genome, limitPrintResults, bowtieIndexDir, twoBitToFaIndexDir,
                         primer3options, guidePadding, enzymeCo, minResSiteLen, strand, geneID, maxOffTargets):
     primers = {}
@@ -363,19 +299,6 @@ def writeIndividualResults(outputDir, maxOffTargets, sortedOutput, guideSize, mo
 
     return clusters
 
-#Used in main
-def getAllowedFivePrime(allowed):
-    new_allowed = []
-    for el in allowed.split(","):
-        if el[0] == 'N' and el[1] == 'N':
-            return "AA", "AC", "AG", "AT", "CA", "CC", "CG", "CT", "GA", "GC", "GG", "GT", "TA", "TC", "TG", "TT"
-        elif el[0] == 'N':
-            new_allowed.extend(["A"+el[1], "C"+el[1], "G"+el[1], "T"+el[1]])
-        elif el[1] == 'N':
-            new_allowed.extend([el[0]+"A", el[0]+"C", el[0]+"G", el[0]+"T"])
-        else:
-            new_allowed.append(el)
-    return dict(zip(new_allowed, [True] * len(new_allowed)))
 
 #Used in main
 def parseTargets(target_string, genome, use_db, data, pad_size, target_region, exon_subset, ups_bp, down_bp,
@@ -607,6 +530,7 @@ def parseTargets(target_string, genome, use_db, data, pad_size, target_region, e
 
     return targets, vis_coords, target_strand, gene, isoform, gene_isoforms
 
+
 #Used in main
 def parseFastaTarget(fasta_file, candidate_fasta_file, target_size, eval_and_print):
     """ Parse a FASTA file as input for targeting """
@@ -666,39 +590,6 @@ def connect_db(database_string):
         sys.exit(EXIT['DB_ERROR'])
 
     return db
-
-#Used in main and tests
-def getMismatchVectors(pam, gLength, cong):
-
-    allowed = [True] * (gLength -len(pam))
-    count = [True] * (gLength -len(pam))
-
-    if cong:
-        allowed = [True] * 9 + [False] * (gLength -len(pam) -9)
-
-    for char in pam:
-        count.append(False)
-        if char == "N":
-            allowed.append(True)
-        else:
-            allowed.append(False)
-
-    return allowed, count
-
-#Used in main
-def getCpf1MismatchVectors(pam, gLength):
-
-    allowed = [True] * (gLength -len(pam))
-    count = [True] * (gLength -len(pam))
-
-    for char in pam[::-1]:
-        count.insert(0, False)
-        if char == "N":
-            allowed.insert(0,True)
-        else:
-            allowed.insert(0,False)
-
-    return allowed, count
 
 
 #Used in main
@@ -805,34 +696,6 @@ def print_genbank(mode, name, seq, exons, targets, chrom, seq_start, seq_end, st
         SeqIO.write(record, genbank_file, "genbank")
     genbank_file.close()
 
-#Used in main
-def rna_folding_metric(specie, tx_id, tx_start, tx_end):
-    mean_bpp = 0
-    file_path = CONFIG["PATH"]["ISOFORMS_MT_DIR"] + "/" + specie + "/" + tx_id + ".mt"
-    if os.path.isfile(file_path):
-        mt = pandas.read_csv(file_path, sep="\t", header=None, skiprows=tx_start, nrows=tx_end - tx_start)
-        mean_bpp = numpy.mean(mt[1].tolist())
-
-    return mean_bpp
-
-#used in main
-def tx_relative_coordinates(visCoords, tx_id, start, end):
-    tx_start, tx_end = -1, -1
-    exons = [e["exons"] for e in visCoords if e["name"] == tx_id][0]
-    e_id = -1
-    for i, e in enumerate(exons):
-        if e[1] <= (start - 1) and e[2] >= (end - 1):
-            e_id = i
-            break
-
-    if e_id != -1:
-        for i in range(0, e_id) if exons[0][5] == "+" else range(e_id + 1, len(exons)):
-            tx_start += exons[i][2] - exons[i][1]
-
-        tx_start += (exons[e_id][1] - start - 1) if exons[0][5] == "+" else (exons[e_id][2] - end - 1)
-        tx_end = tx_start + end - start
-
-    return tx_start, tx_end
 
 #
 def FastaToViscoords(sequences, strand):

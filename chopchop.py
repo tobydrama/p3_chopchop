@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 import logging
 import subprocess
-from operator import itemgetter
-from typing import List, Callable, Union
-
+import scoring
+import json
 import argparse
 import resource
 
-import scoring
+from operator import itemgetter
+from typing import List, Callable, Union
+from Bio.Seq import Seq
+
 from Vars import *
 
 from classes.Guide import Guide
@@ -208,8 +210,7 @@ def parse_arguments() -> argparse.Namespace:
     # Add TALEN length
     args.taleMin += 18
     args.taleMax += 18
-
-    # Set mode specific parameters if not set by user
+    '''
     args.scoreGC = mainFunctions.mode_select(args.scoreGC, "SCORE_GC", args.MODE)
     args.scoreSelfComp = mainFunctions.mode_select(args.noScoreSelfComp, "SCORE_FOLDING", args.MODE)
     args.PAM = mainFunctions.mode_select(args.PAM, "PAM", args.MODE)
@@ -290,7 +291,7 @@ def getCoordinatesForJsonVisualization(args, visCoords, sequences, strand, resul
 
 
 def getClusterPairsTALENS(results, sequences, args):
-    pairs = talenFunctions.pairTalens(results, sequences, args.guideSize, int(args.taleMin), int(args.taleMax), args.enzymeCo,
+    pairs = pairTalens(results, sequences, args.guideSize, int(args.taleMin), int(args.taleMax), args.enzymeCo,
                                       args.maxOffTargets, args.g_RVD, args.minResSiteLen)
 
     if (not len(pairs)):
@@ -304,12 +305,12 @@ def getClusterPairsTALENS(results, sequences, args):
             if pair.sameStrandOffTarget > 0:
                 pair.score = pair.score - SCORE["OFFTARGET_PAIR_SAME_STRAND"]
 
-    cluster, results = talenFunctions.clusterPairs(pairs)
+    cluster, results = clusterPairs(pairs)
     return cluster, results
 
 
 def getClusterPairsNICKASE(results, sequences, args):
-    pairs = talenFunctions.pairCas9(results, sequences, args.guideSize, int(args.nickaseMin), int(args.nickaseMax), args.enzymeCo,
+    pairs = pairCas9(results, sequences, args.guideSize, int(args.nickaseMin), int(args.nickaseMax), args.enzymeCo,
                                     args.maxOffTargets, args.minResSiteLen, args.offtargetMaxDist)
 
     if (not len(pairs)):
@@ -321,7 +322,7 @@ def getClusterPairsNICKASE(results, sequences, args):
             if pair.diffStrandOffTarget > 0:
                 pair.score = pair.score - SCORE["OFFTARGET_PAIR_DIFF_STRAND"]
 
-    cluster, results = talenFunctions.clusterPairs(pairs)
+    cluster, results = clusterPairs(pairs)
     return cluster, results
 
 
@@ -500,6 +501,7 @@ def main():
     candidate_fasta_file = '%s/sequence.fa' % args.outputDir
     gene, isoform, gene_isoforms = (None, None, set())
     if args.fasta:
+        '''
         sequences, targets, visCoords, fastaSequence, strand = mainFunctions.parseFastaTarget(
             args.targets, candidate_fasta_file, args.guideSize, evalSequence)
         '''
@@ -507,6 +509,7 @@ def main():
             args.targets, candidate_fasta_file, args.guideSize, evalSequence)
 
     else:
+        '''
         targets, visCoords, strand, gene, isoform, gene_isoforms = mainFunctions.parseTargets(
             args.targets, args.genome, use_db, db, padSize, args.targetRegion, args.exons,
             args.targetUpstreamPromoter, args.targetDownstreamPromoter,
@@ -535,6 +538,7 @@ def main():
         sys.exit()
 
     # Run bowtie and get results
+    '''
     bowtieResultsFile = mainFunctions.runBowtie(len(args.PAM), args.uniqueMethod_Cong, candidate_fasta_file, args.outputDir,
                                                 int(args.maxOffTargets),
                                                 CONFIG["PATH"]["ISOFORMS_INDEX_DIR"] if ISOFORMS else CONFIG["PATH"][
@@ -577,6 +581,7 @@ def main():
     sorted_output, cluster = scoring.score_guides(results, info)
 
     # Write individual results to file
+    '''
     listOfClusters = mainFunctions.writeIndividualResults(args.outputDir, args.maxOffTargets, sorted_output,
                                                           args.guideSize, args.MODE, cluster,
                                                           args.limitPrintResults, args.offtargetsTable)
