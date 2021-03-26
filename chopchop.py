@@ -355,48 +355,24 @@ def print_scores(sorted_output: Union[List[Guide], List[Pair]],
 
 def generate_result_coordinates(sorted_output: Union[List[Guide], List[Pair]],
                                 clusters: List[List[Pair]],
-                                sort_function: Callable[[List[Guide]], List[Guide]],
+                                sort_function: Callable[[Union[List[Guide], List[Pair]]], List[Guide]],
                                 mode: ProgramMode = ProgramMode.CRISPR,
                                 isoforms: bool = False) -> List[List[any]]:
     result_coordinates = []
-
-    if isoforms:
+    if isoforms or mode in [ProgramMode.CRISPR, ProgramMode.CPF1]:
         for i, guide in enumerate(sorted_output):
-            result_coordinates.append([guide.start,
-                                       guide.score,
-                                       guide.guideSize,
-                                       guide.strand])
+            result_coordinates.append([guide.start, guide.score, guide.guideSize, guide.strand])
 
-    else:
-        if mode == ProgramMode.CRISPR:
-            for i, guide in enumerate(sorted_output):
-                result_coordinates.append([guide.start,
-                                           guide.score,
-                                           guide.guideSize,
-                                           guide.strand])
-        elif mode == ProgramMode.CPF1:
-            for i, guide in enumerate(sorted_output):
-                result_coordinates.append([guide.start,
-                                           guide.score,
-                                           guide.guideSize,
-                                           guide.strand])
-
-        elif mode == ProgramMode.TALENS or mode == ProgramMode.NICKASE:
-            final_output = []
-            for cluster in clusters:
-                if len(cluster) == 0:
-                    continue
+    elif mode in [ProgramMode.TALENS, ProgramMode.NICKASE]:
+        final_output = []
+        for cluster in clusters:
+            if len(cluster) > 0:
                 final_output.append(cluster[0])
 
-            sorted_output = sort_function(final_output)
-            for guide in sorted_output:
-                result_coordinates.append([guide.spacerStart,
-                                           guide.score,
-                                           guide.spacerSize,
-                                           guide.strand,
-                                           guide.ID,
-                                           guide.tale1.start,
-                                           guide.tale2.end])
+        sorted_output = sort_function(final_output)
+        for guide in sorted_output:
+            result_coordinates.append([guide.spacerStart, guide.score, guide.spacerSize, guide.strand, guide.ID,
+                                       guide.tale1.start, guide.tale2.end])
 
     return result_coordinates
 
