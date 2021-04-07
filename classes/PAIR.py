@@ -1,6 +1,6 @@
 from Vars import SCORE
 from Bio.Seq import Seq
-from functions.Helper_Functions import findRestrictionSites
+from functions.make_primers import findRestrictionSites
 
 
 class Pair:

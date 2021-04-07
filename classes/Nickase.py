@@ -1,5 +1,5 @@
 from Vars import SINGLE_OFFTARGET_SCORE, SCORE
-from functions.Helper_Functions import findRestrictionSites
+from functions.make_primers import findRestrictionSites
 
 
 class Nickase:

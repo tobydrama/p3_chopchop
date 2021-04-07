@@ -136,7 +136,7 @@ def has_Off_targets(tale1, tale2, offTargetMin, offTargetMax):
     tale1.sort_offTargets()
     tale2.sort_offTargets()
 
-    ### FIX: Eivind to write this code properly. Include a way to step backwards, so as not to miss any hits.
+    # TODO: Eivind to write this code properly. Include a way to step backwards, so as not to miss any hits.
     # Need to make a queue..?
     for i in range(len(tale1.offTargets)):
         hit1 = tale1.offTargets[i]
@@ -179,24 +179,3 @@ def clusterPairs(pairs):
             inCluster = 0
 
     return (cluster, pairs)
-
-
-def eval_TALENS_sequence(name, targetSize, dna, num, fastaFile, downstream5prim, downstream3prim):
-    """ Evaluates an N-mer as a potential TALENs target site """
-    del downstream5prim, downstream3prim
-    found = False
-    if dna[0] == "T":
-        # dna = Seq(dna).reverse_complement()
-        fastaFile.write('>%s_%d-%d\n%s\n' % (name, num, num+targetSize, dna))
-        found = True
-    elif dna[-1] == "A":
-        fastaFile.write('>%s_%d-%d\n%s\n' % (name, num, num+targetSize, dna))
-        found = True
-
-    return found
-
-
-def sort_TALEN_pairs(pairs):
-    """ Sort pairs according to score and cluster """
-
-    return sorted(pairs, key=attrgetter('score', 'cluster'))

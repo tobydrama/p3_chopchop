@@ -132,7 +132,7 @@ def score_guides(guides: List[Guide], info: ScoringInfo) -> Tuple[List[Guide], i
     return sorted_guides, cluster
 
 
-def scoreChari_2015(svmInputFile, svmOutputFile, PAM, genome):  #Only one use in main
+def scoreChari_2015(svmInputFile, svmOutputFile, PAM, genome):  # Only one use in main
     f_p = sys.path[0]
     """ Calculate score from SVM model as in Chari 2015 20-NGG or 20-NNAGAAW, only for hg19 and mm10"""
 
@@ -152,7 +152,7 @@ def scoreChari_2015(svmInputFile, svmOutputFile, PAM, genome):  #Only one use in
     prog = Popen("%s/svm_light/svm_classify -v 0 %s %s %s" % (f_p, svmInputFile, model, svmOutputFile), shell=True)
     prog.communicate()
 
-    svmAll = open(dist,'r')
+    svmAll = open(dist, 'r')
     svmThis = open(svmOutputFile, 'r')
 
     # first through go all scores and get the max and min
@@ -168,6 +168,7 @@ def scoreChari_2015(svmInputFile, svmOutputFile, PAM, genome):  #Only one use in
         scoreArray.append(float(line))
 
     return [ss.percentileofscore(allData, i) for i in scoreArray]
+
 
 def tx_relative_coordinates(visCoords, tx_id, start, end):
     tx_start, tx_end = -1, -1
@@ -216,7 +217,7 @@ def score_isoforms(guides: List[Guide], info: ScoringInfo) -> List[Guide]:
         else:
             if not info.use_fasta:
                 tx_start, tx_end = tx_relative_coordinates(info.vis_coords, guide.isoform,
-                                                                         guide.start, guide.end)
+                                                           guide.start, guide.end)
 
                 guide.meanBPP = rna_folding_metric(info.genome, guide.isoform, tx_start, tx_end)
 
@@ -455,16 +456,16 @@ def get_cluster_pairs(guides: List[Guide], info: ScoringInfo, program_mode: Prog
     cluster_info = info.cluster_info
     if program_mode == ProgramMode.TALENS:
         pairs = pairTalens(guides,
-                                          cluster_info.sequences, cluster_info.guide_size,
-                                          int(cluster_info.min_distance), int(cluster_info.max_distance),
-                                          cluster_info.enzyme_company, cluster_info.max_off_targets,
-                                          cluster_info.g_rvd, cluster_info.min_res_site_len)
+                           cluster_info.sequences, cluster_info.guide_size,
+                           int(cluster_info.min_distance), int(cluster_info.max_distance),
+                           cluster_info.enzyme_company, cluster_info.max_off_targets,
+                           cluster_info.g_rvd, cluster_info.min_res_site_len)
     elif program_mode == ProgramMode.NICKASE:
         pairs = pairCas9(guides,
-                                        cluster_info.sequences, cluster_info.guide_size,
-                                        int(cluster_info.min_distance), int(cluster_info.max_distance),
-                                        cluster_info.enzyme_company, cluster_info.max_off_targets,
-                                        cluster_info.min_res_site_len, cluster_info.off_target_max_distance)
+                         cluster_info.sequences, cluster_info.guide_size,
+                         int(cluster_info.min_distance), int(cluster_info.max_distance),
+                         cluster_info.enzyme_company, cluster_info.max_off_targets,
+                         cluster_info.min_res_site_len, cluster_info.off_target_max_distance)
 
     if not len(pairs):
         # TODO better error handling (error logging, exceptions, etc)

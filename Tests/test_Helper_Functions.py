@@ -1,6 +1,6 @@
 from unittest import TestCase
-from functions.Helper_Functions import gccontent, comaprePAM, permPAM
-from functions.Main_Functions import getAllowedFivePrime
+from functions.eval import gccontent, comparePAM, permPAM
+from functions.set_default_modes import getAllowedFivePrime
 
 
 class Test(TestCase):
@@ -10,26 +10,26 @@ class Test(TestCase):
         self.assertEqual(0.5, gccontent("gCGtiChFYg"))
 
     def test_comaprePAM(self):
-        self.assertTrue(comaprePAM("N", "G"))
-        self.assertTrue(comaprePAM("W", "T"))
-        self.assertTrue(comaprePAM("W", "A"))
-        self.assertTrue(comaprePAM("S", "C"))
-        self.assertTrue(comaprePAM("S", "G"))
-        self.assertTrue(comaprePAM("M", "A"))
-        self.assertTrue(comaprePAM("M", "C"))
-        self.assertTrue(comaprePAM("K", "G"))
-        self.assertTrue(comaprePAM("K", "T"))
-        self.assertTrue(comaprePAM("R", "A"))
-        self.assertTrue(comaprePAM("R", "G"))
-        self.assertTrue(comaprePAM("Y", "C"))
-        self.assertTrue(comaprePAM("Y", "T"))
-        self.assertTrue(comaprePAM("B", "H"))
-        self.assertTrue(comaprePAM("D", "B"))
-        self.assertTrue(comaprePAM("H", "S"))
-        self.assertTrue(comaprePAM("V", "J"))
-        self.assertFalse(comaprePAM("D", "C"))
-        self.assertFalse(comaprePAM("H", "G"))
-        self.assertFalse(comaprePAM("O", "S"))
+        self.assertTrue(comparePAM("N", "G"))
+        self.assertTrue(comparePAM("W", "T"))
+        self.assertTrue(comparePAM("W", "A"))
+        self.assertTrue(comparePAM("S", "C"))
+        self.assertTrue(comparePAM("S", "G"))
+        self.assertTrue(comparePAM("M", "A"))
+        self.assertTrue(comparePAM("M", "C"))
+        self.assertTrue(comparePAM("K", "G"))
+        self.assertTrue(comparePAM("K", "T"))
+        self.assertTrue(comparePAM("R", "A"))
+        self.assertTrue(comparePAM("R", "G"))
+        self.assertTrue(comparePAM("Y", "C"))
+        self.assertTrue(comparePAM("Y", "T"))
+        self.assertTrue(comparePAM("B", "H"))
+        self.assertTrue(comparePAM("D", "B"))
+        self.assertTrue(comparePAM("H", "S"))
+        self.assertTrue(comparePAM("V", "J"))
+        self.assertFalse(comparePAM("D", "C"))
+        self.assertFalse(comparePAM("H", "G"))
+        self.assertFalse(comparePAM("O", "S"))
 
     def test_permPAM(self):
         self.assertEqual(["AA", "AC", "AT", "AG"], permPAM("AN"))
@@ -39,10 +39,3 @@ class Test(TestCase):
     def test_getAllowedFivePrime(self):
         self.assertEqual(("AA", "AC", "AG", "AT", "CA", "CC", "CG", "CT", "GA", "GC", "GG", "GT", "TA", "TC", "TG",
                           "TT"), getAllowedFivePrime("NN"))
-
-
-
-
-
-
-
