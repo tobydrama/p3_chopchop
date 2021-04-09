@@ -5,57 +5,24 @@
 from typing import Union, List
 
 import scipy.stats as ss
+import logging
 import warnings
-
+import re
+import sys
+import json
 from classes.ProgramMode import ProgramMode
-from functions.Helper_Functions import *
-from functions.CRISPR_Specific_Functions import eval_CRISPR_sequence, sort_CRISPR_guides
-from functions.CPF1_Specific_Functions import eval_CPF1_sequence
-from functions.TALEN_Specific_Functions import sort_TALEN_pairs, eval_TALENS_sequence
-from classes.Cas9 import Cas9
-from classes.Guide import Guide
-from Vars import CONFIG, EXIT, ISOFORMS, TARGET_MAX, NICKASE_DEFAULT
+from Vars import CONFIG, EXIT, ISOFORMS, NICKASE_DEFAULT, PRIMER_OFF_TARGET_MIN
 from Vars import DOWNSTREAM_NUC, CPF1_DEFAULT, TALEN_DEFAULT, CRISPR_DEFAULT
-
-
-# Used in main
-def set_default_modes(args):
-    if args.MODE == ProgramMode.CRISPR or args.MODE == ProgramMode.NICKASE:
-        # Set mismatch checking policy
-        (allowedMM, countMM) = getMismatchVectors(args.PAM, args.guideSize, args.uniqueMethod_Cong)
-        allowed = getAllowedFivePrime(args.fivePrimeEnd)
-        evalSequence = lambda name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim: eval_CRISPR_sequence(
-            name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim, allowed=allowed, PAM=args.PAM,
-            filterGCmin=args.filterGCmin, filterGCmax=args.filterGCmax,
-            filterSelfCompMax=args.filterSelfCompMax, replace5prime=args.replace5P, backbone=args.backbone)
-        if args.MODE == ProgramMode.CRISPR:
-            guideClass = Cas9 if not ISOFORMS else Guide
-            sortOutput = sort_CRISPR_guides
-        elif args.MODE == ProgramMode.NICKASE:
-            guideClass = Cas9
-            sortOutput = sort_TALEN_pairs
-
-    elif args.MODE == ProgramMode.CPF1:
-        (allowedMM, countMM) = getCpf1MismatchVectors(args.PAM, args.guideSize)
-        evalSequence = lambda name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim: eval_CPF1_sequence(
-            name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim, PAM=args.PAM,
-            filterGCmin=args.filterGCmin, filterGCmax=args.filterGCmax,
-            filterSelfCompMax=args.filterSelfCompMax, replace5prime=args.replace5P, backbone=args.backbone)
-        guideClass = ProgramMode.Cpf1 if not ISOFORMS else Guide
-        sortOutput = sort_CRISPR_guides
-
-    elif args.MODE == ProgramMode.TALENS:
-        (allowedMM, countMM) = getMismatchVectors(args.PAM, args.guideSize, None)
-        guideClass = Guide
-        evalSequence = eval_TALENS_sequence
-        sortOutput = sort_TALEN_pairs
-
-    return countMM, evalSequence, guideClass, sortOutput
+from subprocess import Popen, PIPE
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+from Bio.SeqFeature import SeqFeature, FeatureLocation
 
 
 # Here lies concatenate_feature_sets
 
-#Used in main
+# Used in main
 def coordToFasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc, nonOver, indexDir, genome, strand, ext):
     """ Extracts the sequence corresponding to genomic coordinates from a FASTA file """
 
@@ -130,7 +97,8 @@ def coordToFasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc, n
 
     return sequences, fasta_seq
 
-#Used in main
+
+# Used in main
 def runBowtie(PAMlength, unique_method_cong, fasta_file, output_dir,
               max_off_targets, index_dir, genome, max_mismatches):
     logging.info("Running bowtie.")
@@ -164,70 +132,8 @@ def runBowtie(PAMlength, unique_method_cong, fasta_file, output_dir,
 
     return bwt_results_file
 
-# Used in main, He lives once more
-def make_primers_fasta(targets, outputDir, flanks, displayFlanks, genome, limitPrintResults, bowtieIndexDir,
-                       fastaSequence, primer3options, guidePadding, enzymeCo, minResSiteLen, geneID, maxOffTargets):
-    primers = {}
-    primerOpt = get_primer_options(primer3options)
 
-    primerFastaFileName = '%s/primers.fa' % outputDir
-    primerFastaFile = open(primerFastaFileName, 'w')
-    for i in range(min(limitPrintResults-1, len(targets))):
-        target = targets[i]
-        seq, seqLenBeforeTarget = get_primer_query_sequence_fasta(target, outputDir, flanks, fastaSequence)
-        primer3_output = make_primer_for_target(target, outputDir, seq, seqLenBeforeTarget, primerOpt, guidePadding)
-        region = "%s:%s-%s" % (target.chrom, max(0, target.start-flanks), min(len(fastaSequence), target.end+flanks))
-        target_primers, primerPos = parse_primer3_output(target, region, primer3_output, primerFastaFile)
-        primers[target.ID] = target_primers
-
-        # Restriction sites
-        restSites = dump_restriction_sites(target, seq, flanks, enzymeCo, outputDir, minResSiteLen)
-        # Sequence for visualization of locus
-        seq2, seqLenBeforeTarget2 = get_primer_query_sequence_fasta(target, outputDir, displayFlanks, fastaSequence)
-        dump_locus_sequence(target, outputDir, seq2, seqLenBeforeTarget2, "+")
-        # Genbank file for download
-        dump_genbank_file(seq, target, restSites, primerPos, outputDir, geneID, target.start-seqLenBeforeTarget, "+")
-
-    primerFastaFile.close()
-
-    primerResults = runBowtiePrimers(primerFastaFileName, outputDir, genome, bowtieIndexDir, maxOffTargets)
-    pairPrimers(primers, primerResults, outputDir)
-
-
-# Used in main, Zombie funky
-def make_primers_genome(targets, outputDir, flanks, display_seq_len, genome, limitPrintResults, bowtieIndexDir, twoBitToFaIndexDir,
-                        primer3options, guidePadding, enzymeCo, minResSiteLen, strand, geneID, maxOffTargets):
-    primers = {}
-
-    primerOpt = get_primer_options(primer3options)
-
-    # RUN PRIMER3 ON TARGET SITES AND CREATE FASTA FILE OF PRIMERS FOR BOWTIE
-    primerFastaFileName = '%s/primers.fa' % outputDir
-    primerFastaFile = open(primerFastaFileName, 'w')
-    for i in range(min(limitPrintResults-1, len(targets))):
-        target = targets[i]
-        seq, seqLenBeforeTarget = get_primer_query_sequence_2bit(
-            target, outputDir, flanks, genome, twoBitToFaIndexDir, strand)
-        primer3_output = make_primer_for_target(target, outputDir, seq, seqLenBeforeTarget, primerOpt, guidePadding)
-        region = "%s:%s-%s" % (target.chrom, max(0, target.start-flanks), target.end+flanks)
-        target_primers, primerPos = parse_primer3_output(target, region, primer3_output, primerFastaFile)
-        primers[target.ID] = target_primers
-
-        # Restriction sites
-        restSites = dump_restriction_sites(target, seq, flanks, enzymeCo, outputDir, minResSiteLen)
-        # Sequence for visualization of locus
-        seq2, seqLenBeforeTarget2 = get_primer_query_sequence_2bit(
-            target, outputDir, display_seq_len, genome, twoBitToFaIndexDir, strand)
-        dump_locus_sequence(target, outputDir, seq2, seqLenBeforeTarget2, strand)
-        # Genbank file for download
-        dump_genbank_file(seq, target, restSites, primerPos, outputDir, geneID, target.start-seqLenBeforeTarget, strand)
-
-    primerFastaFile.close()
-
-    primerResults = runBowtiePrimers(primerFastaFileName, outputDir, genome, bowtieIndexDir, maxOffTargets)
-    pairPrimers(primers, primerResults, outputDir)
-
-#Used in main
+# Used in main
 def writeIndividualResults(outputDir, maxOffTargets, sortedOutput, guideSize, mode, totalClusters, limitPrintResults, offtargetsTable):
     """ Writes each guide and its offtargets into a file """
 
@@ -300,238 +206,7 @@ def writeIndividualResults(outputDir, maxOffTargets, sortedOutput, guideSize, mo
     return clusters
 
 
-#Used in main
-def parseTargets(target_string, genome, use_db, data, pad_size, target_region, exon_subset, ups_bp, down_bp,
-                 index_dir, output_dir, use_union, make_vis, guideLen):
-    targets = []
-    vis_coords = []
-    target_strand = "+"
-    target_size = 0
-    gene, isoform, gene_isoforms = (None, None, set())
-
-    pattern = re.compile("(([\.\w]+):)?([\.\,\d]+)\-([\.\,\d]+)")
-    is_coordinate = pattern.match(str(target_string))
-
-    if is_coordinate:
-        if ISOFORMS:
-            sys.stderr.write("--isoforms is not working with coordinate search.\n")
-            sys.exit(EXIT['ISOFORMS_ERROR'])
-
-        chrom = is_coordinate.group(2)
-        vis_coords.append({"exons": [], "ATG": [], "name": chrom})
-
-        for target in target_string.split(";"):
-            m = pattern.match(target)
-            if m:
-                if m.group(2) is not None and chrom != m.group(2):
-                    sys.stderr.write(
-                        "Can't target regions on separate chromosomes (%s != %s).\n" % (chrom, m.group(2)))
-                    sys.exit(EXIT['GENE_ERROR'])
-
-                start_pos = m.group(3)
-                end_pos = m.group(4)
-                start_pos = int(start_pos.replace(",", "").replace(".", ""))
-                end_pos = int(end_pos.replace(",", "").replace(".", ""))
-                target_size += end_pos - start_pos + 1
-
-                if start_pos >= end_pos:
-                    sys.stderr.write(
-                        "Start position (%s) must be smaller than end position (%s)\n" % (start_pos, end_pos))
-                    sys.exit(EXIT['GENE_ERROR'])
-
-                targets.append("%s:%s-%s" % (chrom, max(0, start_pos - pad_size), end_pos + pad_size))
-                if make_vis:
-                    vis_coords[0]["exons"].append([chrom, start_pos, end_pos, 0, True, "+"])
-            else:
-                sys.stderr.write("Unknown format: %s\n" % (target))
-                sys.exit(EXIT['GENE_ERROR'])
-
-    else:
-        if use_db:
-            if ISOFORMS:
-                sys.stderr.write("--isoforms is not working with database search.\n")
-                sys.exit(EXIT['ISOFORMS_ERROR'])
-            txInfo = geneToCoord_db(target_string, genome, data)
-            txInfo = filterRepeatingNames(txInfo)
-        else:
-            gene, txInfo = geneToCoord_file(target_string, data)
-            txInfo = filterRepeatingNames(txInfo)
-            isoform = "union" if use_union else "intersection"
-            gene_isoforms = set([str(x[3]) for x in txInfo])
-            if target_string in gene_isoforms:
-                isoform = target_string
-                gene_isoforms = get_isoforms(gene, data)
-
-        target_chr = set([x[0] for x in txInfo])
-        target_strand = set([x[6] for x in txInfo])
-        isoforms = [str(x[3]) for x in txInfo]
-        if len(target_strand) > 1 or len(target_chr) > 1:
-            sys.stderr.write(
-                "Specify which isoform you want to target as your query " + str(target_string) +
-                " returns many isoforms: " + ', '.join(isoforms) +
-                " which are from either inconsistent strands or chromosomes.\n")
-            sys.exit(EXIT['GENE_ERROR'])
-        else:
-            target_strand = list(target_strand)[0]
-            target_chr = list(target_chr)[0]
-
-        for tx in txInfo:
-            tx = list(tx)
-            tx[4] = int(tx[4])
-            tx[5] = int(tx[5])
-            starts = tx[1].split(",")
-            ends = tx[2].split(",")
-            del starts[-1]
-            del ends[-1]
-            starts = list(map(int, starts))
-            ends = list(map(int, ends))
-            starts_v = starts[:]
-            ends_v = ends[:]
-            tx_vis = {"exons": [], "ATG": [], "name": tx[3]}
-
-            if make_vis:
-                intron_size = [int(starts_v[x + 1]) - int(ends_v[x]) for x in range(len(starts_v) - 1)]
-                intron_size.append(0)
-                # tx_vis exons are [chr, start, end, intron_size, isIntron, strand]
-                for e in range(len(starts_v)):
-                    if ends_v[e] <= tx[4] or starts_v[e] >= tx[5]:
-                        tx_vis["exons"].append([tx[0], starts_v[e], ends_v[e], intron_size[e], True, tx[6]])
-                    else:
-                        if starts_v[e] < tx[4] < ends_v[e]:
-                            tx_vis["exons"].append([tx[0], starts_v[e], tx[4], 0, True, tx[6]])
-                            starts_v[e] = tx[4]
-
-                        if starts_v[e] < tx[5] < ends_v[e]:
-                            tx_vis["exons"].append([tx[0], tx[5], ends_v[e], intron_size[e], True, tx[6]])
-                            ends_v[e] = tx[5]
-                            intron_size[e] = 0
-
-                        tx_vis["exons"].append([tx[0], starts_v[e], ends_v[e], intron_size[e], False, tx[6]])
-
-                tx_vis["exons"].sort(key=lambda x: x[1]) # sort on starts
-                # ATG locations
-                prog = Popen("%s -seq=%s -start=%d -end=%d %s/%s.2bit stdout 2> %s/twoBitToFa.err" % (
-                    CONFIG["PATH"]["TWOBITTOFA"], tx[0], int(tx[4]) + 1, int(tx[5]) + 1, index_dir,
-                    genome, output_dir), stdout=PIPE, shell=True)
-                iso_seq = prog.communicate()
-                if prog.returncode != 0:
-                    sys.stderr.write("Running twoBitToFa when searching isoform sequence failed\n")
-                    sys.exit(EXIT['TWOBITTOFA_ERROR'])
-
-                iso_seq = iso_seq[0].decode()
-                iso_seq = iso_seq.split("\n")
-                iso_seq = Seq(''.join(iso_seq[1:]).upper())
-                # splicing
-                iso_seq_spl = ""
-                for e in tx_vis["exons"]:
-                    if not e[4]:
-                        iso_seq_spl += iso_seq[(e[1] - tx[4]):(e[2] - tx[4])]
-                atg = "ATG" if tx[6] != "-" else "CAT"
-                tx_atg = [m.start() for m in re.finditer(atg, str(iso_seq_spl)) if m.start() % 3 == 0]
-                tx_atg.sort()
-                for atg1 in tx_atg: # every ATG as 3 x 1bp as they can span across two exons...
-                    atg2 = atg1 + 1
-                    atg3 = atg1 + 2
-                    shift_atg1, shift_atg2, shift_atg3, exon_len = 0, 0, 0, 0
-                    for e in tx_vis["exons"]: # exons are sorted
-                        if not e[4]:
-                            exon_len += (e[2] - e[1])
-                            if atg1 > exon_len:
-                                shift_atg1 += e[3]
-                            if atg2 > exon_len:
-                                shift_atg2 += e[3]
-                            if atg3 > exon_len:
-                                shift_atg3 += e[3]
-                    tx_vis["ATG"].extend([atg1 + shift_atg1 + tx[4], atg2 + shift_atg2 + tx[4],
-                                          atg3 + shift_atg3 + tx[4]])
-
-                vis_coords.append(tx_vis)
-
-            # restrict isoforms
-            coords = list(map(lambda x: [tx[0], x[0], x[1]], zip(starts, ends)))
-            if tx[6] == "-":
-                coords.reverse()
-            coords = subsetExons(exon_subset, coords)
-            if tx[6] == "-":
-                coords.reverse()
-
-            # Truncate to region
-            if target_region == "CODING":
-                coords = truncateToCoding(tx[4], tx[5], coords)
-            elif target_region == "UTR5":
-                if tx[6] == "+":
-                    coords = truncateToUTR5(tx[4], coords)
-                else:
-                    coords = truncateToUTR3(tx[5], coords)
-            elif target_region == "PROMOTER":
-                coords = truncateToPROMOTER(tx[6], coords, ups_bp, down_bp)
-            elif target_region == "UTR3":
-                if tx[6] == "+":
-                    coords = truncateToUTR3(tx[5], coords)
-                else:
-                    coords = truncateToUTR5(tx[4], coords)
-            elif target_region == "SPLICE":
-                coords = truncateToSplice(coords)
-            elif target_region != "WHOLE":
-                sys.stderr.write("Unknown region: %s\n" % target_region)
-                sys.exit(EXIT['PYTHON_ERROR'])
-
-            # filter exons that are too truncated
-            coords = [x for x in coords if x[1] < x[2]]
-            if not coords:
-                if gene_isoforms:
-                    gene_isoforms.remove(tx[3])
-                if vis_coords:
-                    del vis_coords[-1]
-
-            # compute intersection/union on all exons
-            if txInfo[0][3] == tx[3]:  # if this is first of the isoforms
-                for x in coords:
-                    targets.extend(range(x[1], x[2] + 1))
-                targets = set(targets)
-            else:
-                if not use_union:
-                    targets_ = []
-                    for x in coords:
-                        targets_.extend(range(x[1], x[2] + 1))
-
-                    if len(targets_) >= guideLen: # cover cases where some transcripts provide short or none bp
-                        targets &= set(targets_)
-
-                    if len(targets) < guideLen:
-                        sys.stderr.write(
-                            "Computing intersection over specified isoforms resulted in lack of targets." +
-                            " Consider either using specific isoform as input: " + ', '.join(isoforms) +
-                            " or using --consensusUnion to compute union instead of intersection " +
-                            "of your isoforms (on the website you can find it in " +
-                            "Options -> General -> Isoform consensus determined by -> Union.")
-                        sys.exit(EXIT['GENE_ERROR'])
-                else:
-                    targets_ = []
-                    for x in coords:
-                        targets_.extend(range(x[1], x[2] + 1))
-                    targets |= set(targets_)
-
-        target_size = len(targets)
-        if target_size < guideLen:
-            sys.stderr.write("Search region is too small. You probably want to specify -t option as WHOLE")
-            sys.exit(EXIT['GENE_ERROR'])
-
-        starts, ends = bins(targets)
-        if ISOFORMS:
-            targets = map(lambda x: "%s:%s-%s" % (target_chr, x[0], x[1]), zip(starts, ends))
-        else:
-            targets = map(lambda x: "%s:%s-%s" % (target_chr, x[0] - pad_size, x[1] + pad_size), zip(starts, ends))
-
-    if target_size > TARGET_MAX:
-        sys.stderr.write("Search region is too large (%s nt). Maximum search region is %s nt.\n" % (
-            target_size, TARGET_MAX))
-        sys.exit(EXIT['GENE_ERROR'])
-
-    return targets, vis_coords, target_strand, gene, isoform, gene_isoforms
-
-
-#Used in main
+# Used in main
 def parseFastaTarget(fasta_file, candidate_fasta_file, target_size, eval_and_print):
     """ Parse a FASTA file as input for targeting """
 
@@ -574,7 +249,8 @@ def parseFastaTarget(fasta_file, candidate_fasta_file, target_size, eval_and_pri
     return sequences, [name], [{"exons": [[seq_name, 1, len(sequence), 0, 20, "+"]],
                                 "ATG": [], "name": seq_name}], sequence, "+"
 
-#Used in main
+
+# Used in main
 def connect_db(database_string):
     import MySQLdb
 
@@ -592,7 +268,7 @@ def connect_db(database_string):
     return db
 
 
-#Used in main
+# Used in main
 def mode_select(var: any, index: str, mode: ProgramMode):
     """ Selects a default depending on mode for options that have not been set """
     if var is not None:
@@ -614,7 +290,7 @@ def mode_select(var: any, index: str, mode: ProgramMode):
     sys.exit(EXIT['PYTHON_ERROR'])
 
 
-#Used in main
+# Used in main
 def print_bed(mode, vis_cords, targets, output_file, description): # bed is 0-based
     bed_file = open(output_file, 'w')
 
@@ -658,7 +334,8 @@ def print_bed(mode, vis_cords, targets, output_file, description): # bed is 0-ba
 
     bed_file.close()
 
-#Used in main
+
+# Used in main
 def print_genbank(mode, name, seq, exons, targets, chrom, seq_start, seq_end, strand, output_file, description): # different than other dump_gb
     genbank_file = open(output_file, 'w')
     loci = chrom + ":" + str(seq_start) + "-" + str(seq_end)
@@ -696,8 +373,11 @@ def print_genbank(mode, name, seq, exons, targets, chrom, seq_start, seq_end, st
         SeqIO.write(record, genbank_file, "genbank")
     genbank_file.close()
 
+# Used in FastaToViscord
+def complement(sequence):
+    return sequence.translate(str.maketrans("ACGT", "TGCA"))
 
-#
+# Used in main
 def FastaToViscoords(sequences, strand):
     """ Makes the exons in 'sequences' array generated in coordToFasta json readable for visualization"""
     exonstart = []
@@ -718,7 +398,8 @@ def FastaToViscoords(sequences, strand):
 
     return zip(exonstart, exonend, exonsequence)
 
-#Used in main
+
+# Used in main
 def clusterPairs(pairs):
     """ Clusters paired sequences according to overlap, so user knows which TALE pairs are redundant """
 
@@ -746,4 +427,4 @@ def clusterPairs(pairs):
             cur.cluster = cluster
             inCluster = 0
 
-    return (cluster, pairs)
+    return cluster, pairs

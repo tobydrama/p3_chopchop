@@ -2,7 +2,7 @@ import sys
 import os
 import json
 
-#Dict
+# Dict
 CRISPR_DEFAULT = {"GUIDE_SIZE": 20,
                   "PAM": "NGG",
                   "MAX_OFFTARGETS": 300,
@@ -18,18 +18,18 @@ TALEN_DEFAULT = {"GUIDE_SIZE": 18,
                  "SCORE_FOLDING": False}
 
 CPF1_DEFAULT = {"GUIDE_SIZE": 24,
-                 "PAM": "TTTN",
-                 "MAX_OFFTARGETS": 300,
-                 "MAX_MISMATCHES": 3,
-                 "SCORE_GC": False,
-                 "SCORE_FOLDING": True}
+                "PAM": "TTTN",
+                "MAX_OFFTARGETS": 300,
+                "MAX_MISMATCHES": 3,
+                "SCORE_GC": False,
+                "SCORE_FOLDING": True}
 
 NICKASE_DEFAULT = {"GUIDE_SIZE": 20,
-                    "PAM": "NGG",
-                    "MAX_OFFTARGETS": 300,
-                    "MAX_MISMATCHES": 3,
-                    "SCORE_GC": False,
-                    "SCORE_FOLDING": True}
+                   "PAM": "NGG",
+                   "MAX_OFFTARGETS": 300,
+                   "MAX_MISMATCHES": 3,
+                   "SCORE_GC": False,
+                   "SCORE_FOLDING": True}
 
 SCORE = {"INPAIR_OFFTARGET_0": 5000,
          "INPAIR_OFFTARGET_1": 3000,
@@ -157,13 +157,13 @@ codes = {
     "V": ["A", "C", "G"]
 }
 
-#Array
+# Array
 SINGLE_OFFTARGET_SCORE = [1000, 800, 600, 400]
 
 
 ISOFORMS = False
 
-#Maximum genomic region that can be searched
+# Maximum genomic region that can be searched
 TARGET_MAX = 40000
 
 TALEN_OFF_TARGET_MIN = 28
