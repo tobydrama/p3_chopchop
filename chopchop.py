@@ -267,7 +267,6 @@ def get_coordinates_for_json_visualization(args, visCoords, sequences, strand, r
     tiers = [0] * 23
     sortedCoords = sorted(cutcoords, key=itemgetter(1))
     for coord in sortedCoords:
-
         t = 0
         for j in range(len(tiers)):
             if coord[1] > tiers[j]:
@@ -343,8 +342,8 @@ def generate_result_coordinates(sorted_output: Union[List[Guide], List[Pair]],
             final_output.append(cluster[0])
 
         sorted_output = sort_function(final_output)
-        for guide in sorted_output:
-            result_coordinates.append([guide.spacerStart, guide.score, guide.spacerSize, guide.strand, guide.ID,
+        for i, guide in enumerate(sorted_output):
+            result_coordinates.append([i + 1, guide.spacerStart, guide.score, guide.spacerSize, guide.strand, guide.ID,
                                        guide.tale1.start, guide.tale2.end])
 
     return result_coordinates

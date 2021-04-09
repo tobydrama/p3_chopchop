@@ -253,9 +253,15 @@ def pairPrimers(primerAttributes, primerList, outputDir):
         guide, primerPairID, side = primer.ID.split("_")
 
         s = 0
-        if side == "RIGHT": s = 1
-        if not primers in guide: primers[guide] = {}
-        if not primers[guide] in primerPairID: primers[guide][primerPairID] = [None, None]
+        if side == "RIGHT":
+            s = 1
+
+        if guide not in primers:
+            primers[guide] = {}
+
+        if primerPairID not in primers[guide]:
+            primers[guide][primerPairID] = [None, None]
+
         primers[guide][primerPairID][s] = primer
 
     for guideID in primers:

@@ -18,8 +18,7 @@ def main():
             else:
                 print(f"\r{name}\tERROR: Output does not match.")
         except subprocess.CalledProcessError as e:
-            print(f"{name} failed:")
-            print(e.stderr.decode())
+            print(f"\r{name}\tERROR:\t{e.stderr.decode()}")
             pass
     
     # Empty temp folder run.
