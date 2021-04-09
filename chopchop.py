@@ -345,8 +345,9 @@ def generate_result_coordinates(sorted_output: Union[List[Guide], List[Pair]],
     elif mode in [ProgramMode.TALENS, ProgramMode.NICKASE]:
         final_output = []
         for cluster in clusters:
-            if len(cluster) > 0:
-                final_output.append(cluster[0])
+            if len(cluster) == 0:
+                continue
+            final_output.append(cluster[0])
 
         sorted_output = sort_function(final_output)
         for guide in sorted_output:
@@ -501,7 +502,6 @@ def main():
     info = scoring.ScoringInfo(args.genome, args.PAM, strand, sortOutput, cluster_info, args.outputDir,
                                args.repairPredictions is not None, args.repairPredictions, args.isoforms,
                                visCoords, args.fasta, args.rm1perfOff, args.MODE, scoring_method)
-    print(info.vis_coords)
     sorted_output, cluster = scoring.score_guides(results, info)
 
     # Write individual results to file

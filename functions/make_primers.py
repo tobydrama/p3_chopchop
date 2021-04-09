@@ -57,7 +57,7 @@ def get_primer_options(options):
     if options:
         for opt in options.split(","):
             key, value = opt.split("=")
-            if PRIMER3_CONFIG.has_key(key):
+            if key in PRIMER3_CONFIG:
                 PRIMER3_CONFIG[key] = value
             else:
                 primerOpt += opt + "\n"
@@ -99,7 +99,7 @@ def get_primer_query_sequence_2bit(target, outputDir, flank, genome, twoBitToFaI
         sys.stderr.write("Running twoBitToFa failed\n")
         sys.exit(EXIT['TWOBITTOFA_ERROR'])
 
-    output = output[0].split("\n")
+    output = output[0].decode().split("\n")
     del (output[0])
     seq = "".join(output)
     return seq, seqLenBeforeTarget
@@ -150,7 +150,7 @@ def dump_restriction_sites(target, seq, flanks, enzymeCo, outputDir, minResSiteL
         tier = 0
 
         # count number of sites for each enzyme
-        if not siteCount.has_key(site[0]):
+        if not site[0] in siteCount:
             siteCount[site[0]] = 0
         siteCount[site[0]] += 1
 
@@ -210,6 +210,9 @@ def dump_genbank_file(seq, target, restSites, primers, outputDir, geneID, lociSt
 
     if strand == "-":
         record = record.reverse_complement()
+
+    # TODO: Have an actual bioinformatics person look at this.
+    record.annotations["molecule_type"] = "DNA"
 
     SeqIO.write(record, genbankFile, "genbank")
     genbankFile.close()
@@ -324,7 +327,7 @@ PRIMER_EXPLAIN_FLAG=1
         sys.stderr.write("Running Primer3 failed\n")
         sys.exit(EXIT['PRIMER3_ERROR'])
 
-    return output[0]
+    return output[0].decode()
 
 
 # Used in main, He lives once more
