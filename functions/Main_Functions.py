@@ -370,6 +370,11 @@ def print_genbank(mode, name, seq, exons, targets, chrom, seq_start, seq_end, st
 
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("ignore")
+
+        # No clue what this does, it might fix something to do with Bio.Alphabet deprecation stuff.
+        # TODO: Have an actual bioinformatics person look at this.
+        record.annotations["molecule_type"] = "DNA"
+
         SeqIO.write(record, genbank_file, "genbank")
     genbank_file.close()
 
