@@ -211,14 +211,7 @@ def parse_arguments() -> argparse.Namespace:
     # Add TALEN length
     args.taleMin += 18
     args.taleMax += 18
-    '''
-    args.scoreGC = mainFunctions.mode_select(args.scoreGC, "SCORE_GC", args.MODE)
-    args.scoreSelfComp = mainFunctions.mode_select(args.noScoreSelfComp, "SCORE_FOLDING", args.MODE)
-    args.PAM = mainFunctions.mode_select(args.PAM, "PAM", args.MODE)
-    args.guideSize = mainFunctions.mode_select(args.guideSize, "GUIDE_SIZE", args.MODE) + len(args.PAM)
-    args.maxMismatches = mainFunctions.mode_select(args.maxMismatches, "MAX_MISMATCHES", args.MODE)
-    args.maxOffTargets = mainFunctions.mode_select(args.maxOffTargets, "MAX_OFFTARGETS", args.MODE)
-    '''
+
     # Set mode specific parameters if not set by user
     args.scoreGC = mode_select(args.scoreGC, "SCORE_GC", args.MODE)
     args.scoreSelfComp = mode_select(args.noScoreSelfComp, "SCORE_FOLDING", args.MODE)
