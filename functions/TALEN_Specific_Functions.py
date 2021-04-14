@@ -4,7 +4,7 @@
 ## TALEN SPECIFIC FUNCTIONS
 ##
 from Vars import TALEN_OFF_TARGET_MIN, TALEN_OFF_TARGET_MAX, PRIMER_OFF_TARGET_MIN
-from classes import Nickase
+from classes.Nickase import Nickase
 from operator import attrgetter
 from classes.PAIR import Pair
 

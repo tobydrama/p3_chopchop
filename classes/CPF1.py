@@ -1,4 +1,4 @@
-from classes import Guide
+from classes.Guide import Guide
 
 
 class Cpf1(Guide):

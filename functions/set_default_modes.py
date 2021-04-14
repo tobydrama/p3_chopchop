@@ -2,6 +2,7 @@ from Vars import ISOFORMS
 from classes.ProgramMode import ProgramMode
 from classes.Guide import Guide
 from classes.Cas9 import Cas9
+from classes.CPF1 import Cpf1
 from operator import attrgetter
 from functions.eval import eval_TALENS_sequence, eval_CPF1_sequence, eval_CRISPR_sequence
 
@@ -92,7 +93,7 @@ def set_default_modes(args):
             name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim, PAM=args.PAM,
             filterGCmin=args.filterGCmin, filterGCmax=args.filterGCmax,
             filterSelfCompMax=args.filterSelfCompMax, replace5prime=args.replace5P, backbone=args.backbone)
-        guideClass = ProgramMode.Cpf1 if not ISOFORMS else Guide
+        guideClass = Cpf1 if not ISOFORMS else Guide
         sortOutput = sort_CRISPR_guides
 
     elif args.MODE == ProgramMode.TALENS:
