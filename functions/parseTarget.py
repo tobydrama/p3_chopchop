@@ -474,9 +474,9 @@ def parseTargets(target_string, genome, use_db, data, pad_size, target_region, e
 
         starts, ends = bins(targets)
         if ISOFORMS:
-            targets = map(lambda x: "%s:%s-%s" % (target_chr, x[0], x[1]), zip(starts, ends))
+            targets = list(map(lambda x: "%s:%s-%s" % (target_chr, x[0], x[1]), zip(starts, ends)))
         else:
-            targets = map(lambda x: "%s:%s-%s" % (target_chr, x[0] - pad_size, x[1] + pad_size), zip(starts, ends))
+            targets = list(map(lambda x: "%s:%s-%s" % (target_chr, x[0] - pad_size, x[1] + pad_size), zip(starts, ends)))
 
     if target_size > TARGET_MAX:
         sys.stderr.write("Search region is too large (%s nt). Maximum search region is %s nt.\n" % (
