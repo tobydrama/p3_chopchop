@@ -1,0 +1,39 @@
+{
+  "ENST00000606857 WHOLE": {
+    "args": "-G semirandom -Target ENST00000606857 -t WHOLE",
+    "results": "1.bed"
+  },
+  "ENST00000461467": {
+    "args": "-G semirandom -Target ENST00000461467",
+    "results": "2.bed"
+  },
+
+  "ENST00000417324": {
+    "args": "-G semirandom -Target ENST00000417324",
+    "results": "3.bed"
+  },
+  "ENST00000607096": {
+    "args": "-G semirandom -Target ENST00000607096",
+    "results": "4.bed"
+  },
+    "too many arguments": {
+    "args": "-G semirandom -Target ENST00000461467 -offtargetsTable -non0 -w -T 1 -M NGG --maxMismatches 3 -g 20 -f NN --backbone AGGCTAGTCCGT --replace5P GG -t CODING -n N -R 4 -3 'PRODUCT_SIZE_MIN=150,PRODUCT_SIZE_MAX=290,PRIMER_MIN_SIZE=18,PRIMER_MAX_SIZE=25,PRIMER_OPT_SIZE=22,PRIMER_MIN_TM=57,PRIMER_MAX_TM=63,PRIMER_OPT_TM=60' -A 290 -a 20 --rm1perfOff -r -TDP 50 -TUP 20 -c -SC -taleMin 14 -taleMax 200 -nickaseMin 10 -nickaseMax 31 -offtargetMaxDist 100 -n A -v 0 -p 1 -DF 300 -repairPredictions mESC -filterGCmin 5 -filterGCmax 95 -filterSelfCompMax 1 -consensusUnion -GenBank",
+    "results": "5.bed"
+  },
+    "TALEN": {
+    "args": "-G semirandom -Target ENST00000607096 -GenBank -filterGCmax 90 -t CODING -n N -R 4 -3 PRODUCT_SIZE_MIN=150,PRODUCT_SIZE_MAX=290,PRIMER_MIN_SIZE=18,PRIMER_MAX_SIZE=25,PRIMER_OPT_SIZE=22,PRIMER_MIN_TM=57,PRIMER_MAX_TM=63,PRIMER_OPT_TM=60 -P -A 290 -DF 300 -a 20 -T 2 -v 2 -taleMax 20 -g 18 -taleMin 14",
+    "results": "6.bed"
+  },
+    "TALEN AGAIN": {
+    "args": "-Target ENST00000417324 -GenBank -G semirandom -filterGCmin 10 -filterGCmax 82 -t WHOLE -e 1 -n N -R 4 -3 PRODUCT_SIZE_MIN=150,PRODUCT_SIZE_MAX=271,PRIMER_MIN_SIZE=18,PRIMER_MAX_SIZE=25,PRIMER_OPT_SIZE=22,PRIMER_MIN_TM=57,PRIMER_MAX_TM=63,PRIMER_OPT_TM=60 -P -A 271 -DF 300 -a 20 -T 2 -v 2 -taleMin 14 -taleMax 20 -g 18",
+    "results": "7.bed"
+  },
+    "CPF1": {
+    "args": "-Target ENST00000417324 -GenBank -G semirandom -filterGCmin 10 -filterGCmax 82 -t UTR5 -e 1,2 -n N -R 4 -3 PRODUCT_SIZE_MIN=150,PRODUCT_SIZE_MAX=271,PRIMER_MIN_SIZE=18,PRIMER_MAX_SIZE=25,PRIMER_OPT_SIZE=22,PRIMER_MIN_TM=57,PRIMER_MAX_TM=63,PRIMER_OPT_TM=60 -P -A 271 -DF 300 -a 20 -T 3 -g 24 -M TTCN -scoringMethod KIM_2018",
+    "results": "8.bed"
+  },
+    "NICKASE": {
+    "args": "-Target ENST00000607096 -GenBank -G semirandom -filterGCmin 10 -filterGCmax 82 -t WHOLE -e 1 -n N -R 4 -3 PRODUCT_SIZE_MIN=150,PRODUCT_SIZE_MAX=271,PRIMER_MIN_SIZE=18,PRIMER_MAX_SIZE=25,PRIMER_OPT_SIZE=22,PRIMER_MIN_TM=57,PRIMER_MAX_TM=63,PRIMER_OPT_TM=60 -P -A 271 -DF 300 -a 20 -T 4 -g 18 -scoringMethod DOENCH_2016 -f GN,NG -offtargetMaxDist 97 -nickaseMin 12 -nickaseMax 33 -v 2 -M NRG -BB AGGCTAGTCCGT",
+    "results": "9.bed"
+  }
+}
