@@ -17,11 +17,11 @@ from classes.PAIR import Pair
 from classes.ProgramMode import ProgramMode
 
 # from functions.Main_Functions import *
-from functions.Main_Functions import coordToFasta, runBowtie
-from functions.Main_Functions import writeIndividualResults, parseFastaTarget, connect_db, mode_select
-from functions.Main_Functions import print_bed, print_genbank, FastaToViscoords
-from functions.parseTarget import parseTargets
-from functions.make_primers import make_primers_fasta, make_primers_genome, parseBowtie
+from functions.Main_Functions import coord_to_fasta, run_bowtie
+from functions.Main_Functions import write_individual_results, parse_fasta_target, connect_db, mode_select
+from functions.Main_Functions import print_bed, print_genbank, fasta_to_viscoords
+from functions.parseTarget import parse_targets
+from functions.make_primers import make_primers_fasta, make_primers_genome, parse_bowtie
 from functions.set_default_modes import set_default_modes
 
 
@@ -243,7 +243,7 @@ def get_coordinates_for_json_visualization(args, visCoords, sequences, strand, r
     json.dump(visCoords, visCoordsFile)
 
     # Coordinates for sequence
-    seqvis = FastaToViscoords(sequences, strand)
+    seqvis = fasta_to_viscoords(sequences, strand)
     seqvisFile = open('%s/seqviscoords.json' % args.outputDir, 'w')
     # TODO dont use hack fix with list her
     json.dump(list(seqvis), seqvisFile)
@@ -446,17 +446,17 @@ def main():
     candidate_fasta_file = '%s/sequence.fa' % args.outputDir
     gene, isoform, gene_isoforms = (None, None, set())
     if args.fasta:
-        sequences, targets, visCoords, fastaSequence, strand = parseFastaTarget(
+        sequences, targets, visCoords, fastaSequence, strand = parse_fasta_target(
             args.targets, candidate_fasta_file, args.guideSize, evalSequence)
 
     else:
-        targets, visCoords, strand, gene, isoform, gene_isoforms = parseTargets(
+        targets, visCoords, strand, gene, isoform, gene_isoforms = parse_targets(
             args.targets, args.genome, use_db, db, padSize, args.targetRegion, args.exons,
             args.targetUpstreamPromoter, args.targetDownstreamPromoter,
             CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
             args.outputDir, args.consensusUnion, args.jsonVisualize, args.guideSize)
 
-        sequences, fastaSequence = coordToFasta(
+        sequences, fastaSequence = coord_to_fasta(
             targets, candidate_fasta_file, args.outputDir, args.guideSize, evalSequence, args.nonOverlapping,
             CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
             args.genome, strand, DOWNSTREAM_NUC)
@@ -467,13 +467,13 @@ def main():
         sys.exit()
 
     # Run bowtie and get results
-    bowtieResultsFile = runBowtie(len(args.PAM), args.uniqueMethod_Cong, candidate_fasta_file, args.outputDir,
+    bowtieResultsFile = run_bowtie(len(args.PAM), args.uniqueMethod_Cong, candidate_fasta_file, args.outputDir,
                                   int(args.maxOffTargets),
                                   CONFIG["PATH"]["ISOFORMS_INDEX_DIR"] if ISOFORMS else CONFIG["PATH"][
                                       "BOWTIE_INDEX_DIR"],
                                   args.genome, int(args.maxMismatches))
 
-    results = parseBowtie(guideClass, bowtieResultsFile, True, args.scoreGC, args.scoreSelfComp,
+    results = parse_bowtie(guideClass, bowtieResultsFile, True, args.scoreGC, args.scoreSelfComp,
                           args.backbone, args.replace5P, args.maxOffTargets, countMM, args.PAM,
                           args.MODE != ProgramMode.TALENS,
                           args.scoringMethod, args.genome, gene, isoform, gene_isoforms)  # TALENS: MAKE_PAIRS + CLUSTER
@@ -497,7 +497,7 @@ def main():
     sorted_output, cluster = scoring.score_guides(results, info)
 
     # Write individual results to file
-    listOfClusters = writeIndividualResults(args.outputDir, args.maxOffTargets, sorted_output,
+    listOfClusters = write_individual_results(args.outputDir, args.maxOffTargets, sorted_output,
                                             args.guideSize, args.MODE, cluster,
                                             args.limitPrintResults, args.offtargetsTable)
 
