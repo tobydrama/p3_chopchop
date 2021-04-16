@@ -1,0 +1,9 @@
+{
+  "PATH": {
+    "TWOBIT_INDEX_DIR": "testing/genomes/twoBit_index",
+    "BOWTIE_INDEX_DIR": "testing/genomes/bowtie_index",
+    "ISOFORMS_INDEX_DIR": "testing/genomes/isoforms_index",
+    "ISOFORMS_MT_DIR": "testing/genomes/isoforms_mt_index",
+    "GENE_TABLE_INDEX_DIR": "testing/genomes/gene_table_index"
+  }
+}
