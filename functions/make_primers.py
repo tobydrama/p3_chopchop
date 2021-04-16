@@ -459,4 +459,4 @@ def parse_bowtie(guideClass, bowtieResultsFile, checkMismatch, scoreGC, scoreSel
     return guide_list
 
 
-__all__ = ["make_primers_genome", "make_primers_fasta", "getAllowedFivePrimes"]
+__all__ = ["make_primers_genome", "make_primers_fasta"]
