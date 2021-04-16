@@ -3,7 +3,7 @@ import math
 
 from classes.Guide import Guide
 from Bio.Seq import Seq
-from functions.eval import gccontent
+from functions.eval import gc_content
 from Vars import *
 
 
@@ -23,7 +23,7 @@ class Cas9(Guide):
         self.repStats = None
 
         if self.scoringMethod not in ["CHARI_2015", "DOENCH_2016", "ALKAN_2018", "ZHANG_2019", "ALL"]:
-            self.CoefficientsScore[self.scoringMethod] = self.scoregRNA(
+            self.CoefficientsScore[self.scoringMethod] = self.scoreg_RNA(
                 self.downstream5prim + self.strandedGuideSeq[:-len(self.PAM)],
                 self.strandedGuideSeq[-len(self.PAM):], self.downstream3prim, globals()[self.scoringMethod])
             self.score -= self.CoefficientsScore[self.scoringMethod] * SCORE['COEFFICIENTS']
@@ -35,11 +35,11 @@ class Cas9(Guide):
 
         if self.scoringMethod == "ALL":
             for met in ["XU_2015", "DOENCH_2014", "MORENO_MATEOS_2015", "G_20"]:
-                self.CoefficientsScore[met] = self.scoregRNA(
+                self.CoefficientsScore[met] = self.scoreg_RNA(
                     self.downstream5prim + self.strandedGuideSeq[:-len(self.PAM)],
                     self.strandedGuideSeq[-len(self.PAM):], self.downstream3prim, globals()[met])
 
-    def scoregRNA(self, seq, PAM, tail, lookup):
+    def scoreg_RNA(self, seq, PAM, tail, lookup):
         """ Calculate score from model coefficients. score is 0-1, higher is better """
         score = 0
         if "Intercept" in lookup:
@@ -93,7 +93,7 @@ class Cas9(Guide):
         return score
 
     def __str__(self):
-        self.sort_offTargets()
+        self.sort_off_targets()
         if self.scoringMethod == "ALL":
             return "%s\t%s:%s\t%s\t%.0f\t%s\t%s\t%s\t%s\t%s\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f" % (
                 self.strandedGuideSeq,
@@ -129,7 +129,7 @@ class Cas9(Guide):
                                                                       self.offTargetsMM[3],
                                                                       self.CoefficientsScore[self.scoringMethod])
 
-    def calcSelfComplementarity(self, scoreSelfComp, backbone_regions, PAM, replace5prime=None):
+    def calc_self_complementarity(self, score_self_comp, backbone_regions, PAM, replace5prime=None):
         if replace5prime:
             fwd = replace5prime + self.strandedGuideSeq[len(replace5prime):(
                 None if PAM == "" else -len(PAM))]  # Replace the 2 first bases with e.g. "GG"
@@ -143,7 +143,7 @@ class Cas9(Guide):
         self.folding = 0
 
         for i in range(0, len(fwd) - STEM_LEN):
-            if gccontent(fwd[i:i + STEM_LEN]) >= 0.5:
+            if gc_content(fwd[i:i + STEM_LEN]) >= 0.5:
                 if fwd[i:i + STEM_LEN] in rvs[0:(L - i)] or any(
                         [fwd[i:i + STEM_LEN] in item for item in backbone_regions]):
                     # sys.stderr.write("%s\t%s\n" % (fwd, fwd[i:i+STEM_LEN]))
@@ -151,16 +151,16 @@ class Cas9(Guide):
 
         self.score += self.folding * SCORE['FOLDING']
 
-    def calcGCContent(self, scoreGC):
+    def calc_GC_content(self, score_GC):
         """ Calculate the GC content of the guide """
         if self.PAM is not None and self.strandedGuideSeq is not None:
-            gSeq = self.strandedGuideSeq[0:(None if self.PAM == "" else -len(self.PAM))]
-            Gcount = gSeq.count('G')
-            Ccount = gSeq.count('C')
-            self.GCcontent = (100 * (float(Gcount + Ccount) / int(len(gSeq))))
+            g_seq = self.strandedGuideSeq[0:(None if self.PAM == "" else -len(self.PAM))]
+            G_count = g_seq.count('G')
+            C_count = g_seq.count('C')
+            self.GCcontent = (100 * (float(G_count + C_count) / int(len(g_seq))))
         else:
             self.GCcontent = 0
 
-        if scoreGC:
+        if score_GC:
             if self.GCcontent > GC_HIGH or self.GCcontent < GC_LOW:
                 self.score += SCORE['CRISPR_BAD_GC']

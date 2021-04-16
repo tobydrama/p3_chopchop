@@ -8,7 +8,7 @@ from functions.eval import eval_TALENS_sequence, eval_CPF1_sequence, eval_CRISPR
 
 
 # Used in set_default_modes
-def getAllowedFivePrime(allowed):
+def get_allowed_five_prime(allowed):
     new_allowed = []
     for el in allowed.split(","):
         if el[0] == 'N' and el[1] == 'N':
@@ -23,7 +23,7 @@ def getAllowedFivePrime(allowed):
 
 
 # Used in set_default_modes and tests
-def getMismatchVectors(pam, gLength, cong):
+def get_mismatch_vectors(pam, gLength, cong):
 
     allowed = [True] * (gLength -len(pam))
     count = [True] * (gLength -len(pam))
@@ -42,7 +42,7 @@ def getMismatchVectors(pam, gLength, cong):
 
 
 # Used in set_default_modes
-def getCpf1MismatchVectors(pam, gLength):
+def get_CPF1_mismatch_vectors(pam, gLength):
 
     allowed = [True] * (gLength -len(pam))
     count = [True] * (gLength -len(pam))
@@ -74,8 +74,8 @@ def sort_TALEN_pairs(pairs):
 def set_default_modes(args):
     if args.MODE == ProgramMode.CRISPR or args.MODE == ProgramMode.NICKASE:
         # Set mismatch checking policy
-        (allowedMM, countMM) = getMismatchVectors(args.PAM, args.guideSize, args.uniqueMethod_Cong)
-        allowed = getAllowedFivePrime(args.fivePrimeEnd)
+        (allowedMM, countMM) = get_mismatch_vectors(args.PAM, args.guideSize, args.uniqueMethod_Cong)
+        allowed = get_allowed_five_prime(args.fivePrimeEnd)
         evalSequence = lambda name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim: eval_CRISPR_sequence(
             name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim, allowed=allowed, PAM=args.PAM,
             filterGCmin=args.filterGCmin, filterGCmax=args.filterGCmax,
@@ -88,7 +88,7 @@ def set_default_modes(args):
             sortOutput = sort_TALEN_pairs
 
     elif args.MODE == ProgramMode.CPF1:
-        (allowedMM, countMM) = getCpf1MismatchVectors(args.PAM, args.guideSize)
+        (allowedMM, countMM) = get_CPF1_mismatch_vectors(args.PAM, args.guideSize)
         evalSequence = lambda name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim: eval_CPF1_sequence(
             name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim, PAM=args.PAM,
             filterGCmin=args.filterGCmin, filterGCmax=args.filterGCmax,
@@ -97,7 +97,7 @@ def set_default_modes(args):
         sortOutput = sort_CRISPR_guides
 
     elif args.MODE == ProgramMode.TALENS:
-        (allowedMM, countMM) = getMismatchVectors(args.PAM, args.guideSize, None)
+        (allowedMM, countMM) = get_mismatch_vectors(args.PAM, args.guideSize, None)
         guideClass = Guide
         evalSequence = eval_TALENS_sequence
         sortOutput = sort_TALEN_pairs

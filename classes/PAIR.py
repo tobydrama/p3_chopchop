@@ -1,6 +1,6 @@
 from Vars import SCORE
 from Bio.Seq import Seq
-from functions.make_primers import findRestrictionSites
+from functions.make_primers import find_restriction_sites
 
 
 class Pair:
@@ -83,7 +83,7 @@ class Pair:
 
         # Compute penalties (scores) for off-target hits. Worst = off-target pair, Not so bad = off-target single tale
         self.score = (self.sameStrandOffTarget * SCORE['OFFTARGET_PAIR_SAME_STRAND']) + (self.diffStrandOffTarget * SCORE['OFFTARGET_PAIR_DIFF_STRAND']) + tale1.score + tale2.score + indivScore
-        resSites = findRestrictionSites(self.spacerSeq, enzymeCo, minResSiteLen)
+        resSites = find_restriction_sites(self.spacerSeq, enzymeCo, minResSiteLen)
         self.restrictionSites = ";".join(map(lambda x: "%s:%s" % (str(x), ",".join(map(str, resSites[x]))), resSites))
 
     def __str__(self):
@@ -99,16 +99,16 @@ class Pair:
                 ">=" + str(self.tale2.offTargetsMM[3]) if self.tale2.isKmaxed else self.tale2.offTargetsMM[3],
                 self.restrictionSites)
 
-    def asOffTargetString(self, label, maxOffTargets):
+    def as_off_target_string(self, label, maxOffTargets):
         pairs = []
 
         # Add any off-target pairs
         if self.offTargetPairs:
             for offTargetPair in self.offTargetPairs:
-                pairs.append("%s,%s" % (offTargetPair[0].asOffTargetString(label, maxOffTargets), offTargetPair[1].asOffTargetString(label, maxOffTargets)))
+                pairs.append("%s,%s" % (offTargetPair[0].as_off_target_string(label, maxOffTargets), offTargetPair[1].as_off_target_string(label, maxOffTargets)))
         else:
             pairs.append("")
 
         pairs = ";".join(pairs)
 
-        return "\n".join([pairs, self.tale1.asOffTargetString("TALE 1", maxOffTargets), self.tale2.asOffTargetString("TALE 2", maxOffTargets)])
+        return "\n".join([pairs, self.tale1.as_off_target_string("TALE 1", maxOffTargets), self.tale2.as_off_target_string("TALE 2", maxOffTargets)])

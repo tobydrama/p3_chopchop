@@ -6,7 +6,7 @@ from Bio.Seq import Seq
 from operator import attrgetter
 
 #So it doesn't crash
-def gccontent(seq):
+def gc_content(seq):
     gc = 0
     for i in seq:
         if i == 'G' or i == 'g' or i == 'C' or i == 'c':
@@ -43,7 +43,7 @@ def get_mismatch_pos(mismatch_string):
 
 class Guide(object):
     """ This defines a class for each guide. The (off-target) hits for each guide form a separate class. The functions
-    "addOffTarget" and "sort_offTargets" applies to just the Tale class """
+    "add_off_target" and "sort_off_targets" applies to just the Tale class """
 
     def __init__(self, name, flagSum, guideSize, guideSeq, scoreGC, scoreSelfComp,
                  backbone_regions, PAM, replace5prime=None, scoringMethod=None,
@@ -124,14 +124,14 @@ class Guide(object):
         self.offTargets_sorted = False
 
         if scoreSelfComp:
-            self.calcSelfComplementarity(scoreSelfComp, backbone_regions, PAM, replace5prime)
+            self.calc_self_complementarity(scoreSelfComp, backbone_regions, PAM, replace5prime)
         else:
             self.folding = "N/A"
 
         # Scoring
-        self.calcGCContent(scoreGC)
+        self.calc_GC_content(scoreGC)
 
-    def calcSelfComplementarity(self, scoreSelfComp, backbone_regions, PAM, replace5prime = None):
+    def calc_self_complementarity(self, scoreSelfComp, backbone_regions, PAM, replace5prime = None):
         if replace5prime:
             fwd = self.strandedGuideSeq[len(PAM):-len(replace5prime)] + replace5prime #Replace the 2 first bases with e.g. "GG"
         else:
@@ -143,7 +143,7 @@ class Guide(object):
         self.folding = 0
 
         for i in range(0,len(fwd)-STEM_LEN):
-            if gccontent(fwd[i:i+STEM_LEN]) >= 0.5:
+            if gc_content(fwd[i:i + STEM_LEN]) >= 0.5:
                 if fwd[i:i+STEM_LEN] in rvs[0:(L-i)] or any([fwd[i:i+STEM_LEN] in item for item in backbone_regions]):
                     #sys.stderr.write("%s\t%s\n" % (fwd, fwd[i:i+STEM_LEN]))
                     self.folding += 1
@@ -151,13 +151,13 @@ class Guide(object):
         self.score += self.folding * SCORE['FOLDING']
 
 
-    def calcGCContent(self, scoreGC):
+    def calc_GC_content(self, scoreGC):
         """ Calculate the GC content of the guide """
         if self.PAM is not None and self.strandedGuideSeq is not None:
-            gSeq = self.strandedGuideSeq[len(self.PAM):]
-            Gcount = gSeq.count('G')
-            Ccount = gSeq.count('C')
-            self.GCcontent = (100*(float(Gcount+Ccount)/int(len(gSeq))))
+            g_seq = self.strandedGuideSeq[len(self.PAM):]
+            G_count = g_seq.count('G')
+            C_count = g_seq.count('C')
+            self.GCcontent = (100*(float(G_count+C_count)/int(len(g_seq))))
         else:
             self.GCcontent = 0
 
@@ -166,7 +166,7 @@ class Guide(object):
                 self.score += SCORE['CRISPR_BAD_GC']
 
 
-    def addOffTarget(self, hit, checkMismatch, maxOffTargets, countMMPos):
+    def add_off_target(self, hit, checkMismatch, maxOffTargets, countMMPos):
         """ Add off target hits (and not original hit) to list for each guide RNA """
 
         hit_id = "%s:%s" % (hit.chrom, hit.start)
@@ -230,14 +230,12 @@ class Guide(object):
 
         self.offTargets_sorted = False
 
-
-    def numOffTargets(self):
+    def num_off_targets(self):
         """ Returns the number of off-target hits for each guide """
-        self.sort_offTargets()
+        self.sort_off_targets()
         return len(self.offTargets)
 
-
-    def sort_offTargets(self):
+    def sort_off_targets(self):
         """ Sort off-target hits according to chromosome and genomic coordinate """
 
         if self.offTargets_sorted:
@@ -247,9 +245,8 @@ class Guide(object):
         self.offTargets = sorted(self.offTargets, key=attrgetter('chrom', 'start'))
         self.offTargets_sorted = True
 
-
     def __str__(self):
-        self.sort_offTargets()
+        self.sort_off_targets()
         if ISOFORMS:
             return "%s\t%s:%s\t%s\t%s\t%.0f\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (self.strandedGuideSeq,
                                                                                             self.chrom, self.start,
@@ -267,9 +264,8 @@ class Guide(object):
                                                                 self.offTargetsMM[2],
                                                                 ">=" + str(self.offTargetsMM[3]) if self.isKmaxed else self.offTargetsMM[3])
 
+    def as_off_target_string(self, label, max_off_targets):
+        self.sort_off_targets()
+        off_targets = map(lambda x: x.as_off_target_string(label, max_off_targets), self.offTargets)
 
-    def asOffTargetString(self, label, maxOffTargets):
-        self.sort_offTargets()
-        offTargets = map(lambda x: x.asOffTargetString(label, maxOffTargets), self.offTargets)
-
-        return ";".join(offTargets)
+        return ";".join(off_targets)

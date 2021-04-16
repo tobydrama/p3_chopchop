@@ -16,7 +16,7 @@ import Vars
 from classes.Cas9 import Cas9
 from classes.Guide import Guide
 from classes.ProgramMode import ProgramMode
-from functions.TALEN_Specific_Functions import pairTalens, pairCas9, clusterPairs
+from functions.TALEN_Specific_Functions import pair_talens, pair_cas9, cluster_pairs
 from dockers.doench_2016_wrapper import run_doench_2016
 
 
@@ -455,17 +455,17 @@ def get_cluster_pairs(guides: List[Guide], info: ScoringInfo, program_mode: Prog
 
     cluster_info = info.cluster_info
     if program_mode == ProgramMode.TALENS:
-        pairs = pairTalens(guides,
-                           cluster_info.sequences, cluster_info.guide_size,
-                           int(cluster_info.min_distance), int(cluster_info.max_distance),
-                           cluster_info.enzyme_company, cluster_info.max_off_targets,
-                           cluster_info.g_rvd, cluster_info.min_res_site_len)
+        pairs = pair_talens(guides,
+                            cluster_info.sequences, cluster_info.guide_size,
+                            int(cluster_info.min_distance), int(cluster_info.max_distance),
+                            cluster_info.enzyme_company, cluster_info.max_off_targets,
+                            cluster_info.g_rvd, cluster_info.min_res_site_len)
     elif program_mode == ProgramMode.NICKASE:
-        pairs = pairCas9(guides,
-                         cluster_info.sequences, cluster_info.guide_size,
-                         int(cluster_info.min_distance), int(cluster_info.max_distance),
-                         cluster_info.enzyme_company, cluster_info.max_off_targets,
-                         cluster_info.min_res_site_len, cluster_info.off_target_max_distance)
+        pairs = pair_cas9(guides,
+                          cluster_info.sequences, cluster_info.guide_size,
+                          int(cluster_info.min_distance), int(cluster_info.max_distance),
+                          cluster_info.enzyme_company, cluster_info.max_off_targets,
+                          cluster_info.min_res_site_len, cluster_info.off_target_max_distance)
 
     if not len(pairs):
         # TODO better error handling (error logging, exceptions, etc)
@@ -480,7 +480,7 @@ def get_cluster_pairs(guides: List[Guide], info: ScoringInfo, program_mode: Prog
             if program_mode == ProgramMode.TALENS and pair.sameStrandOffTarget > 0:
                 pair.score -= Vars.SCORE["OFFTARGET_PAIR_SAME_STRAND"]
 
-    cluster, guides = clusterPairs(pairs)
+    cluster, guides = cluster_pairs(pairs)
 
     logging.debug("Got %d clusters." % cluster)
 

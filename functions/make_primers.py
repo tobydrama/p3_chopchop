@@ -106,7 +106,7 @@ def get_primer_query_sequence_2bit(target, outputDir, flank, genome, twoBitToFaI
 
 
 # Used in makePrimersFasta and makePrimersGenome
-def runBowtiePrimers(primerFastaFileName, outputDir, genome, bowtieIndexDir, maxOffTargets):
+def run_bowtie_primers(primerFastaFileName, outputDir, genome, bowtieIndexDir, maxOffTargets):
     command = "%s -v 0 --best --sam-nohead -k 10 %s/%s -f %s -S %s/primer_results.sam 2> %s/bowtie_primers.err" % (
         CONFIG["PATH"]["BOWTIE"], bowtieIndexDir, genome, primerFastaFileName, outputDir, outputDir)
     prog = Popen(command, shell=True)
@@ -116,13 +116,13 @@ def runBowtiePrimers(primerFastaFileName, outputDir, genome, bowtieIndexDir, max
         sys.stderr.write("Running bowtie on primers failed\n")
         sys.exit(EXIT['BOWTIE_PRIMER_ERROR'])
 
-    return parseBowtie(Guide, "%s/primer_results.sam" % outputDir, False, False, False, None, None,
-                       maxOffTargets, None, None, False, None, None)
+    return parse_bowtie(Guide, "%s/primer_results.sam" % outputDir, False, False, False, None, None,
+                        maxOffTargets, None, None, False, None, None)
 
 
 # Used in Nickase, Pair, dump_restriction_sites
-def findRestrictionSites(sequence, enzymeCompany, minSize=1):
-    # Take spacerSeq as DNA input for restriction site search
+def find_restriction_sites(sequence, enzymeCompany, minSize=1):
+    # Take spacer_seq as DNA input for restriction site search
     mySeq = Seq(sequence)
 
     # Restricts enzyme possibilities to NEB enzymes. Can ultimately change to any supplier.
@@ -138,7 +138,7 @@ def findRestrictionSites(sequence, enzymeCompany, minSize=1):
 
 # Used in makePrimersFasta and makePrimersGenome
 def dump_restriction_sites(target, seq, flanks, enzymeCo, outputDir, minResSiteLen):
-    sites = findRestrictionSites(seq, enzymeCo, minResSiteLen)
+    sites = find_restriction_sites(seq, enzymeCo, minResSiteLen)
     out = [map(lambda x: [str(enzyme), x + target.start - flanks, enzyme.size], sites[enzyme]) for enzyme in sites]
     out = [item for sublist in out for item in sublist]
     out = sorted(out, key=itemgetter(1))
@@ -175,7 +175,7 @@ def dump_restriction_sites(target, seq, flanks, enzymeCo, outputDir, minResSiteL
     return sites
 
 
-# Used in makePrimersFasta and makePrimersGenome
+# Used in make_primers_fasta and make_primers_Genome
 def dump_locus_sequence(target, outputDir, seq, seqLenBeforeTarget, strand):
     if strand == "-":
         seq = str(Seq(seq).complement())
@@ -227,8 +227,8 @@ def has_Off_targets(tale1, tale2, offTargetMin, offTargetMax):
 
     # Calls sort function to sort off-targets by chromosome and chromosome position.
     # Bowtie ranks them according to quality of hit
-    tale1.sort_offTargets()
-    tale2.sort_offTargets()
+    tale1.sort_off_targets()
+    tale2.sort_off_targets()
 
     # TODO: Eivind to write this code properly. Include a way to step backwards, so as not to miss any hits.
     # Need to make a queue..?
@@ -246,7 +246,7 @@ def has_Off_targets(tale1, tale2, offTargetMin, offTargetMax):
 
 
 # Used in makePrimersFasta and makePrimersGenome
-def pairPrimers(primerAttributes, primerList, outputDir):
+def pair_primers(primerAttributes, primerList, outputDir):
     primers = {}
 
     for primer in primerList:
@@ -362,8 +362,8 @@ def make_primers_fasta(targets, outputDir, flanks, displayFlanks, genome, limitP
 
     primerFastaFile.close()
 
-    primerResults = runBowtiePrimers(primerFastaFileName, outputDir, genome, bowtieIndexDir, maxOffTargets)
-    pairPrimers(primers, primerResults, outputDir)
+    primerResults = run_bowtie_primers(primerFastaFileName, outputDir, genome, bowtieIndexDir, maxOffTargets)
+    pair_primers(primers, primerResults, outputDir)
 
 
 # Used in main, Zombie funky
@@ -396,14 +396,14 @@ def make_primers_genome(targets, outputDir, flanks, display_seq_len, genome, lim
 
     primerFastaFile.close()
 
-    primerResults = runBowtiePrimers(primerFastaFileName, outputDir, genome, bowtieIndexDir, maxOffTargets)
-    pairPrimers(primers, primerResults, outputDir)
+    primerResults = run_bowtie_primers(primerFastaFileName, outputDir, genome, bowtieIndexDir, maxOffTargets)
+    pair_primers(primers, primerResults, outputDir)
 
 
 # Used in main and runbowtiePrimer
-def parseBowtie(guideClass, bowtieResultsFile, checkMismatch, scoreGC, scoreSelfComp,
-                backbone, replace5prime, maxOffTargets, countMM, PAM, mode, scoringMethod=None,
-                genome=None, gene=None, isoform=None, gene_isoforms=None):
+def parse_bowtie(guideClass, bowtieResultsFile, checkMismatch, scoreGC, scoreSelfComp,
+                 backbone, replace5prime, maxOffTargets, countMM, PAM, mode, scoringMethod=None,
+                 genome=None, gene=None, isoform=None, gene_isoforms=None):
     """ Parses bowtie hits and build list of guides"""
     logging.info("Parsing bowtie file '%s'." % bowtieResultsFile)
 

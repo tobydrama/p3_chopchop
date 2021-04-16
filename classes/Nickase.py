@@ -1,10 +1,10 @@
 from Vars import SINGLE_OFFTARGET_SCORE, SCORE
-from functions.make_primers import findRestrictionSites
+from functions.make_primers import find_restriction_sites
 
 
 class Nickase:
     """ Pair class for 2 Cas9 that are the correct distance apart """
-    def __init__(self, tale1, tale2, spacerSeq, spacerSize, offTargetPairs, enzymeCo, maxOffTargets, minResSiteLen):
+    def __init__(self, tale1, tale2, spacer_seq, spacer_size, off_target_pairs, enzyme_co, max_off_targets, minResSiteLen):
         self.tale1 = tale1
         self.tale2 = tale2
         self.chrom = tale1.chrom
@@ -17,10 +17,10 @@ class Nickase:
 
         # End of region covered by tale pair
         self.end = tale2.end
-        self.spacerSeq = spacerSeq
-        self.targetSize = spacerSize
-        self.spacerSize = spacerSize
-        self.offTargetPairs = offTargetPairs
+        self.spacerSeq = spacer_seq
+        self.targetSize = spacer_size
+        self.spacerSize = spacer_size
+        self.offTargetPairs = off_target_pairs
         self.diffStrandOffTarget = 0
         self.sameStrandOffTarget = 0
 
@@ -29,7 +29,7 @@ class Nickase:
         self.spacerStart = tale1.start + tale1.guideSize
         self.spacerEnd = tale2.start - 1
 
-        self.enzymeCo = enzymeCo
+        self.enzymeCo = enzyme_co
         self.strandedGuideSeq = str(self.tale1.guideSeq) + "\n" + self.spacerSeq + "\n" + str(self.tale2.guideSeq)
         self.offTargetPairCount = 0
 
@@ -37,7 +37,7 @@ class Nickase:
         # or on the same strand (not so bad = FokI domains probably too far apart to cut)
         indivScore = 0
 
-        for (hit1, hit2) in offTargetPairs:
+        for (hit1, hit2) in off_target_pairs:
             # Using boolean, count number of offtarget pairs on different strands
             if hit2.flagSum & hit1.flagSum == 0:
                 self.diffStrandOffTarget += 1
@@ -55,7 +55,7 @@ class Nickase:
         # Compute penalties (scores) for off-target hits. Worst = off-target pair, Not so bad = off-target single tale
         self.score = (self.diffStrandOffTarget * SCORE['OFFTARGET_PAIR_DIFF_STRAND']) + tale1.score + tale2.score - \
                 indivScore + (tale1.strand == "+") * SCORE['PAM_IN_PENALTY']
-        resSites = findRestrictionSites(self.spacerSeq, enzymeCo, minResSiteLen)
+        resSites = find_restriction_sites(self.spacerSeq, enzyme_co, minResSiteLen)
         self.restrictionSites = ";".join(map(lambda x: "%s:%s" % (str(x), ",".join(map(str, resSites[x]))), resSites))
 
     def __str__(self):
@@ -71,16 +71,16 @@ class Nickase:
                 ">=" + str(self.tale2.offTargetsMM[3]) if self.tale2.isKmaxed else self.tale2.offTargetsMM[3],
                 self.restrictionSites)
 
-    def asOffTargetString(self, label, maxOffTargets):
+    def as_off_target_string(self, label, max_off_targets):
         pairs = []
 
         # Add any off-target pairs
         if self.offTargetPairs:
             for offTargetPair in self.offTargetPairs:
-                pairs.append("%s,%s" % (offTargetPair[0].asOffTargetString(label, maxOffTargets), offTargetPair[1].asOffTargetString(label, maxOffTargets)))
+                pairs.append("%s,%s" % (offTargetPair[0].as_off_target_string(label, max_off_targets), offTargetPair[1].as_off_target_string(label, max_off_targets)))
         else:
             pairs.append("")
 
         pairs = ";".join(pairs)
 
-        return "\n".join([pairs, self.tale1.asOffTargetString("TALE 1", maxOffTargets), self.tale2.asOffTargetString("TALE 2", maxOffTargets)])
+        return "\n".join([pairs, self.tale1.as_off_target_string("TALE 1", max_off_targets), self.tale2.as_off_target_string("TALE 2", max_off_targets)])

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from functions.set_default_modes import getAllowedFivePrime, getMismatchVectors, getCpf1MismatchVectors
+from functions.set_default_modes import get_allowed_five_prime, get_mismatch_vectors, get_CPF1_mismatch_vectors
 from classes.ProgramMode import ProgramMode
 from functions.Main_Functions import mode_select
 from Vars import CPF1_DEFAULT, TALEN_DEFAULT, CRISPR_DEFAULT, NICKASE_DEFAULT
@@ -8,30 +8,30 @@ from Vars import CPF1_DEFAULT, TALEN_DEFAULT, CRISPR_DEFAULT, NICKASE_DEFAULT
 class Test(TestCase):
     def test_getAllowedFivePrime(self):
         self.assertEqual(("AA", "AC", "AG", "AT", "CA", "CC", "CG", "CT", "GA", "GC", "GG", "GT", "TA", "TC", "TG",
-                          "TT"), getAllowedFivePrime("NN"))
-        self.assertEqual({'AA': True, 'CA': True, 'GA': True, 'TA': True}, getAllowedFivePrime("NA"))
-        self.assertEqual({'AA': True, 'AC': True, 'AG': True, 'AT': True}, getAllowedFivePrime("AN"))
-        self.assertEqual({'AA': True}, getAllowedFivePrime("AA"))
+                          "TT"), get_allowed_five_prime("NN"))
+        self.assertEqual({'AA': True, 'CA': True, 'GA': True, 'TA': True}, get_allowed_five_prime("NA"))
+        self.assertEqual({'AA': True, 'AC': True, 'AG': True, 'AT': True}, get_allowed_five_prime("AN"))
+        self.assertEqual({'AA': True}, get_allowed_five_prime("AA"))
 
     def test_getMismatchVectors(self):
         expected = ([True, True, True, True, True, True, True, False, False],
                     [True, True, True, True, True, True, False, False, False])
-        self.assertEqual(expected, getMismatchVectors("NGG", 9, False))
+        self.assertEqual(expected, get_mismatch_vectors("NGG", 9, False))
 
         expected = ([True, True, True, True, True, True, True, True, True, True], [False])
-        self.assertEqual(expected, getMismatchVectors("N", 1, True))
-        self.assertEqual(([True], [False]), getMismatchVectors("N", 1, False))
-        self.assertEqual(([False], [False]), getMismatchVectors("A", 1, False))
-        self.assertEqual(([False], [False]), getMismatchVectors("A", 1, None))
+        self.assertEqual(expected, get_mismatch_vectors("N", 1, True))
+        self.assertEqual(([True], [False]), get_mismatch_vectors("N", 1, False))
+        self.assertEqual(([False], [False]), get_mismatch_vectors("A", 1, False))
+        self.assertEqual(([False], [False]), get_mismatch_vectors("A", 1, None))
 
     def test_getCpf1MismatchVectors(self):
-        self.assertEqual(([False], [False]), getCpf1MismatchVectors("A", 1))
+        self.assertEqual(([False], [False]), get_CPF1_mismatch_vectors("A", 1))
         expected = ([True, False, False, True, True, True, True, True, True, True, True, True, True, True, True, True,
                      True, True, True, True, True, True, True, True, True, True, True],
                     [False, False, False, True, True, True, True, True, True, True, True, True, True, True, True, True,
                      True, True, True, True, True, True, True, True, True, True, True])
-        self.assertEqual(expected, getCpf1MismatchVectors("NGG", 27))
-        self.assertEqual(([True, False, False], [False, False, False]), getCpf1MismatchVectors("NGG", 1))
+        self.assertEqual(expected, get_CPF1_mismatch_vectors("NGG", 27))
+        self.assertEqual(([True, False, False], [False, False, False]), get_CPF1_mismatch_vectors("NGG", 1))
 
     def test_mode_select(self):
         self.assertEqual("?", mode_select("?", 1, None))

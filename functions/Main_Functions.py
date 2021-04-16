@@ -23,7 +23,7 @@ from Bio.SeqFeature import SeqFeature, FeatureLocation
 # Here lies concatenate_feature_sets
 
 # Used in main
-def coordToFasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc, nonOver, indexDir, genome, strand, ext):
+def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc, nonOver, indexDir, genome, strand, ext):
     """ Extracts the sequence corresponding to genomic coordinates from a FASTA file """
 
     ext = 0 if ISOFORMS else ext # for genomic context for some models
@@ -99,8 +99,8 @@ def coordToFasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc, n
 
 
 # Used in main
-def runBowtie(PAMlength, unique_method_cong, fasta_file, output_dir,
-              max_off_targets, index_dir, genome, max_mismatches):
+def run_bowtie(PAMlength, unique_method_cong, fasta_file, output_dir,
+               max_off_targets, index_dir, genome, max_mismatches):
     logging.info("Running bowtie.")
 
     bwt_results_file = '%s/output.sam' % output_dir
@@ -134,7 +134,7 @@ def runBowtie(PAMlength, unique_method_cong, fasta_file, output_dir,
 
 
 # Used in main
-def writeIndividualResults(outputDir, maxOffTargets, sortedOutput, guideSize, mode, totalClusters, limitPrintResults, offtargetsTable):
+def write_individual_results(outputDir, maxOffTargets, sortedOutput, guideSize, mode, totalClusters, limitPrintResults, offtargetsTable):
     """ Writes each guide and its offtargets into a file """
 
     # Initiate list of lists for each cluster
@@ -160,7 +160,7 @@ def writeIndividualResults(outputDir, maxOffTargets, sortedOutput, guideSize, mo
             clusterID = current.cluster
             clusters[clusterID-1].append(current)
 
-        offTargets = current.asOffTargetString("", maxOffTargets)
+        offTargets = current.as_off_target_string("", maxOffTargets)
         if not offTargets:
             offTargets = "There are no predicted off-targets."
 
@@ -179,7 +179,7 @@ def writeIndividualResults(outputDir, maxOffTargets, sortedOutput, guideSize, mo
         if mode == ProgramMode.CRISPR and not ISOFORMS and offtargetsTable:
             off_table = '%s/offtargetsTable.csv' % outputDir
             label = "%s:%s,%s,%s" % (current.chrom, current.start, current.strand, current.strandedGuideSeq)
-            off_for_table = map(lambda x: x.asOffTargetString(label, maxOffTargets), current.offTargets)
+            off_for_table = map(lambda x: x.as_off_target_string(label, maxOffTargets), current.offTargets)
             with open(off_table, "a") as append_file:
                 if len(list(off_for_table)) > 0:
                     append_file.write("\n".join(off_for_table))
@@ -207,7 +207,7 @@ def writeIndividualResults(outputDir, maxOffTargets, sortedOutput, guideSize, mo
 
 
 # Used in main
-def parseFastaTarget(fasta_file, candidate_fasta_file, target_size, eval_and_print):
+def parse_fasta_target(fasta_file, candidate_fasta_file, target_size, eval_and_print):
     """ Parse a FASTA file as input for targeting """
 
     fasta_file = list(SeqIO.parse(fasta_file, 'fasta'))
@@ -383,7 +383,7 @@ def complement(sequence):
     return sequence.translate(str.maketrans("ACGT", "TGCA"))
 
 # Used in main
-def FastaToViscoords(sequences, strand):
+def fasta_to_viscoords(sequences, strand):
     """ Makes the exons in 'sequences' array generated in coordToFasta json readable for visualization"""
     exonstart = []
     exonend = []
@@ -405,14 +405,14 @@ def FastaToViscoords(sequences, strand):
 
 
 # Used in main
-def clusterPairs(pairs):
+def cluster_pairs(pairs):
     """ Clusters paired sequences according to overlap, so user knows which TALE pairs are redundant """
 
     # Sets the starting pair of TALEs to be compared to
     first = pairs[0]
     cluster = 1
     first.cluster = cluster
-    inCluster = 0
+    in_cluster = 0
 
     # Compares each TALE pair to previous pair in list to see whether redundant. Assigns cluster number accordingly
     for i in range(1,len(pairs)):
@@ -422,14 +422,14 @@ def clusterPairs(pairs):
         # Specifically, compares location of spacer (by comparing location of tales) to see whether there is overlap,
         # and therefore TALE pairs are redundant
         if ((cur.spacerStart <= prev.spacerEnd) and (cur.spacerEnd >= prev.spacerStart) and
-                    inCluster < PRIMER_OFF_TARGET_MIN):
+                    in_cluster < PRIMER_OFF_TARGET_MIN):
 
             cur.cluster = cluster
-            inCluster += 1
+            in_cluster += 1
         else:
             # If not redundant, increase cluster number
             cluster += 1
             cur.cluster = cluster
-            inCluster = 0
+            in_cluster = 0
 
     return cluster, pairs

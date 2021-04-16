@@ -33,8 +33,8 @@ def get_isoforms(gene, table_file):
     return gene_isoforms
 
 
-# Used in parseTargets
-def filterRepeatingNames(txInfo, filter_names=["fix", "random", "alt"]):
+# Used in parse_targets
+def filter_repeating_names(txInfo, filter_names=["fix", "random", "alt"]):
     # if more isoforms have exact same name filter the ones
     # with "alt", "fix", "random" in chr names
     # then take the first one
@@ -86,8 +86,8 @@ def hyphen_range(s):
     return l
 
 
-# Used in parseTargets
-def subsetExons(exons, targets):
+# Used in parse_targets
+def subset_exons(exons, targets):
     if exons:
         indices = hyphen_range(exons)
         for index in indices:
@@ -97,8 +97,8 @@ def subsetExons(exons, targets):
         targets = [targets[int(i) - 1] for i in indices]  # indices is a list of exon numbers -1 e.g. exon 2 is [1]
     return targets
 
-# Used in parseTargets
-def truncateToUTR5(cds_start, exons):
+# Used in parse_targets
+def truncate_to_UTR5(cds_start, exons):
     """ Truncates the gene to only target 5' UTR """
 
     end_exon = 0
@@ -111,8 +111,8 @@ def truncateToUTR5(cds_start, exons):
     return exons[:end_exon + 1]
 
 
-# Used in parseTargets
-def truncateToPROMOTER(strand, exons, ups_bp, down_bp):
+# Used in parse_targets
+def truncate_to_PROMOTER(strand, exons, ups_bp, down_bp):
     """ Truncates the gene to only target promoter +-bp TSS """
 
     if strand == "+":
@@ -127,8 +127,8 @@ def truncateToPROMOTER(strand, exons, ups_bp, down_bp):
         return [first_exon]
 
 
-# Used in parseTargets
-def truncateToUTR3(cds_end, exons):
+# Used in parse_targets
+def truncate_to_UTR3(cds_end, exons):
     """ Truncates the gene to only target 3' UTR """
 
     start_exon = 0
@@ -140,8 +140,8 @@ def truncateToUTR3(cds_end, exons):
     return exons[start_exon:]
 
 
-# Used in parseTargets
-def truncateToSplice(exons):
+# Used in parse_targets
+def truncate_to_splice(exons):
     """ Truncates the gene to only target splice sites """
 
     splice_sites = []
@@ -152,8 +152,8 @@ def truncateToSplice(exons):
     return splice_sites[1:len(splice_sites) - 1]
 
 
-# Used in parseTargets
-def truncateToCoding(cds_start, cds_end, exons):
+# Used in parse_targets
+def truncate_to_coding(cds_start, cds_end, exons):
     """ Truncates the gene to only consider the coding region """
 
     start_exon, end_exon = 0, len(exons) - 1
@@ -175,8 +175,8 @@ def truncateToCoding(cds_start, cds_end, exons):
     return exons[start_exon:(end_exon + 1)]
 
 
-# Used in parseTargets
-def geneToCoord_db(gene, organism, db):
+# Used in parse_targets
+def gene_to_coord_db(gene, organism, db):
     """ Gets genomic coordinates for a gene from a database """
 
     # Try refseq first
@@ -230,8 +230,8 @@ def geneToCoord_db(gene, organism, db):
     return txInfo
 
 
-# Used in parseTargets
-def geneToCoord_file(gene_in, table_file):
+# Used in parse_targets
+def gene_to_coord_file(gene_in, table_file):
     """ Extracts coordinates of genomic regions to parse for suitable guide binding sites """
     table_r = open(table_file,'r')
 
@@ -256,8 +256,8 @@ def geneToCoord_file(gene_in, table_file):
 
 
 #Used in main
-def parseTargets(target_string, genome, use_db, data, pad_size, target_region, exon_subset, ups_bp, down_bp,
-                 index_dir, output_dir, use_union, make_vis, guideLen):
+def parse_targets(target_string, genome, use_db, data, pad_size, target_region, exon_subset, ups_bp, down_bp,
+                  index_dir, output_dir, use_union, make_vis, guideLen):
     targets = []
     vis_coords = []
     target_strand = "+"
@@ -306,11 +306,11 @@ def parseTargets(target_string, genome, use_db, data, pad_size, target_region, e
             if ISOFORMS:
                 sys.stderr.write("--isoforms is not working with database search.\n")
                 sys.exit(EXIT['ISOFORMS_ERROR'])
-            txInfo = geneToCoord_db(target_string, genome, data)
-            txInfo = filterRepeatingNames(txInfo)
+            txInfo = gene_to_coord_db(target_string, genome, data)
+            txInfo = filter_repeating_names(txInfo)
         else:
-            gene, txInfo = geneToCoord_file(target_string, data)
-            txInfo = filterRepeatingNames(txInfo)
+            gene, txInfo = gene_to_coord_file(target_string, data)
+            txInfo = filter_repeating_names(txInfo)
             isoform = "union" if use_union else "intersection"
             gene_isoforms = set([str(x[3]) for x in txInfo])
             if target_string in gene_isoforms:
@@ -406,27 +406,27 @@ def parseTargets(target_string, genome, use_db, data, pad_size, target_region, e
             coords = list(map(lambda x: [tx[0], x[0], x[1]], zip(starts, ends)))
             if tx[6] == "-":
                 coords.reverse()
-            coords = subsetExons(exon_subset, coords)
+            coords = subset_exons(exon_subset, coords)
             if tx[6] == "-":
                 coords.reverse()
 
             # Truncate to region
             if target_region == "CODING":
-                coords = truncateToCoding(tx[4], tx[5], coords)
+                coords = truncate_to_coding(tx[4], tx[5], coords)
             elif target_region == "UTR5":
                 if tx[6] == "+":
-                    coords = truncateToUTR5(tx[4], coords)
+                    coords = truncate_to_UTR5(tx[4], coords)
                 else:
-                    coords = truncateToUTR3(tx[5], coords)
+                    coords = truncate_to_UTR3(tx[5], coords)
             elif target_region == "PROMOTER":
-                coords = truncateToPROMOTER(tx[6], coords, ups_bp, down_bp)
+                coords = truncate_to_PROMOTER(tx[6], coords, ups_bp, down_bp)
             elif target_region == "UTR3":
                 if tx[6] == "+":
-                    coords = truncateToUTR3(tx[5], coords)
+                    coords = truncate_to_UTR3(tx[5], coords)
                 else:
-                    coords = truncateToUTR5(tx[4], coords)
+                    coords = truncate_to_UTR5(tx[4], coords)
             elif target_region == "SPLICE":
-                coords = truncateToSplice(coords)
+                coords = truncate_to_splice(coords)
             elif target_region != "WHOLE":
                 sys.stderr.write("Unknown region: %s\n" % target_region)
                 sys.exit(EXIT['PYTHON_ERROR'])
@@ -486,4 +486,4 @@ def parseTargets(target_string, genome, use_db, data, pad_size, target_region, e
     return targets, vis_coords, target_strand, gene, isoform, gene_isoforms
 
 
-__all__ = ["parseTargets"]
+__all__ = ["parse_targets"]

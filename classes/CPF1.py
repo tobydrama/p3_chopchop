@@ -7,7 +7,7 @@ class Cpf1(Guide):
         self.CoefficientsScore = 0  # KIM_2018
 
     def __str__(self):
-        self.sort_offTargets()
+        self.sort_off_targets()
         return "%s\t%s:%s\t%s\t%.0f\t%s\t%.0f\t%s\t%s\t%s\t%s" % (self.strandedGuideSeq, self.chrom, self.start,
                                                                   self.strand, self.GCcontent, self.folding,
                                                                   self.CoefficientsScore,
