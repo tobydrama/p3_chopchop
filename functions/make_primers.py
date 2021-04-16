@@ -452,7 +452,7 @@ def parse_bowtie(guideClass, bowtieResultsFile, checkMismatch, scoreGC, scoreSel
             guide_list.append(curr_guide)
 
         # Adds hit to off-target list of current guide.
-        curr_guide.addOffTarget(Hit(line), checkMismatch, maxOffTargets, countMM)
+        curr_guide.add_off_target(Hit(line), checkMismatch, maxOffTargets, countMM)
 
     logging.debug("Parsed %d guides from bowtie file '%s'." % (len(guide_list), bowtieResultsFile))
 
