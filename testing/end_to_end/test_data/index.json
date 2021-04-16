@@ -35,5 +35,25 @@
     "NICKASE": {
     "args": "-Target ENST00000607096 -GenBank -G semirandom -filterGCmin 10 -filterGCmax 82 -t WHOLE -e 1 -n N -R 4 -3 PRODUCT_SIZE_MIN=150,PRODUCT_SIZE_MAX=271,PRIMER_MIN_SIZE=18,PRIMER_MAX_SIZE=25,PRIMER_OPT_SIZE=22,PRIMER_MIN_TM=57,PRIMER_MAX_TM=63,PRIMER_OPT_TM=60 -P -A 271 -DF 300 -a 20 -T 4 -g 18 -scoringMethod DOENCH_2016 -f GN,NG -offtargetMaxDist 97 -nickaseMin 12 -nickaseMax 33 -v 2 -M NRG -BB AGGCTAGTCCGT",
     "results": "9.bed"
+  },
+    "repairPredictions_mESC": {
+    "args": "-Target ENST00000607096 -G semirandom -repairPredictions mESC",
+    "results": "10.bed"
+  },
+    "repairPredictions_U2OS": {
+    "args": "-Target ENST00000607096 -G semirandom -repairPredictions U2OS",
+    "results": "11.bed"
+  },
+    "repairPredictions_HEK293": {
+    "args": "-Target ENST00000607096 -G semirandom -repairPredictions HEK293",
+    "results": "12.bed"
+  },
+    "repairPredictions_HCT116": {
+    "args": "-Target ENST00000607096 -G semirandom -repairPredictions HCT116",
+    "results": "13.bed"
+  },
+    "repairPredictions_K562": {
+    "args": "-Target ENST00000607096 -G semirandom -repairPredictions K562",
+    "results": "14.bed"
   }
 }
