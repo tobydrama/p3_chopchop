@@ -211,7 +211,7 @@ def score_isoforms(guides: List[Guide], info: ScoringInfo) -> List[Guide]:
                 tx_start, tx_end = tx_relative_coordinates(info.vis_coords, tx_id, guide.start, guide.end)
 
                 if tx_start != -1:
-                    bpp.append(rna_folding_metric(info.genome, guide.isoform, guide.start, guide.end))
+                    bpp.append(rna_folding_metric(info.genome, tx_id, tx_start, tx_end))
 
             guide.meanBPP = 100 if len(bpp) == 0 else max(bpp)
         else:
