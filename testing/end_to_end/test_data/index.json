@@ -55,5 +55,18 @@
     "repairPredictions_K562": {
     "args": "-Target ENST00000607096 -G semirandom -repairPredictions K562",
     "results": "14.bed"
+  },
+    "Isoforms": {
+    "args": "-Target ENST00000607096 -G semirandom -GenBank -filterGCmin 20 -filterGCmax 80 -t CODING -n N -R 4 -a 20 --nonOverlapping -isoforms -g 27 -T 3 -M H",
+    "results": "15.bed"
+  },
+    "Isoforms_2": {
+    "args": "-Target ENST00000461467 -G semirandom -T 1 -isoforms",
+    "results": "16.bed"
+  },
+    "Isoforms_3": {
+    "args": "-Target ENST00000417324 -G semirandom -T 1 -isoforms",
+    "results": "17.bed"
   }
+  
 }
