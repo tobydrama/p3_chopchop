@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import logging
 import subprocess
+
+import config
 import scoring
 import json
 import argparse
@@ -387,7 +389,7 @@ def visualize_with_json(args, visCoords, sequences, strand, resultCoords, fastaS
 
             prog = subprocess.Popen("%s -seq=%s -start=%d -end=%d %s/%s.2bit stdout 2> %s/twoBitToFa.err" % (
                 CONFIG["PATH"]["TWOBITTOFA"], chrom, start, finish,
-                CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
+                CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not config.use_isoforms else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
                 args.genome, args.outputDir), stdout=subprocess.PIPE, shell=True)
             output = prog.communicate()
             if prog.returncode != 0:
@@ -408,8 +410,7 @@ def main():
     args = parse_arguments()
 
     # set isoforms to global as it is influencing many steps
-    global ISOFORMS
-    ISOFORMS = args.isoforms
+    config.use_isoforms = args.isoforms
 
     # Pad each exon equal to guidesize unless
     if args.padSize != -1:
@@ -435,7 +436,7 @@ def main():
         use_db = True
     else:
         db = "%s/%s.gene_table" % (
-            CONFIG["PATH"]["GENE_TABLE_INDEX_DIR"] if not ISOFORMS else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
+            CONFIG["PATH"]["GENE_TABLE_INDEX_DIR"] if not config.use_isoforms else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
             args.genome)
         use_db = False
 
@@ -453,12 +454,12 @@ def main():
         targets, visCoords, strand, gene, isoform, gene_isoforms = parse_targets(
             args.targets, args.genome, use_db, db, padSize, args.targetRegion, args.exons,
             args.targetUpstreamPromoter, args.targetDownstreamPromoter,
-            CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
+            CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not config.use_isoforms else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
             args.outputDir, args.consensusUnion, args.jsonVisualize, args.guideSize)
 
         sequences, fastaSequence = coord_to_fasta(
             targets, candidate_fasta_file, args.outputDir, args.guideSize, evalSequence, args.nonOverlapping,
-            CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
+            CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not config.use_isoforms else CONFIG["PATH"]["ISOFORMS_INDEX_DIR"],
             args.genome, strand, DOWNSTREAM_NUC)
 
     # Converts genomic coordinates to fasta file of all possible k-mers
@@ -469,7 +470,7 @@ def main():
     # Run bowtie and get results
     bowtieResultsFile = run_bowtie(len(args.PAM), args.uniqueMethod_Cong, candidate_fasta_file, args.outputDir,
                                   int(args.maxOffTargets),
-                                  CONFIG["PATH"]["ISOFORMS_INDEX_DIR"] if ISOFORMS else CONFIG["PATH"][
+                                  CONFIG["PATH"]["ISOFORMS_INDEX_DIR"] if config.use_isoforms else CONFIG["PATH"][
                                       "BOWTIE_INDEX_DIR"],
                                   args.genome, int(args.maxMismatches))
 
@@ -512,7 +513,7 @@ def main():
             make_primers_genome(sorted_output, args.outputDir, args.primerFlanks,
                                 args.displaySeqFlanks, args.genome, args.limitPrintResults,
                                 CONFIG["PATH"]["BOWTIE_INDEX_DIR"],
-                                CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not ISOFORMS else CONFIG["PATH"][
+                                CONFIG["PATH"]["TWOBIT_INDEX_DIR"] if not config.use_isoforms else CONFIG["PATH"][
                                     "ISOFORMS_INDEX_DIR"], args.primer3options,
                                 args.guidePadding, args.enzymeCo, args.minResSiteLen, strand,
                                 args.targets, args.maxOffTargets)

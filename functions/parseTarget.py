@@ -5,7 +5,8 @@ import numpy
 from Bio.Seq import Seq
 from subprocess import Popen, PIPE
 
-from Vars import EXIT, ISOFORMS, CONFIG, TARGET_MAX
+import config
+from Vars import EXIT, CONFIG, TARGET_MAX
 
 
 # Used in ParseTargets
@@ -268,7 +269,7 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
     is_coordinate = pattern.match(str(target_string))
 
     if is_coordinate:
-        if ISOFORMS:
+        if config.use_isoforms:
             sys.stderr.write("--isoforms is not working with coordinate search.\n")
             sys.exit(EXIT['ISOFORMS_ERROR'])
 
@@ -303,7 +304,7 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
 
     else:
         if use_db:
-            if ISOFORMS:
+            if config.use_isoforms:
                 sys.stderr.write("--isoforms is not working with database search.\n")
                 sys.exit(EXIT['ISOFORMS_ERROR'])
             txInfo = gene_to_coord_db(target_string, genome, data)
@@ -473,7 +474,7 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
             sys.exit(EXIT['GENE_ERROR'])
 
         starts, ends = bins(targets)
-        if ISOFORMS:
+        if config.use_isoforms:
             targets = list(map(lambda x: "%s:%s-%s" % (target_chr, x[0], x[1]), zip(starts, ends)))
         else:
             targets = list(map(lambda x: "%s:%s-%s" % (target_chr, x[0] - pad_size, x[1] + pad_size), zip(starts, ends)))

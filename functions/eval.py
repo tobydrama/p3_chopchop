@@ -1,4 +1,5 @@
-from Vars import codes, ISOFORMS, STEM_LEN
+import config
+from Vars import codes, STEM_LEN
 from Bio.Seq import Seq
 from Bio.SeqUtils import GC
 
@@ -123,7 +124,7 @@ def eval_CPF1_sequence(name, guideSize, dna, num, fastaFile, downstream5prim, do
             add = False
 
     if add:
-        if ISOFORMS:
+        if config.use_isoforms:
             pam_comb = perm_PAM(PAM)
             for p in pam_comb:
                 fastaFile.write('>%s_%d-%d:%s:%s:+:%s:%s\n%s\n' % (
@@ -138,7 +139,7 @@ def eval_CPF1_sequence(name, guideSize, dna, num, fastaFile, downstream5prim, do
                                 dna, p, dna[:gLen] + p))
         return True
 
-    add = True and not ISOFORMS
+    add = True and not config.use_isoforms
 
     for pos in range(len(PAM)):
         if compare_PAM(revCompPAM[pos], dna[gLen + pos]):
@@ -212,7 +213,7 @@ def eval_CRISPR_sequence(name, guideSize, dna, num, fastaFile, downstream5prim, 
         # rather than end of the sequence
         # not in isoforms case as we don't search reverse complement
         if add:
-            if ISOFORMS:
+            if config.use_isoforms:
                 pam_comb = perm_PAM(PAM)
                 for p in pam_comb:
                     fastaFile.write('>%s_%d-%d:%s:%s:+:%s:%s\n%s\n' % (
@@ -229,7 +230,7 @@ def eval_CRISPR_sequence(name, guideSize, dna, num, fastaFile, downstream5prim, 
                                     dna, p, p + dna[len(revCompPAM):]))
                 return True
 
-    if str(dna[-2:].reverse_complement()) in allowed and not ISOFORMS:
+    if str(dna[-2:].reverse_complement()) in allowed and not config.use_isoforms:
         add = True
 
         for pos in range(len(PAM)):
