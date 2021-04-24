@@ -3,7 +3,7 @@ import math
 
 from classes.Guide import Guide
 from Bio.Seq import Seq
-from functions.eval import gc_content
+from functions.evaluate import gc_content
 from Vars import *
 
 

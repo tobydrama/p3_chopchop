@@ -19,10 +19,11 @@ from classes.PAIR import Pair
 from classes.ProgramMode import ProgramMode
 
 # from functions.Main_Functions import *
-from functions.Main_Functions import coord_to_fasta, run_bowtie
-from functions.Main_Functions import write_individual_results, parse_fasta_target, connect_db, mode_select
-from functions.Main_Functions import print_bed, print_genbank, fasta_to_viscoords
-from functions.parseTarget import parse_targets
+from functions.main_functions import coord_to_fasta, run_bowtie
+from functions.main_functions import write_individual_results, parse_fasta_target, connect_db, mode_select
+from functions.main_functions import print_bed, print_genbank, fasta_to_viscoords
+from functions.arguments import parse_arguments
+from functions.parse_target import parse_targets
 from functions.make_primers import make_primers_fasta, make_primers_genome, parse_bowtie
 from functions.set_default_modes import set_default_modes
 

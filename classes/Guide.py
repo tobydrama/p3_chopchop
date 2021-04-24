@@ -109,7 +109,7 @@ class Guide(object):
         self.guideSeq = guideSeq
 
         # Record which strand the guide is on
-        if self.flagSum == "16" or config.use_isoforms:  # due to reverse complementing before alignments
+        if self.flagSum == "16" or config.isoforms:  # due to reverse complementing before alignments
             self.strandedGuideSeq = guideSeq
             if self.strand is None:
                 self.strand = '+'
@@ -179,7 +179,7 @@ class Guide(object):
             self.correct_hit = hit
             return
 
-        if config.use_isoforms and self.isoform == hit.chrom and self.strandedGuideSeq == hit.matchSeq:
+        if config.isoforms and self.isoform == hit.chrom and self.strandedGuideSeq == hit.matchSeq:
             # This is the original/main hit
             self.correct_hit = hit
             return
@@ -189,7 +189,7 @@ class Guide(object):
             return
 
         # Reverse count+allowed arrays if on the reverse strand
-        if checkMismatch and hit.flagSum == 0 and not config.use_isoforms:
+        if checkMismatch and hit.flagSum == 0 and not config.isoforms:
             countMMPos = countMMPos[::-1]
 
         self.offTarget_hash[hit_id] = hit
@@ -210,7 +210,7 @@ class Guide(object):
                 mm = int(m.group(1)) - nmiss
 
                 # ugly repeat to save time from iterating all isoforms
-                if config.use_isoforms and checkMismatch:
+                if config.isoforms and checkMismatch:
                     if hit.chrom in self.gene_isoforms:  # and hit.chrom not in self.offTargetsIso[mm]:
                         self.offTargetsIso[mm].add(hit.chrom)
                         # don't count/score isoform mismatches but display which isoforms have them
@@ -247,7 +247,7 @@ class Guide(object):
 
     def __str__(self):
         self.sort_off_targets()
-        if config.use_isoforms:
+        if config.isoforms:
             return "%s\t%s:%s\t%s\t%s\t%.0f\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (self.strandedGuideSeq,
                                                                                             self.chrom, self.start,
                                                                                             self.gene, self.isoform,

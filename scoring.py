@@ -16,7 +16,7 @@ import Vars
 from classes.Cas9 import Cas9
 from classes.Guide import Guide
 from classes.ProgramMode import ProgramMode
-from functions.TALEN_Specific_Functions import pair_talens, pair_cas9, cluster_pairs
+from functions.TALEN_specific_functions import pair_talens, pair_cas9, cluster_pairs
 from dockers.doench_2016_wrapper import run_doench_2016
 
 

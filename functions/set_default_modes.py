@@ -4,7 +4,7 @@ from classes.Guide import Guide
 from classes.Cas9 import Cas9
 from classes.CPF1 import Cpf1
 from operator import attrgetter
-from functions.eval import eval_TALENS_sequence, eval_CPF1_sequence, eval_CRISPR_sequence
+from functions.evaluate import eval_TALENS_sequence, eval_CPF1_sequence, eval_CRISPR_sequence
 
 
 # Used in set_default_modes

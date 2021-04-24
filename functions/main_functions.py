@@ -28,12 +28,12 @@ from Bio.SeqFeature import SeqFeature, FeatureLocation
 def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc, nonOver, indexDir, genome, strand, ext):
     """ Extracts the sequence corresponding to genomic coordinates from a FASTA file """
 
-    ext = 0 if config.use_isoforms else ext # for genomic context for some models
+    ext = 0 if config.isoforms else ext # for genomic context for some models
     sequences = {}
     fasta_file = open(fasta_file, 'w')
     fasta_seq = ""
 
-    if config.use_isoforms and strand == "-":
+    if config.isoforms and strand == "-":
         regions = regions[::-1]
 
     for region in regions:
@@ -65,7 +65,7 @@ def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc,
         if len(dna) != (finish - start):  # something is wrong with what was fetched by twoBitToFa
             continue
 
-        if config.use_isoforms and strand == "-":
+        if config.isoforms and strand == "-":
             dna = str(Seq(dna).reverse_complement())
 
         # Write exon sequences to text file user can open in ApE. exon-intron junctions in lowercase.
@@ -82,7 +82,7 @@ def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc,
             g_end = num + ext + targetSize
             downstream_3prim = ext_dna[g_end:(g_end + ext)]
             if evalAndPrintFunc(name, targetSize, dna[num:(num + targetSize)],
-                                len(dna) - num - targetSize if config.use_isoforms and strand == "-" else num, fasta_file,
+                                len(dna) - num - targetSize if config.isoforms and strand == "-" else num, fasta_file,
                                 downstream_5prim, downstream_3prim):
                 if nonOver:  # positions overlapping those of this guide
                     for p in range(num, num + targetSize):
@@ -94,7 +94,7 @@ def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc,
 
     fasta_file.close()
 
-    if config.use_isoforms and strand == "-":
+    if config.isoforms and strand == "-":
         fasta_seq = str(Seq(fasta_seq).reverse_complement())
 
     return sequences, fasta_seq
@@ -106,7 +106,7 @@ def run_bowtie(PAMlength, unique_method_cong, fasta_file, output_dir,
     logging.info("Running bowtie.")
 
     bwt_results_file = '%s/output.sam' % output_dir
-    if unique_method_cong and not config.use_isoforms:
+    if unique_method_cong and not config.isoforms:
         # When ISOFORMS dna string is not reverse complemented and Cong can't be used
         # the -l alignment mode specifies a seed region to search for the number of mismatches specified with the
         # -n option. Outside of that seed, up to 2 mismatches are searched.
@@ -118,7 +118,7 @@ def run_bowtie(PAMlength, unique_method_cong, fasta_file, output_dir,
         command = "%s -p %s -v %d --sam-nohead -k %d %s/%s -f %s -S %s " % (
             CONFIG["PATH"]["BOWTIE"], CONFIG["THREADS"], max_mismatches, max_off_targets, index_dir, genome, fasta_file, bwt_results_file)
 
-    if config.use_isoforms: # When ISFORMS we don't check reverse complement
+    if config.isoforms: # When ISFORMS we don't check reverse complement
         command += "--norc "
 
     command += "2> %s/bowtie.err" % output_dir
@@ -168,17 +168,17 @@ def write_individual_results(outputDir, maxOffTargets, sortedOutput, guideSize, 
 
         f.write(str(current.strandedGuideSeq)+"\n"+offTargets+"\n")
 
-        if mode == ProgramMode.CRISPR and not config.use_isoforms and current.repStats is not None:
+        if mode == ProgramMode.CRISPR and not config.isoforms and current.repStats is not None:
             stats_file = '%s/%s_repStats.json' % (outputDir, current.ID)
             with open(stats_file, 'w') as fp:
                 json.dump(current.repStats, fp)
             fp.close()
 
-        if mode == ProgramMode.CRISPR and not config.use_isoforms and current.repProfile is not None:
+        if mode == ProgramMode.CRISPR and not config.isoforms and current.repProfile is not None:
             profile_file = '%s/%s_repProfile.csv' % (outputDir, current.ID)
             current.repProfile.to_csv(profile_file, index=False)
 
-        if mode == ProgramMode.CRISPR and not config.use_isoforms and offtargetsTable:
+        if mode == ProgramMode.CRISPR and not config.isoforms and offtargetsTable:
             off_table = '%s/offtargetsTable.csv' % outputDir
             label = "%s:%s,%s,%s" % (current.chrom, current.start, current.strand, current.strandedGuideSeq)
             off_for_table = map(lambda x: x.as_off_target_string(label, maxOffTargets), current.offTargets)
@@ -352,7 +352,7 @@ def print_genbank(mode, name, seq, exons, targets, chrom, seq_start, seq_end, st
     if len(targets) > 0:
         for target in targets:
             ts = 1 if target[4] == "+" else -1
-            if config.use_isoforms:
+            if config.isoforms:
                 ts = gene_strand
 
             if mode == ProgramMode.CRISPR or mode == ProgramMode.CPF1:

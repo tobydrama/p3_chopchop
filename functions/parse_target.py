@@ -496,7 +496,7 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
             sys.exit(EXIT['GENE_ERROR'])
 
         starts, ends = bins(targets)
-        if config.use_isoforms:
+        if config.isoforms:
             targets = list(map(lambda x: "%s:%s-%s" % (target_chr, x[0], x[1]), zip(starts, ends)))
         else:
             targets = list(map(lambda x: "%s:%s-%s" % (target_chr, x[0] - pad_size, x[1] + pad_size), zip(starts, ends)))
