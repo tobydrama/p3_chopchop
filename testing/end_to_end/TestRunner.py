@@ -12,7 +12,9 @@ def main():
         print(f"Testing '{name}' (chopchop.py {info['args']})... ", end='')
         try:
             result = subprocess.run(
-                ['python', './chopchop.py', '-o', 'testing/end_to_end/temp', '-BED', '-J'] + info['args'].split(' '),
+                ['python', './chopchop.py', '-o', 'testing/end_to_end/temp', '-BED', '-J', '--logLevel', 'DEBUG',
+                 '--testing'] + info[
+                    'args'].split(' '),
                 capture_output=True, cwd='../../', check=True)
             # print(result.stdout.decode())
             if filecmp.cmp('temp/results.bed', "test_data/" + info['results']):

@@ -81,7 +81,7 @@ def set_default_modes(args):
             filterGCmin=args.filterGCmin, filterGCmax=args.filterGCmax,
             filterSelfCompMax=args.filterSelfCompMax, replace5prime=args.replace5P, backbone=args.backbone)
         if args.MODE == ProgramMode.CRISPR:
-            guideClass = Cas9 if not config.use_isoforms else Guide
+            guideClass = Cas9 if not config.isoforms else Guide
             sortOutput = sort_CRISPR_guides
         elif args.MODE == ProgramMode.NICKASE:
             guideClass = Cas9
@@ -93,7 +93,7 @@ def set_default_modes(args):
             name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim, PAM=args.PAM,
             filterGCmin=args.filterGCmin, filterGCmax=args.filterGCmax,
             filterSelfCompMax=args.filterSelfCompMax, replace5prime=args.replace5P, backbone=args.backbone)
-        guideClass = Cpf1 if not config.use_isoforms else Guide
+        guideClass = Cpf1 if not config.isoforms else Guide
         sortOutput = sort_CRISPR_guides
 
     elif args.MODE == ProgramMode.TALENS:
