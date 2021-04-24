@@ -256,6 +256,156 @@ def gene_to_coord_file(gene_in, table_file):
     return gene, tx_info
 
 
+def coordinate_search(is_coordinate, target_string, pattern, target_size, vis_coords, targets, pad_size, make_vis):
+    
+    if config.isoforms:
+        sys.stderr.write("--isoforms is not working with coordinate search.\n")
+        sys.exit(EXIT['ISOFORMS_ERROR'])
+    
+    chrom = is_coordinate.group(2)
+    vis_coords.append({"exons": [], "ATG": [], "name": chrom})
+    
+    for target in target_string.split(";"):
+        m = pattern.match(target)
+        if m:
+            if m.group(2) is not None and chrom != m.group(2):
+                sys.stderr.write(
+                    "Can't target regions on separate chromosomes (%s != %s).\n" % (chrom, m.group(2)))
+                sys.exit(EXIT['GENE_ERROR'])
+    
+            start_pos = m.group(3)
+            end_pos = m.group(4)
+            start_pos = int(start_pos.replace(",", "").replace(".", ""))
+            end_pos = int(end_pos.replace(",", "").replace(".", ""))
+            target_size += end_pos - start_pos + 1
+    
+            if start_pos >= end_pos:
+                sys.stderr.write(
+                    "Start position (%s) must be smaller than end position (%s)\n" % (start_pos, end_pos))
+                sys.exit(EXIT['GENE_ERROR'])
+    
+            targets.append("%s:%s-%s" % (chrom, max(0, start_pos - pad_size), end_pos + pad_size))
+            if make_vis:
+                vis_coords[0]["exons"].append([chrom, start_pos, end_pos, 0, True, "+"])
+        else:
+            sys.stderr.write("Unknown format: %s\n" % (target))
+            sys.exit(EXIT['GENE_ERROR'])
+    return target_size, vis_coords
+
+
+def make_vis_coords(starts_v, ends_v, tx, tx_vis, index_dir, genome, output_dir, vis_coords):
+    intron_size = [int(starts_v[x + 1]) - int(ends_v[x]) for x in range(len(starts_v) - 1)]
+    intron_size.append(0)
+    # tx_vis exons are [chr, start, end, intron_size, isIntron, strand]
+    for e in range(len(starts_v)):
+        if ends_v[e] <= tx[4] or starts_v[e] >= tx[5]:
+            tx_vis["exons"].append([tx[0], starts_v[e], ends_v[e], intron_size[e], True, tx[6]])
+        else:
+            if starts_v[e] < tx[4] < ends_v[e]:
+                tx_vis["exons"].append([tx[0], starts_v[e], tx[4], 0, True, tx[6]])
+                starts_v[e] = tx[4]
+
+            if starts_v[e] < tx[5] < ends_v[e]:
+                tx_vis["exons"].append([tx[0], tx[5], ends_v[e], intron_size[e], True, tx[6]])
+                ends_v[e] = tx[5]
+                intron_size[e] = 0
+
+            tx_vis["exons"].append([tx[0], starts_v[e], ends_v[e], intron_size[e], False, tx[6]])
+
+    tx_vis["exons"].sort(key=lambda x: x[1]) # sort on starts
+    # ATG locations
+    prog = Popen("%s -seq=%s -start=%d -end=%d %s/%s.2bit stdout 2> %s/twoBitToFa.err" % (
+        config.path("TWOBITTOFA"), tx[0], int(tx[4]) + 1, int(tx[5]) + 1, index_dir,
+        genome, output_dir), stdout=PIPE, shell=True)
+    iso_seq = prog.communicate()
+    if prog.returncode != 0:
+        sys.stderr.write("Running twoBitToFa when searching isoform sequence failed\n")
+        sys.exit(EXIT['TWOBITTOFA_ERROR'])
+
+    iso_seq = iso_seq[0].decode()
+    iso_seq = iso_seq.split("\n")
+    iso_seq = Seq(''.join(iso_seq[1:]).upper())
+    # splicing
+    iso_seq_spl = ""
+    for e in tx_vis["exons"]:
+        if not e[4]:
+            iso_seq_spl += iso_seq[(e[1] - tx[4]):(e[2] - tx[4])]
+    atg = "ATG" if tx[6] != "-" else "CAT"
+    tx_atg = [m.start() for m in re.finditer(atg, str(iso_seq_spl)) if m.start() % 3 == 0]
+    tx_atg.sort()
+    for atg1 in tx_atg: # every ATG as 3 x 1bp as they can span across two exons...
+        atg2 = atg1 + 1
+        atg3 = atg1 + 2
+        shift_atg1, shift_atg2, shift_atg3, exon_len = 0, 0, 0, 0
+        for e in tx_vis["exons"]: # exons are sorted
+            if not e[4]:
+                exon_len += (e[2] - e[1])
+                if atg1 > exon_len:
+                    shift_atg1 += e[3]
+                if atg2 > exon_len:
+                    shift_atg2 += e[3]
+                if atg3 > exon_len:
+                    shift_atg3 += e[3]
+        tx_vis["ATG"].extend([atg1 + shift_atg1 + tx[4], atg2 + shift_atg2 + tx[4],
+                              atg3 + shift_atg3 + tx[4]])
+
+    vis_coords.append(tx_vis)
+    return vis_coords
+
+
+def truncate_to_region(target_region, tx, coords, ups_bp, down_bp):
+    if target_region == "CODING":
+        coords = truncate_to_coding(tx[4], tx[5], coords)
+    elif target_region == "UTR5":
+        if tx[6] == "+":
+            coords = truncate_to_UTR5(tx[4], coords)
+        else:
+            coords = truncate_to_UTR3(tx[5], coords)
+    elif target_region == "PROMOTER":
+        coords = truncate_to_PROMOTER(tx[6], coords, ups_bp, down_bp)
+    elif target_region == "UTR3":
+        if tx[6] == "+":
+            coords = truncate_to_UTR3(tx[5], coords)
+        else:
+            coords = truncate_to_UTR5(tx[4], coords)
+    elif target_region == "SPLICE":
+        coords = truncate_to_splice(coords)
+    elif target_region != "WHOLE":
+        sys.stderr.write("Unknown region: %s\n" % target_region)
+        sys.exit(EXIT['PYTHON_ERROR'])
+    return coords
+
+
+def compute_intersection_union_all_exions(txInfo, tx, coords, targets, use_union, guideLen, isoforms):
+    if txInfo[0][3] == tx[3]:  # if this is first of the isoforms
+        for x in coords:
+            targets.extend(range(x[1], x[2] + 1))
+        targets = set(targets)
+    else:
+        if not use_union:
+            targets_ = []
+            for x in coords:
+                targets_.extend(range(x[1], x[2] + 1))
+
+            if len(targets_) >= guideLen:  # cover cases where some transcripts provide short or none bp
+                targets &= set(targets_)
+
+            if len(targets) < guideLen:
+                sys.stderr.write(
+                    "Computing intersection over specified isoforms resulted in lack of targets." +
+                    " Consider either using specific isoform as input: " + ', '.join(isoforms) +
+                    " or using --consensusUnion to compute union instead of intersection " +
+                    "of your isoforms (on the website you can find it in " +
+                    "Options -> General -> Isoform consensus determined by -> Union.")
+                sys.exit(EXIT['GENE_ERROR'])
+        else:
+            targets_ = []
+            for x in coords:
+                targets_.extend(range(x[1], x[2] + 1))
+            targets |= set(targets_)
+    return targets
+
+
 #Used in main
 def parse_targets(target_string, genome, use_db, data, pad_size, target_region, exon_subset, ups_bp, down_bp,
                   index_dir, output_dir, use_union, make_vis, guideLen):
@@ -269,42 +419,11 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
     is_coordinate = pattern.match(str(target_string))
 
     if is_coordinate:
-        if config.use_isoforms:
-            sys.stderr.write("--isoforms is not working with coordinate search.\n")
-            sys.exit(EXIT['ISOFORMS_ERROR'])
-
-        chrom = is_coordinate.group(2)
-        vis_coords.append({"exons": [], "ATG": [], "name": chrom})
-
-        for target in target_string.split(";"):
-            m = pattern.match(target)
-            if m:
-                if m.group(2) is not None and chrom != m.group(2):
-                    sys.stderr.write(
-                        "Can't target regions on separate chromosomes (%s != %s).\n" % (chrom, m.group(2)))
-                    sys.exit(EXIT['GENE_ERROR'])
-
-                start_pos = m.group(3)
-                end_pos = m.group(4)
-                start_pos = int(start_pos.replace(",", "").replace(".", ""))
-                end_pos = int(end_pos.replace(",", "").replace(".", ""))
-                target_size += end_pos - start_pos + 1
-
-                if start_pos >= end_pos:
-                    sys.stderr.write(
-                        "Start position (%s) must be smaller than end position (%s)\n" % (start_pos, end_pos))
-                    sys.exit(EXIT['GENE_ERROR'])
-
-                targets.append("%s:%s-%s" % (chrom, max(0, start_pos - pad_size), end_pos + pad_size))
-                if make_vis:
-                    vis_coords[0]["exons"].append([chrom, start_pos, end_pos, 0, True, "+"])
-            else:
-                sys.stderr.write("Unknown format: %s\n" % (target))
-                sys.exit(EXIT['GENE_ERROR'])
+        target_size, vis_coords = coordinate_search(is_coordinate, target_string, pattern, target_size, vis_coords, targets, pad_size, make_vis)
 
     else:
         if use_db:
-            if config.use_isoforms:
+            if config.isoforms:
                 sys.stderr.write("--isoforms is not working with database search.\n")
                 sys.exit(EXIT['ISOFORMS_ERROR'])
             txInfo = gene_to_coord_db(target_string, genome, data)
@@ -346,62 +465,8 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
             tx_vis = {"exons": [], "ATG": [], "name": tx[3]}
 
             if make_vis:
-                intron_size = [int(starts_v[x + 1]) - int(ends_v[x]) for x in range(len(starts_v) - 1)]
-                intron_size.append(0)
-                # tx_vis exons are [chr, start, end, intron_size, isIntron, strand]
-                for e in range(len(starts_v)):
-                    if ends_v[e] <= tx[4] or starts_v[e] >= tx[5]:
-                        tx_vis["exons"].append([tx[0], starts_v[e], ends_v[e], intron_size[e], True, tx[6]])
-                    else:
-                        if starts_v[e] < tx[4] < ends_v[e]:
-                            tx_vis["exons"].append([tx[0], starts_v[e], tx[4], 0, True, tx[6]])
-                            starts_v[e] = tx[4]
+                vis_coords = make_vis_coords(starts_v, ends_v, tx, tx_vis, index_dir, genome, output_dir, vis_coords)
 
-                        if starts_v[e] < tx[5] < ends_v[e]:
-                            tx_vis["exons"].append([tx[0], tx[5], ends_v[e], intron_size[e], True, tx[6]])
-                            ends_v[e] = tx[5]
-                            intron_size[e] = 0
-
-                        tx_vis["exons"].append([tx[0], starts_v[e], ends_v[e], intron_size[e], False, tx[6]])
-
-                tx_vis["exons"].sort(key=lambda x: x[1]) # sort on starts
-                # ATG locations
-                prog = Popen("%s -seq=%s -start=%d -end=%d %s/%s.2bit stdout 2> %s/twoBitToFa.err" % (
-                    CONFIG["PATH"]["TWOBITTOFA"], tx[0], int(tx[4]) + 1, int(tx[5]) + 1, index_dir,
-                    genome, output_dir), stdout=PIPE, shell=True)
-                iso_seq = prog.communicate()
-                if prog.returncode != 0:
-                    sys.stderr.write("Running twoBitToFa when searching isoform sequence failed\n")
-                    sys.exit(EXIT['TWOBITTOFA_ERROR'])
-
-                iso_seq = iso_seq[0].decode()
-                iso_seq = iso_seq.split("\n")
-                iso_seq = Seq(''.join(iso_seq[1:]).upper())
-                # splicing
-                iso_seq_spl = ""
-                for e in tx_vis["exons"]:
-                    if not e[4]:
-                        iso_seq_spl += iso_seq[(e[1] - tx[4]):(e[2] - tx[4])]
-                atg = "ATG" if tx[6] != "-" else "CAT"
-                tx_atg = [m.start() for m in re.finditer(atg, str(iso_seq_spl)) if m.start() % 3 == 0]
-                tx_atg.sort()
-                for atg1 in tx_atg: # every ATG as 3 x 1bp as they can span across two exons...
-                    atg2 = atg1 + 1
-                    atg3 = atg1 + 2
-                    shift_atg1, shift_atg2, shift_atg3, exon_len = 0, 0, 0, 0
-                    for e in tx_vis["exons"]: # exons are sorted
-                        if not e[4]:
-                            exon_len += (e[2] - e[1])
-                            if atg1 > exon_len:
-                                shift_atg1 += e[3]
-                            if atg2 > exon_len:
-                                shift_atg2 += e[3]
-                            if atg3 > exon_len:
-                                shift_atg3 += e[3]
-                    tx_vis["ATG"].extend([atg1 + shift_atg1 + tx[4], atg2 + shift_atg2 + tx[4],
-                                          atg3 + shift_atg3 + tx[4]])
-
-                vis_coords.append(tx_vis)
 
             # restrict isoforms
             coords = list(map(lambda x: [tx[0], x[0], x[1]], zip(starts, ends)))
@@ -412,25 +477,7 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
                 coords.reverse()
 
             # Truncate to region
-            if target_region == "CODING":
-                coords = truncate_to_coding(tx[4], tx[5], coords)
-            elif target_region == "UTR5":
-                if tx[6] == "+":
-                    coords = truncate_to_UTR5(tx[4], coords)
-                else:
-                    coords = truncate_to_UTR3(tx[5], coords)
-            elif target_region == "PROMOTER":
-                coords = truncate_to_PROMOTER(tx[6], coords, ups_bp, down_bp)
-            elif target_region == "UTR3":
-                if tx[6] == "+":
-                    coords = truncate_to_UTR3(tx[5], coords)
-                else:
-                    coords = truncate_to_UTR5(tx[4], coords)
-            elif target_region == "SPLICE":
-                coords = truncate_to_splice(coords)
-            elif target_region != "WHOLE":
-                sys.stderr.write("Unknown region: %s\n" % target_region)
-                sys.exit(EXIT['PYTHON_ERROR'])
+            coords = truncate_to_region(target_region, tx, coords, ups_bp, down_bp)
 
             # filter exons that are too truncated
             coords = [x for x in coords if x[1] < x[2]]
@@ -441,32 +488,7 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
                     del vis_coords[-1]
 
             # compute intersection/union on all exons
-            if txInfo[0][3] == tx[3]:  # if this is first of the isoforms
-                for x in coords:
-                    targets.extend(range(x[1], x[2] + 1))
-                targets = set(targets)
-            else:
-                if not use_union:
-                    targets_ = []
-                    for x in coords:
-                        targets_.extend(range(x[1], x[2] + 1))
-
-                    if len(targets_) >= guideLen: # cover cases where some transcripts provide short or none bp
-                        targets &= set(targets_)
-
-                    if len(targets) < guideLen:
-                        sys.stderr.write(
-                            "Computing intersection over specified isoforms resulted in lack of targets." +
-                            " Consider either using specific isoform as input: " + ', '.join(isoforms) +
-                            " or using --consensusUnion to compute union instead of intersection " +
-                            "of your isoforms (on the website you can find it in " +
-                            "Options -> General -> Isoform consensus determined by -> Union.")
-                        sys.exit(EXIT['GENE_ERROR'])
-                else:
-                    targets_ = []
-                    for x in coords:
-                        targets_.extend(range(x[1], x[2] + 1))
-                    targets |= set(targets_)
+            targets = compute_intersection_union_all_exions(txInfo, tx, coords, targets, use_union, guideLen, isoforms)
 
         target_size = len(targets)
         if target_size < guideLen:
