@@ -4,11 +4,12 @@
 #### Prerequisites:
 - [Python](https://www.python.org/download/) 3.8
 - [Docker](https://www.docker.com/products/docker-desktop/)
--- [Docker permissions](https://docs.docker.com/engine/install/linux-postinstall/). Scoring methods Alkan 2018 & Doench 2016 are dockerized as they use python 2 specific libraries. To use them, the user must have permissions to run docker.
+  - [Docker permissions](https://docs.docker.com/engine/install/linux-postinstall/). Scoring methods Alkan 2018 & Doench 2016 are dockerized as they use python 2 specific libraries. To use them, the user must have permissions to run docker.
 - Included libraries in [`lib/`](./lib/):
--- [Bowtie 1.0.1](https://sourceforge.net/projects/bowtie-bio/files/bowtie/1.0.1/)
--- [primer3](http://primer3.sourceforge.net/releases.php/)
--- [TwoBitToFa](http://hgdownload.soe.ucsc.edu/admin/exe/)
+  - [Bowtie 1.0.1](https://sourceforge.net/projects/bowtie-bio/files/bowtie/1.0.1/)
+  - [primer3](http://primer3.sourceforge.net/releases.php/)
+  - [TwoBitToFa](http://hgdownload.soe.ucsc.edu/admin/exe/)
+  - ViennaRNA (chopchop_crisproff docker image)
 
 #### Installation:
 1. Clone the repository to your machine
