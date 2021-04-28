@@ -92,7 +92,7 @@ def get_primer_query_sequence_2bit(target, outputDir, flank, genome, twoBitToFaI
         s = 0
 
     prog = Popen("%s -seq=%s -start=%d -end=%d %s/%s.2bit stdout 2>> %s/twoBitToFa.err" % (
-        CONFIG["PATH"]["TWOBITTOFA"], target.chrom, s, target.end + flank, twoBitToFaIndexDir, genome, outputDir),
+        config.path("TWOBITTOFA"), target.chrom, s, target.end + flank, twoBitToFaIndexDir, genome, outputDir),
                  stdout=PIPE, shell=True)
     output = prog.communicate()
 
@@ -109,7 +109,7 @@ def get_primer_query_sequence_2bit(target, outputDir, flank, genome, twoBitToFaI
 # Used in makePrimersFasta and makePrimersGenome
 def run_bowtie_primers(primerFastaFileName, outputDir, genome, bowtieIndexDir, maxOffTargets):
     command = "%s -v 0 --best --sam-nohead -k 10 %s/%s -f %s -S %s/primer_results.sam 2> %s/bowtie_primers.err" % (
-        CONFIG["PATH"]["BOWTIE"], bowtieIndexDir, genome, primerFastaFileName, outputDir, outputDir)
+        config.path("BOWTIE"), bowtieIndexDir, genome, primerFastaFileName, outputDir, outputDir)
     prog = Popen(command, shell=True)
     prog.wait()
 
@@ -325,7 +325,7 @@ PRIMER_EXPLAIN_FLAG=1
     f.write("=\n")
     f.close()
 
-    command = "%s < %s 2>> %s/primer3.error" % (CONFIG["PATH"]["PRIMER3"], primer3InputFile, outputDir)
+    command = "%s < %s 2>> %s/primer3.error" % (config.path("PRIMER3"), primer3InputFile, outputDir)
     # sys.stderr.write("%s\n" % command)
     prog = Popen(command, stdout=PIPE, shell=True)
     output = prog.communicate()

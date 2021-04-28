@@ -49,7 +49,7 @@ def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc,
         # Run twoBitToFa program to get actual dna sequence corresponding to input genomic coordinates
         # Popen runs twoBitToFa program. PIPE pipes stdout.
         prog = Popen("%s -seq=%s -start=%d -end=%d %s/%s.2bit stdout 2> %s/twoBitToFa.err" % (
-            CONFIG["PATH"]["TWOBITTOFA"], chrom, start - ext, finish + ext, indexDir, genome, outputDir), stdout=PIPE, shell=True)
+            config.path("TWOBITTOFA"), chrom, start - ext, finish + ext, indexDir, genome, outputDir), stdout=PIPE, shell=True)
 
         # Communicate converts stdout to a string
         output = prog.communicate()
@@ -112,11 +112,11 @@ def run_bowtie(PAMlength, unique_method_cong, fasta_file, output_dir,
         # -n option. Outside of that seed, up to 2 mismatches are searched.
         # E.g. -l 15 -n 0 will search the first 15 bases with no mismatches, and the rest with up to 3 mismatches
         command = "%s -p %s -l %d -n %d -m %d --sam-nohead -k %d %s/%s -f %s -S %s " % (
-            CONFIG["PATH"]["BOWTIE"], CONFIG["THREADS"], (PAMlength + 11), max_mismatches, max_off_targets, max_off_targets, index_dir,
+            config.path("BOWTIE"), config.threads(), (PAMlength + 11), max_mismatches, max_off_targets, max_off_targets, index_dir,
             genome, fasta_file, bwt_results_file)
     else:
         command = "%s -p %s -v %d --sam-nohead -k %d %s/%s -f %s -S %s " % (
-            CONFIG["PATH"]["BOWTIE"], CONFIG["THREADS"], max_mismatches, max_off_targets, index_dir, genome, fasta_file, bwt_results_file)
+            config.path("BOWTIE"), config.threads(), max_mismatches, max_off_targets, index_dir, genome, fasta_file, bwt_results_file)
 
     if config.isoforms: # When ISFORMS we don't check reverse complement
         command += "--norc "
