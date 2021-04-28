@@ -6,7 +6,7 @@ from Bio.Seq import Seq
 from subprocess import Popen, PIPE
 
 import config
-from Vars import EXIT, CONFIG, TARGET_MAX
+from constants import EXIT, TARGET_MAX
 
 
 # Used in ParseTargets

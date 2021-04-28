@@ -5,7 +5,8 @@ import os
 import logging
 import pandas
 
-from Vars import PRIMER3_CONFIG, CONFIG, EXIT, PRIMER_OFF_TARGET_MIN
+import config
+from constants import PRIMER3_CONFIG, EXIT, PRIMER_OFF_TARGET_MIN
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord

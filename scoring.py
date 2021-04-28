@@ -12,7 +12,8 @@ from typing import Callable, List, Tuple, Dict, Union
 import numpy
 import scipy.stats as ss
 
-import Vars
+import config
+import constants
 from classes.Cas9 import Cas9
 from classes.Guide import Guide
 from classes.ProgramMode import ProgramMode
@@ -94,7 +95,7 @@ def score_guides(guides: List[Guide], info: ScoringInfo) -> Tuple[List[Guide], i
         for guide in guides:
             if guide.offTargetsMM[0] > 0:
                 # TODO do something about this constant
-                guide.score -= Vars.SINGLE_OFFTARGET_SCORE[0]
+                guide.score -= constants.SINGLE_OFFTARGET_SCORE[0]
 
     if info.use_isoforms:
         guides = score_isoforms(guides, info)
@@ -191,7 +192,7 @@ def tx_relative_coordinates(visCoords, tx_id, start, end):
 
 def rna_folding_metric(specie, tx_id, tx_start, tx_end):
     mean_bpp = 0
-    file_path = Vars.CONFIG["PATH"]["ISOFORMS_MT_DIR"] + "/" + specie + "/" + tx_id + ".mt"
+    file_path = config.path("ISOFORMS_MT_DIR") + "/" + specie + "/" + tx_id + ".mt"
     if os.path.isfile(file_path):
         mt = pandas.read_csv(file_path, sep="\t", header=None, skiprows=tx_start, nrows=tx_end - tx_start)
         mean_bpp = numpy.mean(mt[1].tolist())
@@ -221,7 +222,7 @@ def score_isoforms(guides: List[Guide], info: ScoringInfo) -> List[Guide]:
 
                 guide.meanBPP = rna_folding_metric(info.genome, guide.isoform, tx_start, tx_end)
 
-        guide.score += guide.meanBPP / 100 * Vars.SCORE["COEFFICIENTS"]
+        guide.score += guide.meanBPP / 100 * constants.SCORE["COEFFICIENTS"]
 
         if guide.isoform in guide.gene_isoforms:
             guide.gene_isoforms.remove(guide.isoform)
@@ -275,7 +276,7 @@ def score_chari_2015(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
         for i, guide in enumerate(guides):
             guide.CoefficientsScore["CHARI_2015"] = new_scores[i]
             if info.scoring_method == ScoringMethod.CHARI_2015:
-                guide.score -= (guide.CoefficientsScore["CHARI_2015"] / 100) * Vars.SCORE['COEFFICIENTS']
+                guide.score -= (guide.CoefficientsScore["CHARI_2015"] / 100) * constants.SCORE['COEFFICIENTS']
 
         logging.debug("Finished running Chari 2015.")
 
@@ -297,7 +298,7 @@ def score_zhang_2019(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
         zhang_file.close()
 
         # TODO kind of hacky file path stuff here
-        prog = subprocess.run(["%s/uCRISPR/uCRISPR" % Vars.f_p, "-on", Vars.f_p + '/' + zhang_input_file],
+        prog = subprocess.run(["%s/uCRISPR/uCRISPR" % config.file_path(), "-on", config.file_path() + '/' + zhang_input_file],
                               capture_output=True, check=True)
 
         # Convert from bytes, split on newline, remove header
@@ -309,7 +310,7 @@ def score_zhang_2019(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
             guide.CoefficientsScore["ZHANG_2019"] = output[i] * 100
 
             if info.scoring_method == ScoringMethod.ZHANG_2019:
-                guide.score -= (guide.CoefficientsScore["ZHANG_2019"] / 100) * Vars.SCORE['COEFFICIENTS']
+                guide.score -= (guide.CoefficientsScore["ZHANG_2019"] / 100) * constants.SCORE['COEFFICIENTS']
 
         logging.debug("Finished running Zhang 2019.")
 
@@ -353,7 +354,7 @@ def score_kim_2018(guides: List[Guide]) -> List[Guide]:
             seq_deep_cpf1_do4 = Dropout(0.3)(seq_deep_cpf1_d3)
             seq_deep_cpf1_output = Dense(1, activation='linear')(seq_deep_cpf1_do4)
             seq_deep_cpf1 = Model(inputs=[seq_deep_cpf1_input_seq], outputs=[seq_deep_cpf1_output])
-            seq_deep_cpf1.load_weights(Vars.f_p + '/models/Seq_deepCpf1_weights.h5')
+            seq_deep_cpf1.load_weights(config.file_path() + '/models/Seq_deepCpf1_weights.h5')
 
             # process data
             data_n = len(guides)
@@ -388,7 +389,7 @@ def score_kim_2018(guides: List[Guide]) -> List[Guide]:
 
         for i, guide in enumerate(guides):
             guide.CoefficientsScore = seq_deep_cpf1_score[i][0]
-            guide.score -= (guide.CoefficientsScore / 100) * Vars.SCORE["COEFFICIENTS"]
+            guide.score -= (guide.CoefficientsScore / 100) * constants.SCORE["COEFFICIENTS"]
 
         logging.debug("Finished running Kim 2018.")
 
@@ -408,8 +409,7 @@ def score_doench_2016(guides: List[Guide], scoring_method: ScoringMethod) -> Lis
 def run_repair_predictions(guides: List[Guide], repair_predictions: str) -> List[Guide]:
     logging.info("Running inDelphi repair predictions on %d guides" % len(guides))
 
-    # TODO 'Vars.f_p' isn't very pretty, change it
-    sys.path.append(Vars.f_p + "/models/inDelphi-model/")
+    sys.path.append(config.file_path() + "/models/inDelphi-model/")
 
     try:
         import inDelphi
@@ -471,14 +471,14 @@ def get_cluster_pairs(guides: List[Guide], info: ScoringInfo, program_mode: Prog
         # TODO better error handling (error logging, exceptions, etc)
         sys.stderr.write("No " + ("TALEN" if program_mode == ProgramMode.TALENS else "Cas9 NICKASE")
                          + " pairs could be generated for this region.\n")
-        sys.exit(Vars.EXIT['GENE_ERROR'])
+        sys.exit(constants.EXIT['GENE_ERROR'])
 
     if info.rm1_perf_off and info.use_fasta:
         for pair in pairs:
             if pair.diffStrandOffTarget > 0:
-                pair.score -= Vars.SCORE["OFFTARGET_PAIR_DIFF_STRAND"]
+                pair.score -= constants.SCORE["OFFTARGET_PAIR_DIFF_STRAND"]
             if program_mode == ProgramMode.TALENS and pair.sameStrandOffTarget > 0:
-                pair.score -= Vars.SCORE["OFFTARGET_PAIR_SAME_STRAND"]
+                pair.score -= constants.SCORE["OFFTARGET_PAIR_SAME_STRAND"]
 
     cluster, guides = cluster_pairs(pairs)
 

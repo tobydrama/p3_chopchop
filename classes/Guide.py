@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import config
-from Vars import *
+from constants import *
 import re
 from Bio.Seq import Seq
 from operator import attrgetter

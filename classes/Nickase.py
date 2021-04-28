@@ -1,4 +1,4 @@
-from Vars import SINGLE_OFFTARGET_SCORE, SCORE
+from constants import SINGLE_OFFTARGET_SCORE, SCORE
 from functions.make_primers import find_restriction_sites
 
 

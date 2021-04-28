@@ -13,8 +13,8 @@ import json
 
 import config
 from classes.ProgramMode import ProgramMode
-from Vars import CONFIG, EXIT, NICKASE_DEFAULT, PRIMER_OFF_TARGET_MIN
-from Vars import DOWNSTREAM_NUC, CPF1_DEFAULT, TALEN_DEFAULT, CRISPR_DEFAULT
+from constants import EXIT, NICKASE_DEFAULT, PRIMER_OFF_TARGET_MIN
+from constants import DOWNSTREAM_NUC, CPF1_DEFAULT, TALEN_DEFAULT, CRISPR_DEFAULT
 from subprocess import Popen, PIPE
 from Bio import SeqIO
 from Bio.Seq import Seq

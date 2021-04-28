@@ -4,7 +4,7 @@ import math
 from classes.Guide import Guide
 from Bio.Seq import Seq
 from functions.evaluate import gc_content
-from Vars import *
+from constants import *
 
 
 class Cas9(Guide):

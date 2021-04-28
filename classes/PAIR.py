@@ -1,4 +1,4 @@
-from Vars import SCORE
+from constants import SCORE
 from Bio.Seq import Seq
 from functions.make_primers import find_restriction_sites
 

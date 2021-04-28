@@ -12,7 +12,7 @@ from operator import itemgetter
 from typing import List, Callable, Union
 from Bio.Seq import Seq
 
-from Vars import *
+from constants import *
 
 from classes.Guide import Guide
 from classes.PAIR import Pair

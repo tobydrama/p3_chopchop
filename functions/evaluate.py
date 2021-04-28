@@ -1,5 +1,5 @@
 import config
-from Vars import codes, STEM_LEN
+from constants import codes, STEM_LEN
 from Bio.Seq import Seq
 from Bio.SeqUtils import GC
 
