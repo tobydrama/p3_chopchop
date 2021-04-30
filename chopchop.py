@@ -332,8 +332,12 @@ def main():
 
     # remove .sam files as they take up wayyy to much space
     for fl in os.listdir(args.outputDir):
-        if fl.endswith(".sam"):
+        #if fl.endswith(".sam"):
+        if fl == "primer_results.sam" or fl == "output.sam":
             os.remove(os.path.join(args.outputDir, fl))
+
+
+
 
 
 if __name__ == '__main__':
