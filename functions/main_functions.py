@@ -136,74 +136,73 @@ def run_bowtie(PAMlength, unique_method_cong, fasta_file, output_dir,
 
 
 # Used in main
-def write_individual_results(outputDir, maxOffTargets, sortedOutput, guideSize, mode, totalClusters, limitPrintResults, offtargetsTable):
+def write_individual_results(output_dir, max_off_targets, sorted_output, guide_size, program_mode, total_clusters,
+                             limit_print_results, off_targets_table):
     """ Writes each guide and its offtargets into a file """
 
     # Initiate list of lists for each cluster
-    clusters = [[] for i in range(totalClusters)]
+    clusters = [[] for i in range(total_clusters)]
 
-    fileHandler = dict()
+    # Info to write to 'offtargets.json'
+    off_targets_info = dict()
 
-    # Limit the number of open files (and results)
-    sortedOutput = sortedOutput[0:min(len(sortedOutput), limitPrintResults-1)]
+    for i, guide in enumerate(sorted_output):
+        guide.ID = i + 1
 
-    for i in range(len(sortedOutput)):
-        current = sortedOutput[i]
-        current.ID = i+1
+        if guide.ID not in off_targets_info:
+            off_targets = guide.as_off_target_string("", max_off_targets)
 
-        # Create new file if not already opened
-        if current.ID not in fileHandler:
-            resultsFile = '%s/%s.offtargets' % (outputDir, current.ID)
-            fileHandler[current.ID] = open(resultsFile, 'w')
-        f = fileHandler[current.ID]
+            if not off_targets:
+                off_targets = "There are no predicted off-targets."
+
+            off_targets_info[guide.ID] = {'stranded guide seq': guide.strandedGuideSeq,
+                                          'off-targets': off_targets}
 
         # Add the current TALE pair to the appropriate list in the list of lists, depending on its cluster number
-        if mode == ProgramMode.TALENS or mode == ProgramMode.NICKASE:
-            clusterID = current.cluster
-            clusters[clusterID-1].append(current)
+        if program_mode == ProgramMode.TALENS or program_mode == ProgramMode.NICKASE:
+            cluster_id = guide.cluster
+            clusters[cluster_id - 1].append(guide)
 
-        offTargets = current.as_off_target_string("", maxOffTargets)
-        if not offTargets:
-            offTargets = "There are no predicted off-targets."
+        if program_mode == ProgramMode.CRISPR and not config.isoforms:
+            if guide.repStats is not None:
+                stats_file = f"{output_dir}/{guide.ID}_repStats.json"
 
-        f.write(str(current.strandedGuideSeq)+"\n"+offTargets+"\n")
+                with open(stats_file, 'w') as fp:
+                    json.dump(guide.repStats, fp)
 
-        if mode == ProgramMode.CRISPR and not config.isoforms and current.repStats is not None:
-            stats_file = '%s/%s_repStats.json' % (outputDir, current.ID)
-            with open(stats_file, 'w') as fp:
-                json.dump(current.repStats, fp)
-            fp.close()
+            if guide.repProfile is not None:
+                profile_file = f"{output_dir}/{guide.ID}_repProfile.csv"
+                guide.repProfile.to_csv(profile_file, index=False)
 
-        if mode == ProgramMode.CRISPR and not config.isoforms and current.repProfile is not None:
-            profile_file = '%s/%s_repProfile.csv' % (outputDir, current.ID)
-            current.repProfile.to_csv(profile_file, index=False)
+            if off_targets_table:
+                off_table = f"{output_dir}/offtargetsTable.csv"
+                label = f"{guide.chrom}:{guide.start},{guide.strand},{guide.strandedGuideSeq}"
+                off_for_table = map(lambda x: x.as_off_target_string(label, max_off_targets), guide.offTargets)
 
-        if mode == ProgramMode.CRISPR and not config.isoforms and offtargetsTable:
-            off_table = '%s/offtargetsTable.csv' % outputDir
-            label = "%s:%s,%s,%s" % (current.chrom, current.start, current.strand, current.strandedGuideSeq)
-            off_for_table = map(lambda x: x.as_off_target_string(label, maxOffTargets), current.offTargets)
-            with open(off_table, "a") as append_file:
-                if len(list(off_for_table)) > 0:
-                    append_file.write("\n".join(off_for_table))
-                    append_file.write("\n")
+                with open(off_table, 'a') as append_file:
+                    if len(list(off_for_table)) > 0:
+                        append_file.write("\n".join(off_for_table))
+                        append_file.write("\n")
 
-    for clust in clusters:
-        if len(clust) == 0:
-            continue
-        bestInCluster = clust[0]
+            for cluster in clusters:
+                if len(cluster) == 0:
+                    continue
 
-        for member in clust[1:]:
-            # Write the other cluster members to file
-            fileHandler[bestInCluster.ID].write("%s*%s*%s,%s:%s,%s,%s/%s,%s/%s,%s/%s,%s/%s;" % (
-                member.tale1.guideSeq, member.spacerSeq, member.tale2.guideSeq, member.chrom, member.start,
-                len(member.offTargetPairs), member.tale1.offTargetsMM[0], member.tale2.offTargetsMM[0],
-                member.tale1.offTargetsMM[1], member.tale2.offTargetsMM[1], member.tale1.offTargetsMM[2],
-                member.tale2.offTargetsMM[2], member.tale1.offTargetsMM[3], member.tale2.offTargetsMM[3]))
+                best_in_cluster = cluster[0]
 
-        fileHandler[bestInCluster.ID].write("\n"+current.restrictionSites+"\n")
+                for member in cluster[1:]:
+                    # Write the other cluster members to file
+                    off_targets_info[best_in_cluster.ID]['cluster'] = "%s*%s*%s,%s:%s,%s,%s/%s,%s/%s,%s/%s,%s/%s;" % (
+                        member.tale1.guideSeq, member.spacerSeq, member.tale2.guideSeq, member.chrom, member.start,
+                        len(member.offTargetPairs), member.tale1.offTargetsMM[0], member.tale2.offTargetsMM[0],
+                        member.tale1.offTargetsMM[1], member.tale2.offTargetsMM[1], member.tale1.offTargetsMM[2],
+                        member.tale2.offTargetsMM[2], member.tale1.offTargetsMM[3], member.tale2.offTargetsMM[3]
+                    )
 
-    for fh in fileHandler.values():
-        fh.close()
+                off_targets_info[best_in_cluster.ID]['restriction sites'] = guide.restrictionSites
+
+    with open(f"{output_dir}/offtargets.json", 'w') as off_target_file:
+        json.dump(off_targets_info, off_target_file)
 
     return clusters
 
