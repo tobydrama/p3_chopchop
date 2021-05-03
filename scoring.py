@@ -222,7 +222,7 @@ def score_isoforms(guides: List[Guide], info: ScoringInfo) -> List[Guide]:
 
                 guide.meanBPP = rna_folding_metric(info.genome, guide.isoform, tx_start, tx_end)
 
-        guide.score += guide.meanBPP / 100 * constants.SCORE["COEFFICIENTS"]
+        guide.score += guide.meanBPP / 100 * config.score("COEFFICIENTS")
 
         if guide.isoform in guide.gene_isoforms:
             guide.gene_isoforms.remove(guide.isoform)
@@ -276,7 +276,7 @@ def score_chari_2015(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
         for i, guide in enumerate(guides):
             guide.CoefficientsScore["CHARI_2015"] = new_scores[i]
             if info.scoring_method == ScoringMethod.CHARI_2015:
-                guide.score -= (guide.CoefficientsScore["CHARI_2015"] / 100) * constants.SCORE['COEFFICIENTS']
+                guide.score -= (guide.CoefficientsScore["CHARI_2015"] / 100) * config.score('COEFFICIENTS')
 
         logging.debug("Finished running Chari 2015.")
 
@@ -310,7 +310,7 @@ def score_zhang_2019(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
             guide.CoefficientsScore["ZHANG_2019"] = output[i] * 100
 
             if info.scoring_method == ScoringMethod.ZHANG_2019:
-                guide.score -= (guide.CoefficientsScore["ZHANG_2019"] / 100) * constants.SCORE['COEFFICIENTS']
+                guide.score -= (guide.CoefficientsScore["ZHANG_2019"] / 100) * config.score('COEFFICIENTS')
 
         logging.debug("Finished running Zhang 2019.")
 
@@ -389,7 +389,7 @@ def score_kim_2018(guides: List[Guide]) -> List[Guide]:
 
         for i, guide in enumerate(guides):
             guide.CoefficientsScore = seq_deep_cpf1_score[i][0]
-            guide.score -= (guide.CoefficientsScore / 100) * constants.SCORE["COEFFICIENTS"]
+            guide.score -= (guide.CoefficientsScore / 100) * config.score("COEFFICIENTS")
 
         logging.debug("Finished running Kim 2018.")
 
@@ -476,9 +476,9 @@ def get_cluster_pairs(guides: List[Guide], info: ScoringInfo, program_mode: Prog
     if info.rm1_perf_off and info.use_fasta:
         for pair in pairs:
             if pair.diffStrandOffTarget > 0:
-                pair.score -= constants.SCORE["OFFTARGET_PAIR_DIFF_STRAND"]
+                pair.score -= config.score("OFFTARGET_PAIR_DIFF_STRAND")
             if program_mode == ProgramMode.TALENS and pair.sameStrandOffTarget > 0:
-                pair.score -= constants.SCORE["OFFTARGET_PAIR_SAME_STRAND"]
+                pair.score -= config.score("OFFTARGET_PAIR_SAME_STRAND")
 
     cluster, guides = cluster_pairs(pairs)
 

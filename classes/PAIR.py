@@ -1,7 +1,6 @@
-from constants import SCORE
 from Bio.Seq import Seq
 from functions.make_primers import find_restriction_sites
-
+import config
 
 class Pair:
     """ Pair class for 2 TALEs that are the correct distance apart """
@@ -73,11 +72,11 @@ class Pair:
 
             for opt in [hit1.opts, hit2.opts]:
                 if opt == "NM:i:0":
-                    indivScore += SCORE['INPAIR_OFFTARGET_0']
+                    indivScore += config.score('INPAIR_OFFTARGET_0')
                 if opt == "NM:i:1":
-                    indivScore += SCORE['INPAIR_OFFTARGET_1']
+                    indivScore += config.score('INPAIR_OFFTARGET_1')
                 if opt == "NM:i:2":
-                    indivScore += SCORE['INPAIR_OFFTARGET_2']
+                    indivScore += config.score('INPAIR_OFFTARGET_2')
                 if opt == "NM:i:3":
                     indivScore += SCORE['INPAIR_OFFTARGET_3']
 

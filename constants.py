@@ -32,18 +32,6 @@ NICKASE_DEFAULT = {"GUIDE_SIZE": 20,
                    "SCORE_GC": False,
                    "SCORE_FOLDING": True}
 
-SCORE = {"INPAIR_OFFTARGET_0": 5000,
-         "INPAIR_OFFTARGET_1": 3000,
-         "INPAIR_OFFTARGET_2": 2000,
-         "INPAIR_OFFTARGET_3": 1000,
-         "OFFTARGET_PAIR_SAME_STRAND": 10000,
-         "OFFTARGET_PAIR_DIFF_STRAND": 5000,
-         "PAM_IN_PENALTY": 1000,
-         "MAX_OFFTARGETS": 20000,  # FIX: SPECIFIC FOR TALEN AND CRISPR
-         "COEFFICIENTS": 100,  # also used for RNA folding in ISOFORM mode
-         "CRISPR_BAD_GC": 300,
-         "FOLDING": 1}
-
 G_20 = {"Intercept": -30,
         "G1": 60}
 

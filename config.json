@@ -10,5 +10,18 @@
     "ISOFORMS_MT_DIR": "/your/full/path/to/vienna_MT_folder",
     "GENE_TABLE_INDEX_DIR": "/your/full/path/to/genePred_folder"
   },
-  "THREADS": 1
+  "THREADS": 1,
+  "SCORING": {
+    "INPAIR_OFFTARGET_0": 5000,
+    "INPAIR_OFFTARGET_1": 3000,
+    "INPAIR_OFFTARGET_2": 2000,
+    "INPAIR_OFFTARGET_3": 1000,
+    "OFFTARGET_PAIR_SAME_STRAND": 10000,
+    "OFFTARGET_PAIR_DIFF_STRAND": 5000,
+    "PAM_IN_PENALTY": 1000,
+    "MAX_OFFTARGETS": 20000,
+    "COEFFICIENTS": 100,
+    "CRISPR_BAD_GC": 300,
+    "FOLDING": 1
+  }
 }
