@@ -148,7 +148,7 @@ class Guide(object):
                     #sys.stderr.write("%s\t%s\n" % (fwd, fwd[i:i+STEM_LEN]))
                     self.folding += 1
 
-        self.score += self.folding * SCORE['FOLDING']
+        self.score += self.folding * config.score('FOLDING')
 
 
     def calc_GC_content(self, scoreGC):
@@ -163,7 +163,7 @@ class Guide(object):
 
         if scoreGC:
             if self.GCcontent > GC_HIGH or self.GCcontent < GC_LOW:
-                self.score += SCORE['CRISPR_BAD_GC']
+                self.score += config.score('CRISPR_BAD_GC')
 
 
     def add_off_target(self, hit, checkMismatch, maxOffTargets, countMMPos):
@@ -222,7 +222,7 @@ class Guide(object):
                     self.score += SINGLE_OFFTARGET_SCORE[mm]
 
             if opt == "XM:i:" + str(maxOffTargets):
-                self.score += SCORE['MAX_OFFTARGETS']
+                self.score += config.score('MAX_OFFTARGETS')
                 self.offTargetsMM[0] += maxOffTargets
                 self.offTargetsMM[1] += maxOffTargets
                 self.offTargetsMM[2] += maxOffTargets

@@ -48,6 +48,7 @@ def use_testing_config() -> None:
     _config = get_config_from_file(file_path() + '/testing/config_testing.json')
     _paths = _config['PATH']
 
+
 _paths = _config['PATH']
 
 # Path safety check
@@ -83,3 +84,10 @@ _isoforms = False
 def isoforms() -> bool:
     """Returns use-isoforms"""
     return _isoforms
+
+
+_scoring = _config["SCORING"]
+
+
+def score(key: str) -> any:
+    return _scoring[key]

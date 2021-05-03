@@ -26,12 +26,12 @@ class Cas9(Guide):
             self.CoefficientsScore[self.scoringMethod] = self.scoreg_RNA(
                 self.downstream5prim + self.strandedGuideSeq[:-len(self.PAM)],
                 self.strandedGuideSeq[-len(self.PAM):], self.downstream3prim, globals()[self.scoringMethod])
-            self.score -= self.CoefficientsScore[self.scoringMethod] * SCORE['COEFFICIENTS']
+            self.score -= self.CoefficientsScore[self.scoringMethod] * config.score('COEFFICIENTS')
 
         if self.scoringMethod == "ALKAN_2018" or self.scoringMethod == "ALL":
             from dockers.CRISPRoff_wrapper import run_coefficient_score
             self.CoefficientsScore["ALKAN_2018"] = run_coefficient_score(self.strandedGuideSeq)
-            self.score -= self.CoefficientsScore["ALKAN_2018"] * SCORE['COEFFICIENTS']
+            self.score -= self.CoefficientsScore["ALKAN_2018"] * config.score('COEFFICIENTS')
 
         if self.scoringMethod == "ALL":
             for met in ["XU_2015", "DOENCH_2014", "MORENO_MATEOS_2015", "G_20"]:
@@ -149,7 +149,7 @@ class Cas9(Guide):
                     # sys.stderr.write("%s\t%s\n" % (fwd, fwd[i:i+STEM_LEN]))
                     self.folding += 1
 
-        self.score += self.folding * SCORE['FOLDING']
+        self.score += self.folding * config.score('FOLDING')
 
     def calc_GC_content(self, score_GC):
         """ Calculate the GC content of the guide """
@@ -163,4 +163,4 @@ class Cas9(Guide):
 
         if score_GC:
             if self.GCcontent > GC_HIGH or self.GCcontent < GC_LOW:
-                self.score += SCORE['CRISPR_BAD_GC']
+                self.score += config.score('CRISPR_BAD_GC')

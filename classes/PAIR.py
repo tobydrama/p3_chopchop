@@ -78,10 +78,10 @@ class Pair:
                 if opt == "NM:i:2":
                     indivScore += config.score('INPAIR_OFFTARGET_2')
                 if opt == "NM:i:3":
-                    indivScore += SCORE['INPAIR_OFFTARGET_3']
+                    indivScore += config.score('INPAIR_OFFTARGET_3')
 
         # Compute penalties (scores) for off-target hits. Worst = off-target pair, Not so bad = off-target single tale
-        self.score = (self.sameStrandOffTarget * SCORE['OFFTARGET_PAIR_SAME_STRAND']) + (self.diffStrandOffTarget * SCORE['OFFTARGET_PAIR_DIFF_STRAND']) + tale1.score + tale2.score + indivScore
+        self.score = (self.sameStrandOffTarget * config.score('OFFTARGET_PAIR_SAME_STRAND')) + (self.diffStrandOffTarget * config.score('OFFTARGET_PAIR_DIFF_STRAND')) + tale1.score + tale2.score + indivScore
         resSites = find_restriction_sites(self.spacerSeq, enzymeCo, minResSiteLen)
         self.restrictionSites = ";".join(map(lambda x: "%s:%s" % (str(x), ",".join(map(str, resSites[x]))), resSites))
 

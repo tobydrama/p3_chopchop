@@ -101,9 +101,13 @@ def score_guides(guides: List[Guide], info: ScoringInfo) -> Tuple[List[Guide], i
         guides = score_isoforms(guides, info)
     else:
         if (info.scoring_method == ScoringMethod.CHARI_2015 or info.scoring_method == ScoringMethod.ALL) \
-                and info.pam in ["NGG", "NNAGAAW"] and info.genome in ["hg19", "mm10"]:
-            # TODO Type hinting is confused here.
-            guides = score_chari_2015(guides, info)
+                and info.pam in ["NGG", "NNAGAAW"]:
+            if info.genome in ["hg19", "mm10"]:
+                # TODO Type hinting is confused here.
+                guides = score_chari_2015(guides, info)
+            else:
+                logging.warning(f"Scoring method CHARI 2015 is incompatible with '{info.genome}', skipping. CHARI 2015 "
+                                "compatible genomes are 'hg19' & 'mm10'.")
 
         if (info.scoring_method == ScoringMethod.ZHANG_2019 or info.scoring_method == ScoringMethod.ALL) \
                 and info.pam == "NGG":
