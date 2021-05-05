@@ -63,17 +63,18 @@ class Nickase:
         self.restrictionSites = ";".join(map(lambda x: "%s:%s" % (str(x), ",".join(map(str, resSites[x]))), resSites))
 
     def __str__(self):
-        # This creates a tab delimited list of output, with the final column as a semicolon-separated list of REs that cut in the spacer
+        # This creates a tab delimited list of output, with the final column as a semicolon-separated list of REs that
+        # cut in the spacer
         sequence = str(self.tale1.guideSeq) + "*" + self.spacerSeq + "*" + str(self.tale2.guideSeq)
 
         return "%s\t%s:%s\t%s\t%s\t%s/%s\t%s/%s\t%s/%s\t%s/%s\t%s" % (
-                sequence, self.chrom, self.start, self.cluster,
-                len(self.offTargetPairs), self.tale1.offTargetsMM[0], self.tale2.offTargetsMM[0],
-                self.tale1.offTargetsMM[1], self.tale2.offTargetsMM[1], self.tale1.offTargetsMM[2],
-                self.tale2.offTargetsMM[2],
-                ">=" + str(self.tale1.offTargetsMM[3]) if self.tale1.isKmaxed else self.tale1.offTargetsMM[3],
-                ">=" + str(self.tale2.offTargetsMM[3]) if self.tale2.isKmaxed else self.tale2.offTargetsMM[3],
-                self.restrictionSites)
+            sequence, self.chrom, self.start, self.cluster,
+            len(self.offTargetPairs), self.tale1.offTargetsMM[0], self.tale2.offTargetsMM[0],
+            self.tale1.offTargetsMM[1], self.tale2.offTargetsMM[1], self.tale1.offTargetsMM[2],
+            self.tale2.offTargetsMM[2],
+            ">=" + str(self.tale1.offTargetsMM[3]) if self.tale1.isKmaxed else self.tale1.offTargetsMM[3],
+            ">=" + str(self.tale2.offTargetsMM[3]) if self.tale2.isKmaxed else self.tale2.offTargetsMM[3],
+            self.restrictionSites)
 
     def as_off_target_string(self, label, max_off_targets):
         pairs = []
@@ -81,10 +82,12 @@ class Nickase:
         # Add any off-target pairs
         if self.offTargetPairs:
             for offTargetPair in self.offTargetPairs:
-                pairs.append("%s,%s" % (offTargetPair[0].as_off_target_string(label, max_off_targets), offTargetPair[1].as_off_target_string(label, max_off_targets)))
+                pairs.append("%s,%s" % (offTargetPair[0].as_off_target_string(label, max_off_targets),
+                                        offTargetPair[1].as_off_target_string(label, max_off_targets)))
         else:
             pairs.append("")
 
         pairs = ";".join(pairs)
 
-        return "\n".join([pairs, self.tale1.as_off_target_string("TALE 1", max_off_targets), self.tale2.as_off_target_string("TALE 2", max_off_targets)])
+        return "\n".join([pairs, self.tale1.as_off_target_string("TALE 1", max_off_targets),
+                          self.tale2.as_off_target_string("TALE 2", max_off_targets)])

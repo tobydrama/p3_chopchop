@@ -21,8 +21,8 @@ from constants import PRIMER3_CONFIG, EXIT, PRIMER_OFF_TARGET_MIN
 
 # Used in makePrimersFasta and makePrimersGenome
 def parse_primer3_output(target, region, primer3output, primerFastaFile):
-    posPattern = re.compile('PRIMER_(\w+)_(\d+)')
-    attPattern = re.compile('PRIMER_(\w+)_(\d+)_(\w+)')
+    posPattern = re.compile(r'PRIMER_(\w+)_(\d+)')
+    attPattern = re.compile(r'PRIMER_(\w+)_(\d+)_(\w+)')
     primers = {}
     primerPos = {}
 
@@ -285,7 +285,7 @@ def pair_primers(primerAttributes, primerList, outputDir):
             lsq = Seq(att[(pairID, "LEFT", "SEQUENCE")])
             rsq = Seq(att[(pairID, "RIGHT", "SEQUENCE")])
 
-            offTargetPairs = has_Off_targets(pair[0], pair[1], PRIMER_OFF_TARGET_MIN, PRIMER_OFF_TARGET_MIN)
+            offTargetPairs = has_off_targets(pair[0], pair[1], PRIMER_OFF_TARGET_MIN, PRIMER_OFF_TARGET_MIN)
             output.append([pair[0].chrom, pair[0].start, pair[0].end, pair[1].start, pair[1].end, i, pair[0].strand,
                            "%s" % lsq, "%s" % rsq, len(pair[0].offTargets), len(pair[1].offTargets),
                            len(offTargetPairs), ltm, rtm, size])
@@ -464,4 +464,4 @@ def parse_bowtie(guideClass, bowtieResultsFile, checkMismatch, scoreGC, scoreSel
     return guide_list
 
 
-__all__ = ["make_primers_genome", "make_primers_fasta"]
+__all__ = ["make_primers_genome", "make_primers_fasta", "parse_bowtie", "find_restriction_sites", "has_off_targets"]

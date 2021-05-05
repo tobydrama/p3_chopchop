@@ -19,10 +19,11 @@ from constants import EXIT, NICKASE_DEFAULT
 # Here lies concatenate_feature_sets
 
 # Used in main
-def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc, nonOver, indexDir, genome, strand, ext):
+def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc, nonOver, indexDir, genome, strand,
+                   ext):
     """ Extracts the sequence corresponding to genomic coordinates from a FASTA file """
 
-    ext = 0 if config.isoforms else ext # for genomic context for some models
+    ext = 0 if config.isoforms else ext  # for genomic context for some models
     sequences = {}
     fasta_file = open(fasta_file, 'w')
     fasta_seq = ""
@@ -33,8 +34,8 @@ def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc,
     for region in regions:
         # Extracts chromosome number and region start and end
         chrom = region[0:region.rfind(':')]
-        start = int(region[region.rfind(':')+1:region.rfind('-')])
-        finish = int(region[region.rfind('-')+1:])
+        start = int(region[region.rfind(':') + 1:region.rfind('-')])
+        finish = int(region[region.rfind('-') + 1:])
         start = max(start, 0)
 
         if ext == 0 and finish == start:
@@ -43,7 +44,8 @@ def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc,
         # Run twoBitToFa program to get actual dna sequence corresponding to input genomic coordinates
         # Popen runs twoBitToFa program. PIPE pipes stdout.
         prog = Popen("%s -seq=%s -start=%d -end=%d %s/%s.2bit stdout 2> %s/twoBitToFa.err" % (
-            config.path("TWOBITTOFA"), chrom, start - ext, finish + ext, indexDir, genome, outputDir), stdout=PIPE, shell=True)
+            config.path("TWOBITTOFA"), chrom, start - ext, finish + ext, indexDir, genome, outputDir), stdout=PIPE,
+                     shell=True)
 
         # Communicate converts stdout to a string
         output = prog.communicate()
@@ -55,7 +57,7 @@ def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc,
         exons = output.split("\n")
         dna = ''.join(exons[1:]).upper()
         ext_dna = dna
-        dna = dna[ext:(len(dna)-ext)]
+        dna = dna[ext:(len(dna) - ext)]
         if len(dna) != (finish - start):  # something is wrong with what was fetched by twoBitToFa
             continue
 
@@ -63,13 +65,13 @@ def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc,
             dna = str(Seq(dna).reverse_complement())
 
         # Write exon sequences to text file user can open in ApE. exon-intron junctions in lowercase.
-        fasta_seq += dna[0].lower()+dna[1:-1]+dna[-1].lower()
+        fasta_seq += dna[0].lower() + dna[1:-1] + dna[-1].lower()
 
         # Add 1 due to BED 0-indexing
         name = "C:%s:%d-%d" % (chrom, start, finish)
 
         # Loop over exon sequence, write every g-mer into file in which g-mer ends in PAM in fasta format
-        positions = list(range(0, len(dna)-(targetSize-1)))
+        positions = list(range(0, len(dna) - (targetSize - 1)))
         while len(positions) != 0:
             num = positions.pop(0)
             downstream_5prim = ext_dna[num:(num + ext)]
@@ -106,13 +108,15 @@ def run_bowtie(PAMlength, unique_method_cong, fasta_file, output_dir,
         # -n option. Outside of that seed, up to 2 mismatches are searched.
         # E.g. -l 15 -n 0 will search the first 15 bases with no mismatches, and the rest with up to 3 mismatches
         command = "%s -p %s -l %d -n %d -m %d --sam-nohead -k %d %s/%s -f %s -S %s " % (
-            config.path("BOWTIE"), config.threads(), (PAMlength + 11), max_mismatches, max_off_targets, max_off_targets, index_dir,
+            config.path("BOWTIE"), config.threads(), (PAMlength + 11), max_mismatches, max_off_targets, max_off_targets,
+            index_dir,
             genome, fasta_file, bwt_results_file)
     else:
         command = "%s -p %s -v %d --sam-nohead -k %d %s/%s -f %s -S %s " % (
-            config.path("BOWTIE"), config.threads(), max_mismatches, max_off_targets, index_dir, genome, fasta_file, bwt_results_file)
+            config.path("BOWTIE"), config.threads(), max_mismatches, max_off_targets, index_dir, genome, fasta_file,
+            bwt_results_file)
 
-    if config.isoforms: # When ISFORMS we don't check reverse complement
+    if config.isoforms:  # When ISFORMS we don't check reverse complement
         command += "--norc "
 
     command += "2> %s/bowtie.err" % output_dir
@@ -222,17 +226,17 @@ def parse_fasta_target(fasta_file, candidate_fasta_file, target_size, eval_and_p
     candidate_fasta_file = open(candidate_fasta_file, 'w')
 
     # Loop over sequence, write every k-mer into file in which k-mer ends in as PAM in fasta format
-    for num in range(0, len(sequence)-(target_size-1)):
+    for num in range(0, len(sequence) - (target_size - 1)):
 
         if (num - DOWNSTREAM_NUC) > 0:
-                start5prim = num - DOWNSTREAM_NUC
+            start5prim = num - DOWNSTREAM_NUC
         else:
-                start5prim = 0
+            start5prim = 0
 
         if (num + target_size + DOWNSTREAM_NUC) > len(sequence):
-                end3prim = len(sequence)
+            end3prim = len(sequence)
         else:
-                end3prim = num + target_size + DOWNSTREAM_NUC
+            end3prim = num + target_size + DOWNSTREAM_NUC
 
         downstream_5prim = sequence[start5prim:num]
         downstream_3prim = sequence[(num + target_size):end3prim]
@@ -255,7 +259,7 @@ def connect_db(database_string):
         sys.exit(EXIT["DB_ERROR"])
 
     try:
-        db = MySQLdb.connect(user = m.group(1), passwd = m.group(2), host = m.group(3), db = m.group(4))
+        db = MySQLdb.connect(user=m.group(1), passwd=m.group(2), host=m.group(3), db=m.group(4))
     except:
         sys.stderr.write("Could not connect to database\n")
         sys.exit(EXIT['DB_ERROR'])
@@ -286,7 +290,7 @@ def mode_select(var: any, index: str, mode: ProgramMode):
 
 
 # Used in main
-def print_bed(mode, vis_cords, targets, output_file, description): # bed is 0-based
+def print_bed(mode, vis_cords, targets, output_file, description):  # bed is 0-based
     bed_file = open(output_file, 'w')
 
     if mode == ProgramMode.CRISPR:
@@ -331,12 +335,13 @@ def print_bed(mode, vis_cords, targets, output_file, description): # bed is 0-ba
 
 
 # Used in main
-def print_genbank(mode, name, seq, exons, targets, chrom, seq_start, seq_end, strand, output_file, description): # different than other dump_gb
+def print_genbank(mode, name, seq, exons, targets, chrom, seq_start, seq_end, strand, output_file,
+                  description):  # different than other dump_gb
     genbank_file = open(output_file, 'w')
     loci = chrom + ":" + str(seq_start) + "-" + str(seq_end)
-    if len(name) > 10: # almost always... Genbank seems a bit outdated as format
+    if len(name) > 10:  # almost always... Genbank seems a bit outdated as format
         name = name[-10:]
-    if len(loci) > 10: # almost always...
+    if len(loci) > 10:  # almost always...
         loci = name[-10:]
     record = SeqRecord(Seq(seq), description=description,
                        name=name, id=loci)
@@ -355,12 +360,12 @@ def print_genbank(mode, name, seq, exons, targets, chrom, seq_start, seq_end, st
                 start = target[6] - 1
                 stop = target[7] - 1
 
-            record.features.append(SeqFeature(FeatureLocation(start-seq_start, stop-seq_start,
+            record.features.append(SeqFeature(FeatureLocation(start - seq_start, stop - seq_start,
                                                               strand=ts), type="Target_%s" % target[0]))
 
     if len(exons) > 0:
         for exon in exons:
-            record.features.append(SeqFeature(FeatureLocation(exon[1]-seq_start, exon[2]-seq_start,
+            record.features.append(SeqFeature(FeatureLocation(exon[1] - seq_start, exon[2] - seq_start,
                                                               strand=gene_strand), type="gene_loci"))
 
     with warnings.catch_warnings(record=True):
@@ -373,9 +378,11 @@ def print_genbank(mode, name, seq, exons, targets, chrom, seq_start, seq_end, st
         SeqIO.write(record, genbank_file, "genbank")
     genbank_file.close()
 
+
 # Used in FastaToViscord
 def complement(sequence):
     return sequence.translate(str.maketrans("ACGT", "TGCA"))
+
 
 # Used in main
 def fasta_to_viscoords(sequences, strand):
@@ -397,34 +404,3 @@ def fasta_to_viscoords(sequences, strand):
         exonsequence.append(seq)
 
     return zip(exonstart, exonend, exonsequence)
-
-
-# Used in main
-def cluster_pairs(pairs):
-    """ Clusters paired sequences according to overlap, so user knows which TALE pairs are redundant """
-
-    # Sets the starting pair of TALEs to be compared to
-    first = pairs[0]
-    cluster = 1
-    first.cluster = cluster
-    in_cluster = 0
-
-    # Compares each TALE pair to previous pair in list to see whether redundant. Assigns cluster number accordingly
-    for i in range(1,len(pairs)):
-        cur = pairs[i]
-        prev = pairs[i-1]
-
-        # Specifically, compares location of spacer (by comparing location of tales) to see whether there is overlap,
-        # and therefore TALE pairs are redundant
-        if ((cur.spacerStart <= prev.spacerEnd) and (cur.spacerEnd >= prev.spacerStart) and
-                    in_cluster < PRIMER_OFF_TARGET_MIN):
-
-            cur.cluster = cluster
-            in_cluster += 1
-        else:
-            # If not redundant, increase cluster number
-            cluster += 1
-            cur.cluster = cluster
-            in_cluster = 0
-
-    return cluster, pairs

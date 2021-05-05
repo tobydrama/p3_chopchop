@@ -284,4 +284,5 @@ def eval_TALENS_sequence(name, targetSize, dna, num, fastaFile, downstream5prim,
     return found
 
 
-__all__ = ["eval_TALENS_sequence", "eval_CRISPR_sequence", "eval_CPF1_sequence", "gc_content"]
+__all__ = ["eval_TALENS_sequence", "eval_CRISPR_sequence", "eval_CPF1_sequence", "gc_content", "compare_PAM",
+           "perm_PAM"]

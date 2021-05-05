@@ -25,12 +25,12 @@ def get_mismatch_pos(mismatch_string):
         return []
 
     current = 0
-    for c in range(0, len(mismatch_string)-1):
+    for c in range(0, len(mismatch_string) - 1):
 
         # If the character is a digit, check if the next character is a digit (>9) and add number to current
         if mismatch_string[c].isdigit():
-            if mismatch_string[c+1].isdigit():
-                current += (int(mismatch_string[c])*10)
+            if mismatch_string[c + 1].isdigit():
+                current += (int(mismatch_string[c]) * 10)
             else:
                 current += int(mismatch_string[c])
 
@@ -145,7 +145,7 @@ class Guide(object):
             fwd = self.guideSeq[len(PAM):]  # Do not include PAM motif in folding calculations
 
         rvs = str(Seq(fwd).reverse_complement())
-        L = len(fwd)-STEM_LEN-1
+        L = len(fwd) - STEM_LEN - 1
 
         self.folding = 0
 
@@ -175,7 +175,7 @@ class Guide(object):
 
         hit_id = "%s:%s" % (hit.chrom, hit.start)
         nmiss = 0
-        mm_pattern = re.compile('NM:i:(\d+)')
+        mm_pattern = re.compile(r'NM:i:(\d+)')
 
         # If the hit is identical to the guide coord it is the original correct hit
         if self.chrom == hit.chrom and self.start == hit.start:  # never true for isoforms
@@ -201,7 +201,7 @@ class Guide(object):
             MMs = get_mismatch_pos(hit.mismatchPos[5:])
             for mm in MMs:
                 if not countMMPos[mm]:
-                    del(self.offTarget_hash[hit_id])
+                    del (self.offTarget_hash[hit_id])
                     return
 
                 elif not countMMPos[mm]:

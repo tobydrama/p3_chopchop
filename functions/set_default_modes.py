@@ -75,12 +75,13 @@ def sort_TALEN_pairs(pairs):
 def set_default_modes(args):
     if args.MODE == ProgramMode.CRISPR or args.MODE == ProgramMode.NICKASE:
         # Set mismatch checking policy
-        (allowedMM, countMM) = get_mismatch_vectors(args.PAM, args.guideSize, args.uniqueMethod_Cong)
+        (allowed_mm, count_mm) = get_mismatch_vectors(args.PAM, args.guideSize, args.uniqueMethod_Cong)
         allowed = get_allowed_five_prime(args.fivePrimeEnd)
-        evalSequence = lambda name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim: eval_CRISPR_sequence(
-            name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim, allowed=allowed, PAM=args.PAM,
-            filterGCmin=args.filterGCmin, filterGCmax=args.filterGCmax,
-            filterSelfCompMax=args.filterSelfCompMax, replace5prime=args.replace5P, backbone=args.backbone)
+        eval_sequence = lambda name, guide_size, dna, num, fasta_file, downstream_5_prim, downstream_3_prim: \
+            eval_CRISPR_sequence(name, guide_size, dna, num, fasta_file, downstream_5_prim, downstream_3_prim,
+                                 allowed=allowed, PAM=args.PAM, filterGCmin=args.filterGCmin,
+                                 filterGCmax=args.filterGCmax, filterSelfCompMax=args.filterSelfCompMax,
+                                 replace5prime=args.replace5P, backbone=args.backbone)
         if args.MODE == ProgramMode.CRISPR:
             guide_class = Cas9 if not config.isoforms else Guide
             sort_output = sort_CRISPR_guides
@@ -89,13 +90,14 @@ def set_default_modes(args):
             sort_output = sort_TALEN_pairs
 
     elif args.MODE == ProgramMode.CPF1:
-        (allowedMM, countMM) = get_CPF1_mismatch_vectors(args.PAM, args.guideSize)
-        evalSequence = lambda name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim: eval_CPF1_sequence(
-            name, guideSize, dna, num, fastaFile, downstream5prim, downstream3prim, PAM=args.PAM,
-            filterGCmin=args.filterGCmin, filterGCmax=args.filterGCmax,
-            filterSelfCompMax=args.filterSelfCompMax, replace5prime=args.replace5P, backbone=args.backbone)
-        guideClass = Cpf1 if not config.isoforms else Guide
-        sortOutput = sort_CRISPR_guides
+        (allowed_mm, count_mm) = get_CPF1_mismatch_vectors(args.PAM, args.guideSize)
+        eval_sequence = lambda name, guide_size, dna, num, fasta_file, downstream_5_prim, downstream_3_prim: \
+            eval_CPF1_sequence(name, guide_size, dna, num, fasta_file, downstream_5_prim, downstream_3_prim,
+                               PAM=args.PAM, filterGCmin=args.filterGCmin, filterGCmax=args.filterGCmax,
+                               filterSelfCompMax=args.filterSelfCompMax, replace5prime=args.replace5P,
+                               backbone=args.backbone)
+        guide_class = Cpf1 if not config.isoforms else Guide
+        sort_output = sort_CRISPR_guides
 
     elif args.MODE == ProgramMode.TALENS:
         (allowed_mm, count_mm) = get_mismatch_vectors(args.PAM, args.guideSize, None)
@@ -106,7 +108,7 @@ def set_default_modes(args):
         logging.critical("set_default_modes: unknown program mode selected, exiting.")
         sys.exit(1)
 
-    return countMM, evalSequence, guideClass, sortOutput
+    return count_mm, eval_sequence, guide_class, sort_output
 
 
-__all__ = ["set_default_modes"]
+__all__ = ["set_default_modes", "get_allowed_five_prime", "get_mismatch_vectors", "get_CPF1_mismatch_vectors"]

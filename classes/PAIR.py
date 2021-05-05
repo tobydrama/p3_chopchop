@@ -3,6 +3,7 @@ from Bio.Seq import Seq
 import config
 from functions.make_primers import find_restriction_sites
 
+
 class Pair:
     """ Pair class for 2 TALEs that are the correct distance apart """
 
@@ -84,22 +85,25 @@ class Pair:
                     indivScore += config.score('INPAIR_OFFTARGET_3')
 
         # Compute penalties (scores) for off-target hits. Worst = off-target pair, Not so bad = off-target single tale
-        self.score = (self.sameStrandOffTarget * config.score('OFFTARGET_PAIR_SAME_STRAND')) + (self.diffStrandOffTarget * config.score('OFFTARGET_PAIR_DIFF_STRAND')) + tale1.score + tale2.score + indivScore
+        self.score = (self.sameStrandOffTarget * config.score('OFFTARGET_PAIR_SAME_STRAND')) + \
+                     (self.diffStrandOffTarget * config.score('OFFTARGET_PAIR_DIFF_STRAND')) + \
+                     tale1.score + tale2.score + indivScore
         resSites = find_restriction_sites(self.spacerSeq, enzymeCo, minResSiteLen)
         self.restrictionSites = ";".join(map(lambda x: "%s:%s" % (str(x), ",".join(map(str, resSites[x]))), resSites))
 
     def __str__(self):
-        # This creates a tab delimited list of output, with the final column as a semicolon-separated list of REs that cut in the spacer
+        # This creates a tab delimited list of output, with the final column as a semicolon-separated list of REs that
+        # cut in the spacer
         sequence = str(self.tale1.guideSeq) + "*" + self.spacerSeq + "*" + str(self.tale2.guideSeq)
 
         return "%s\t%s:%s\t%s\t%s\t%s\t%s\t%s/%s\t%s/%s\t%s/%s\t%s/%s\t%s" % (
-                sequence, self.chrom, self.start, self.tale1.rvd,
-                self.tale2.rvd, self.cluster, len(self.offTargetPairs), self.tale1.offTargetsMM[0],
-                self.tale2.offTargetsMM[0], self.tale1.offTargetsMM[1], self.tale2.offTargetsMM[1],
-                self.tale1.offTargetsMM[2], self.tale2.offTargetsMM[2],
-                ">=" + str(self.tale1.offTargetsMM[3]) if self.tale1.isKmaxed else self.tale1.offTargetsMM[3],
-                ">=" + str(self.tale2.offTargetsMM[3]) if self.tale2.isKmaxed else self.tale2.offTargetsMM[3],
-                self.restrictionSites)
+            sequence, self.chrom, self.start, self.tale1.rvd,
+            self.tale2.rvd, self.cluster, len(self.offTargetPairs), self.tale1.offTargetsMM[0],
+            self.tale2.offTargetsMM[0], self.tale1.offTargetsMM[1], self.tale2.offTargetsMM[1],
+            self.tale1.offTargetsMM[2], self.tale2.offTargetsMM[2],
+            ">=" + str(self.tale1.offTargetsMM[3]) if self.tale1.isKmaxed else self.tale1.offTargetsMM[3],
+            ">=" + str(self.tale2.offTargetsMM[3]) if self.tale2.isKmaxed else self.tale2.offTargetsMM[3],
+            self.restrictionSites)
 
     def as_off_target_string(self, label, maxOffTargets):
         pairs = []
@@ -107,10 +111,12 @@ class Pair:
         # Add any off-target pairs
         if self.offTargetPairs:
             for offTargetPair in self.offTargetPairs:
-                pairs.append("%s,%s" % (offTargetPair[0].as_off_target_string(label, maxOffTargets), offTargetPair[1].as_off_target_string(label, maxOffTargets)))
+                pairs.append("%s,%s" % (offTargetPair[0].as_off_target_string(label, maxOffTargets),
+                                        offTargetPair[1].as_off_target_string(label, maxOffTargets)))
         else:
             pairs.append("")
 
         pairs = ";".join(pairs)
 
-        return "\n".join([pairs, self.tale1.as_off_target_string("TALE 1", maxOffTargets), self.tale2.as_off_target_string("TALE 2", maxOffTargets)])
+        return "\n".join([pairs, self.tale1.as_off_target_string("TALE 1", maxOffTargets),
+                          self.tale2.as_off_target_string("TALE 2", maxOffTargets)])

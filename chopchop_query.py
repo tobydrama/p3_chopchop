@@ -66,7 +66,9 @@ def main():
         if "-3" not in args[1] or "--primer3options" not in args[1]:
             command.append("-3")
             command.append(
-                "PRODUCT_SIZE_MIN=150,PRODUCT_SIZE_MAX=290,PRIMER_MIN_SIZE=18,PRIMER_MAX_SIZE=25,PRIMER_OPT_SIZE=22,PRIMER_MIN_TM=57,PRIMER_MAX_TM=63,PRIMER_OPT_TM=60")
+                "PRODUCT_SIZE_MIN=150,PRODUCT_SIZE_MAX=290,PRIMER_MIN_SIZE=18,PRIMER_MAX_SIZE=25,PRIMER_OPT_SIZE=22,"
+                "PRIMER_MIN_TM=57,PRIMER_MAX_TM=63,PRIMER_OPT_TM=60"
+            )
 
         config = pd.DataFrame(columns=(
             "ID", "Barcode", "Forward_Reads", "Reverse_Reads", "Group", "Control", "guideRNA", "Forward_Primer",
@@ -198,8 +200,9 @@ def main():
                 guide_left_pos = amplicon.find(guide) if direction == 0 else amplicon.find(
                     str(Seq(guide).reverse_complement()))
                 guide_right_pos = guide_left_pos + len(guide)
-                amplicon = amplicon[:guide_left_pos].lower() + amplicon[guide_left_pos:guide_right_pos] + amplicon[
-                                                                                                          guide_right_pos:].lower()
+                amplicon = amplicon[:guide_left_pos].lower()\
+                           + amplicon[guide_left_pos:guide_right_pos]\
+                           + amplicon[guide_right_pos:].lower()
 
                 # add line to the config
                 guide_name = gene + "_guide_" + str(guide_num + 1)
@@ -213,8 +216,8 @@ def main():
                 if args[0].bed:
                     primer_right_end = primer_right_start + len(primer_right)
 
-                    if genes.index(
-                            gene) == 0 and guide_num == 0:  # for the first gene only put the browser it's chromosome and add header
+                    # For the first gene only put the browser it's chromosome and add header
+                    if genes.index(gene) == 0 and guide_num == 0:
                         bed_handle.write("browser position {0}:{1}-{2}\n".format(this_gene_chrom, primer_left_start - 1,
                                                                                  primer_right_end - 1))
                         header = ("""track name=chopchop_query description=\"""" + " ".join(sys.argv) +
@@ -224,9 +227,9 @@ def main():
                     bed_line = "{0}\t{1}\t{2}\t{3}\t0\t{4}\t{1}\t{2}\t0\t3\t{5}\t{6}\n".format(
                         this_gene_chrom, primer_left_start - 1, primer_right_end - 1, guide_name,
                         gene_table["Strand"][guide_row_in_table] if "--isoforms" not in args[1] else ".",
-                                         str(len(primer_left)) + "," + str(len(guide)) + "," + str(len(primer_right)),
-                                         "0," + str(guide_loci[guide_row_in_table] - primer_left_start) + "," + str(
-                                             primer_right_start - primer_left_start))
+                        str(len(primer_left)) + "," + str(len(guide)) + "," + str(len(primer_right)),
+                        "0," + str(guide_loci[guide_row_in_table] - primer_left_start) + ","
+                        + str(primer_right_start - primer_left_start))
                     bed_handle.write(bed_line)
 
                 # before next while condition check

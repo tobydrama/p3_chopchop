@@ -2,8 +2,8 @@ class Cas9Emulation(object):
     """
     `Cas9` emulation.
 
-    This class emulates the `Cas9` class from the main CHOPCHOP script, guides are transmitted through the argument parser
-    using the `Cas9EmulationAction` class.
+    This class emulates the `Cas9` class from the main CHOPCHOP script, guides are transmitted through the argument
+    parser using the `Cas9EmulationAction` class.
     """
 
     def __init__(self, key, downstream_5_prim, downstream_3_prim, stranded_guide_seq, pam, score, coefficient_score):

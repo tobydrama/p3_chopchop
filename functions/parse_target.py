@@ -289,7 +289,7 @@ def coordinate_search(is_coordinate, target_string, pattern, target_size, vis_co
             if make_vis:
                 vis_coords[0]["exons"].append([chrom, start_pos, end_pos, 0, True, "+"])
         else:
-            sys.stderr.write("Unknown format: %s\n" % (target))
+            sys.stderr.write("Unknown format: %s\n" % target)
             sys.exit(EXIT['GENE_ERROR'])
     return target_size, vis_coords
 
@@ -416,7 +416,7 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
     target_size = 0
     gene, isoform, gene_isoforms = (None, None, set())
 
-    pattern = re.compile("(([\.\w]+):)?([\.\,\d]+)\-([\.\,\d]+)")
+    pattern = re.compile(r"(([.\w]+):)?([.,\d]+)-([.,\d]+)")
     is_coordinate = pattern.match(str(target_string))
 
     if is_coordinate:

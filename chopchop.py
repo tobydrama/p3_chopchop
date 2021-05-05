@@ -302,7 +302,6 @@ def main():
                                 args.guidePadding, args.enzymeCo, args.minResSiteLen, strand,
                                 args.targets, args.maxOffTargets)
 
-    #########- Print part -##########
     # Print results
     print_scores(sorted_output, args.MODE, args.scoringMethod, args.isoforms)
 

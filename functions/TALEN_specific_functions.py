@@ -12,7 +12,7 @@ def pair_talens(tale_list, fasta_seq, guide_size, tale_min_distance, tale_max_di
         tale1 = tale_list[i]
 
         # FIX: Only start looking for pair when > 30 - 36 spacer+length of i-TALE (modified for 17-mers and 18-mers)
-        for j in range(i+1, len(tale_list) - 1):
+        for j in range(i + 1, len(tale_list) - 1):
             tale2 = tale_list[j]
 
             # This will finish the search for more pairs if we are out of range
@@ -20,7 +20,7 @@ def pair_talens(tale_list, fasta_seq, guide_size, tale_min_distance, tale_max_di
                 break
 
             elif tale1.start + tale_min_distance < tale2.start and tale1.guideSeq[0] == "T" and \
-                            tale2.guideSeq[guide_size - 1] == "A":
+                    tale2.guideSeq[guide_size - 1] == "A":
 
                 # EDV: Are all these find calls faster than a regular expression?
                 pos = tale1.name.find('_')
@@ -34,13 +34,13 @@ def pair_talens(tale_list, fasta_seq, guide_size, tale_min_distance, tale_max_di
                     continue
 
                 # The coordinates of the tale within the exon e.g. 128-143
-                tale1_coords = tale1.name[pos+1:]
+                tale1_coords = tale1.name[pos + 1:]
 
                 # Just the second coordinate, corresponding to the end of the first tale e.g. 143
-                tale1_end = int(tale1_coords[tale1_coords.find('-')+1:])
+                tale1_end = int(tale1_coords[tale1_coords.find('-') + 1:])
 
                 # The coordinates of the tale within the exon e.g. 160-175
-                tale2_coords = tale2.name[tale2.name.find('_')+1:]
+                tale2_coords = tale2.name[tale2.name.find('_') + 1:]
 
                 # Just the first coordinate, corresponding to the beginning of the second tale e.g. 160
                 tale2_start = int(tale2_coords[:tale2_coords.find('-')])
@@ -75,7 +75,7 @@ def pair_cas9(tale_list, fasta_seq, guide_size, tale_min_distance, tale_max_dist
         tale1 = tale_list[i]
 
         # FIX: Only start looking for pair when > 30 - 36 spacer+length of i-TALE (modified for 17-mers and 18-mers)
-        for j in range(i+1, len(tale_list) - 1):
+        for j in range(i + 1, len(tale_list) - 1):
             tale2 = tale_list[j]
 
             if tale1.start + tale_max_distance < tale2.start:
@@ -95,13 +95,13 @@ def pair_cas9(tale_list, fasta_seq, guide_size, tale_min_distance, tale_max_dist
                     continue
 
                 # The coordinates of the tale within the exon e.g. 128-143
-                tale1_coords = tale1.name[pos+1:]
+                tale1_coords = tale1.name[pos + 1:]
 
                 # Just the second coordinate, corresponding to the end of the first tale e.g. 143
-                tale1_end = int(tale1_coords[tale1_coords.rfind('-')+1:])
+                tale1_end = int(tale1_coords[tale1_coords.rfind('-') + 1:])
 
                 # The coordinates of the tale within the exon e.g. 160-175
-                tale2_coords = tale2.name[tale2.name.rfind('_')+1:]
+                tale2_coords = tale2.name[tale2.name.rfind('_') + 1:]
 
                 # Just the first coordinate, corresponding to the beginning of the second tale e.g. 160
                 tale2_start = int(tale2_coords[:tale2_coords.rfind('-')])
@@ -115,35 +115,11 @@ def pair_cas9(tale_list, fasta_seq, guide_size, tale_min_distance, tale_max_dist
                 off_target_pairs = has_off_targets(tale1, tale2, tale_min_distance - guide_size, offtarget_max_dist)
 
                 # Makes tale1 and tale2 into a Pair object, and adds to list of Pair objects
-                pairs.append(Nickase(tale1, tale2, spacer_seq, spacer_size, off_target_pairs, enzyme_co, max_off_targets,
-                                     min_res_site_len))
+                pairs.append(
+                    Nickase(tale1, tale2, spacer_seq, spacer_size, off_target_pairs, enzyme_co, max_off_targets,
+                            min_res_site_len))
 
     return pairs
-
-
-def has_off_targets(tale1, tale2, off_target_min, off_target_max):
-    """ Returns the number of off-targets for a pair of TALENs (10-24bp apart) """
-
-    off_target_pairs = []
-
-    # Calls sort function to sort off-targets by chromosome and chromosome position.
-    # Bowtie ranks them according to quality of hit
-    tale1.sort_off_targets()
-    tale2.sort_off_targets()
-
-    # TODO: Eivind to write this code properly. Include a way to step backwards, so as not to miss any hits.
-    # Need to make a queue..?
-    for i in range(len(tale1.offTargets)):
-        hit1 = tale1.offTargets[i]
-
-        for j in range(len(tale2.offTargets)):
-            hit2 = tale2.offTargets[j]
-
-            # Determines whether 2 tales are on the same chromosome and 10-24 bp apart.
-            if hit2.chrom == hit1.chrom and off_target_min <= abs(hit2.start - hit1.start) <= off_target_max:
-                off_target_pairs.append([hit1, hit2])
-
-    return off_target_pairs
 
 
 def cluster_pairs(pairs):
@@ -158,12 +134,12 @@ def cluster_pairs(pairs):
     # Compares each TALE pair to previous pair in list to see whether redundant. Assigns cluster number accordingly
     for i in range(1, len(pairs)):
         cur = pairs[i]
-        prev = pairs[i-1]
+        prev = pairs[i - 1]
 
         # Specifically, compares location of spacer (by comparing location of tales) to see whether there is overlap,
         # and therefore TALE pairs are redundant
         if ((cur.spacerStart <= prev.spacerEnd) and (cur.spacerEnd >= prev.spacerStart) and
-                    in_cluster < PRIMER_OFF_TARGET_MIN):
+                in_cluster < PRIMER_OFF_TARGET_MIN):
 
             cur.cluster = cluster
             in_cluster += 1
@@ -173,4 +149,4 @@ def cluster_pairs(pairs):
             cur.cluster = cluster
             in_cluster = 0
 
-    return (cluster, pairs)
+    return cluster, pairs
