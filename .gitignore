@@ -1,1 +1,3 @@
 config_local.json
+venv/
+*.pyc
