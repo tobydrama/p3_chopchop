@@ -56,8 +56,9 @@ class Nickase:
                     indivScore += SINGLE_OFFTARGET_SCORE[3]
 
         # Compute penalties (scores) for off-target hits. Worst = off-target pair, Not so bad = off-target single tale
-        self.score = (self.diffStrandOffTarget * config.score('OFFTARGET_PAIR_DIFF_STRAND')) + tale1.score + tale2.score - \
-                indivScore + (tale1.strand == "+") * config.score('PAM_IN_PENALTY')
+        self.score = (self.diffStrandOffTarget * config.score(
+            'OFFTARGET_PAIR_DIFF_STRAND')) + tale1.score + tale2.score - indivScore + (
+                                 tale1.strand == "+") * config.score('PAM_IN_PENALTY')
         resSites = find_restriction_sites(self.spacerSeq, enzyme_co, minResSiteLen)
         self.restrictionSites = ";".join(map(lambda x: "%s:%s" % (str(x), ",".join(map(str, resSites[x]))), resSites))
 

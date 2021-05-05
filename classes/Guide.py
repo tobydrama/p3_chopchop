@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
-import config
-from constants import *
 import re
-from Bio.Seq import Seq
 from operator import attrgetter
 
-#So it doesn't crash
+from Bio.Seq import Seq
+
+import config
+from constants import STEM_LEN, GC_HIGH, GC_LOW, SINGLE_OFFTARGET_SCORE
+
+
+# So it doesn't crash
 def gc_content(seq):
     gc = 0
     for i in seq:
         if i == 'G' or i == 'g' or i == 'C' or i == 'c':
             gc += 1
     return float(gc) / float(len(seq))
+
 
 # Used in Guide
 def get_mismatch_pos(mismatch_string):
@@ -40,6 +44,7 @@ def get_mismatch_pos(mismatch_string):
         mismatches.append(current)
 
     return mismatches
+
 
 class Guide(object):
     """ This defines a class for each guide. The (off-target) hits for each guide form a separate class. The functions
@@ -132,25 +137,26 @@ class Guide(object):
         # Scoring
         self.calc_GC_content(scoreGC)
 
-    def calc_self_complementarity(self, scoreSelfComp, backbone_regions, PAM, replace5prime = None):
+    def calc_self_complementarity(self, scoreSelfComp, backbone_regions, PAM, replace5prime=None):
         if replace5prime:
-            fwd = self.strandedGuideSeq[len(PAM):-len(replace5prime)] + replace5prime #Replace the 2 first bases with e.g. "GG"
+            # Replace the 2 first bases with e.g. "GG"
+            fwd = self.strandedGuideSeq[len(PAM):-len(replace5prime)] + replace5prime
         else:
-            fwd = self.guideSeq[len(PAM):] # Do not include PAM motif in folding calculations
+            fwd = self.guideSeq[len(PAM):]  # Do not include PAM motif in folding calculations
 
         rvs = str(Seq(fwd).reverse_complement())
         L = len(fwd)-STEM_LEN-1
 
         self.folding = 0
 
-        for i in range(0,len(fwd)-STEM_LEN):
+        for i in range(0, len(fwd) - STEM_LEN):
             if gc_content(fwd[i:i + STEM_LEN]) >= 0.5:
-                if fwd[i:i+STEM_LEN] in rvs[0:(L-i)] or any([fwd[i:i+STEM_LEN] in item for item in backbone_regions]):
-                    #sys.stderr.write("%s\t%s\n" % (fwd, fwd[i:i+STEM_LEN]))
+                if fwd[i:i + STEM_LEN] in rvs[0:(L - i)] or any(
+                        [fwd[i:i + STEM_LEN] in item for item in backbone_regions]):
+                    # sys.stderr.write("%s\t%s\n" % (fwd, fwd[i:i+STEM_LEN]))
                     self.folding += 1
 
         self.score += self.folding * config.score('FOLDING')
-
 
     def calc_GC_content(self, scoreGC):
         """ Calculate the GC content of the guide """
@@ -164,7 +170,6 @@ class Guide(object):
             if self.GCcontent > GC_HIGH or self.GCcontent < GC_LOW:
                 self.score += config.score('CRISPR_BAD_GC')
 
-
     def add_off_target(self, hit, checkMismatch, maxOffTargets, countMMPos):
         """ Add off target hits (and not original hit) to list for each guide RNA """
 
@@ -173,7 +178,7 @@ class Guide(object):
         mm_pattern = re.compile('NM:i:(\d+)')
 
         # If the hit is identical to the guide coord it is the original correct hit
-        if self.chrom == hit.chrom and self.start == hit.start: # never true for isoforms
+        if self.chrom == hit.chrom and self.start == hit.start:  # never true for isoforms
             # This is the original/main hit
             self.correct_hit = hit
             return

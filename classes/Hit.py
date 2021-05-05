@@ -11,15 +11,15 @@ class Hit:
         self.opts = line[11:(len(line))]
         self.mismatchCorrected = False
 
-    def calc_mismatch_pos (self):
+    def calc_mismatch_pos(self):
         """ Updates the sequence parsed from the SAM output to include the mismatches """
 
         last_digit = len(self.mismatchPos)-1
         guide_size = len(self.matchSeq)
         guide_curr = ""
 
-        ## MD:Z:GUIDESIZE means that there are no mismatches
-        if not(self.mismatchPos =="MD:Z:%s" % guide_size):
+        # MD:Z:GUIDESIZE means that there are no mismatches
+        if not(self.mismatchPos == "MD:Z:%s" % guide_size):
             guide_index = 0
             curr_total = 0
 
@@ -41,7 +41,6 @@ class Hit:
                     curr_total += 1
                     guide_index += 1
 
-
             self.matchSeq = guide_curr
 
     # Specifying how to print items in list of off-targets
@@ -61,4 +60,3 @@ class Hit:
                 self.mismatchCorrected = True
 
         return "%s,%s,%s,%s" % (label, self.chrom + ":" + str(self.start), self.mismatch[-1], self.matchSeq)
-
