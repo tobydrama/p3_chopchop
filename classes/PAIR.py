@@ -1,10 +1,13 @@
 from Bio.Seq import Seq
-from functions.make_primers import find_restriction_sites
+
 import config
+from functions.make_primers import find_restriction_sites
 
 class Pair:
     """ Pair class for 2 TALEs that are the correct distance apart """
-    def __init__(self, tale1, tale2, spacerSeq, spacerSize, offTargetPairs, enzymeCo, maxOffTargets, g_RVD, minResSiteLen):
+
+    def __init__(self, tale1, tale2, spacerSeq, spacerSize, offTargetPairs, enzymeCo, maxOffTargets, g_RVD,
+                 minResSiteLen):
         self.tale1 = tale1
         self.tale2 = tale2
         self.chrom = tale1.chrom
@@ -57,8 +60,8 @@ class Pair:
 
         self.offTargetPairCount = 0
 
-        # Use bitwise operator to compare flag sum to see whether off-target TALEs are on different strands (bad = good cutting ability)
-        # or on the same strand (not so bad = FokI domains probably too far apart to cut)
+        # Use bitwise operator to compare flag sum to see whether off-target TALEs are on different strands
+        # (bad = good cutting ability) or on the same strand (not so bad = FokI domains probably too far apart to cut)
         indivScore = 0
 
         for (hit1, hit2) in offTargetPairs:

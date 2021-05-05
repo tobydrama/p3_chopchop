@@ -1,9 +1,10 @@
 import csv
-import sys
 import re
+import sys
+from subprocess import Popen, PIPE
+
 import numpy
 from Bio.Seq import Seq
-from subprocess import Popen, PIPE
 
 import config
 from constants import EXIT, TARGET_MAX
@@ -97,6 +98,7 @@ def subset_exons(exons, targets):
                 sys.exit(EXIT['PYTHON_ERROR'])
         targets = [targets[int(i) - 1] for i in indices]  # indices is a list of exon numbers -1 e.g. exon 2 is [1]
     return targets
+
 
 # Used in parse_targets
 def truncate_to_UTR5(cds_start, exons):
@@ -234,7 +236,7 @@ def gene_to_coord_db(gene, organism, db):
 # Used in parse_targets
 def gene_to_coord_file(gene_in, table_file):
     """ Extracts coordinates of genomic regions to parse for suitable guide binding sites """
-    table_r = open(table_file,'r')
+    table_r = open(table_file, 'r')
 
     tablereader = csv.DictReader(table_r, delimiter='\t', quoting=csv.QUOTE_NONE)
     tx_info = []
@@ -257,14 +259,13 @@ def gene_to_coord_file(gene_in, table_file):
 
 
 def coordinate_search(is_coordinate, target_string, pattern, target_size, vis_coords, targets, pad_size, make_vis):
-    
     if config.isoforms:
         sys.stderr.write("--isoforms is not working with coordinate search.\n")
         sys.exit(EXIT['ISOFORMS_ERROR'])
-    
+
     chrom = is_coordinate.group(2)
     vis_coords.append({"exons": [], "ATG": [], "name": chrom})
-    
+
     for target in target_string.split(";"):
         m = pattern.match(target)
         if m:
@@ -272,18 +273,18 @@ def coordinate_search(is_coordinate, target_string, pattern, target_size, vis_co
                 sys.stderr.write(
                     "Can't target regions on separate chromosomes (%s != %s).\n" % (chrom, m.group(2)))
                 sys.exit(EXIT['GENE_ERROR'])
-    
+
             start_pos = m.group(3)
             end_pos = m.group(4)
             start_pos = int(start_pos.replace(",", "").replace(".", ""))
             end_pos = int(end_pos.replace(",", "").replace(".", ""))
             target_size += end_pos - start_pos + 1
-    
+
             if start_pos >= end_pos:
                 sys.stderr.write(
                     "Start position (%s) must be smaller than end position (%s)\n" % (start_pos, end_pos))
                 sys.exit(EXIT['GENE_ERROR'])
-    
+
             targets.append("%s:%s-%s" % (chrom, max(0, start_pos - pad_size), end_pos + pad_size))
             if make_vis:
                 vis_coords[0]["exons"].append([chrom, start_pos, end_pos, 0, True, "+"])
@@ -312,7 +313,7 @@ def make_vis_coords(starts_v, ends_v, tx, tx_vis, index_dir, genome, output_dir,
 
             tx_vis["exons"].append([tx[0], starts_v[e], ends_v[e], intron_size[e], False, tx[6]])
 
-    tx_vis["exons"].sort(key=lambda x: x[1]) # sort on starts
+    tx_vis["exons"].sort(key=lambda x: x[1])  # sort on starts
     # ATG locations
     prog = Popen("%s -seq=%s -start=%d -end=%d %s/%s.2bit stdout 2> %s/twoBitToFa.err" % (
         config.path("TWOBITTOFA"), tx[0], int(tx[4]) + 1, int(tx[5]) + 1, index_dir,
@@ -333,11 +334,11 @@ def make_vis_coords(starts_v, ends_v, tx, tx_vis, index_dir, genome, output_dir,
     atg = "ATG" if tx[6] != "-" else "CAT"
     tx_atg = [m.start() for m in re.finditer(atg, str(iso_seq_spl)) if m.start() % 3 == 0]
     tx_atg.sort()
-    for atg1 in tx_atg: # every ATG as 3 x 1bp as they can span across two exons...
+    for atg1 in tx_atg:  # every ATG as 3 x 1bp as they can span across two exons...
         atg2 = atg1 + 1
         atg3 = atg1 + 2
         shift_atg1, shift_atg2, shift_atg3, exon_len = 0, 0, 0, 0
-        for e in tx_vis["exons"]: # exons are sorted
+        for e in tx_vis["exons"]:  # exons are sorted
             if not e[4]:
                 exon_len += (e[2] - e[1])
                 if atg1 > exon_len:
@@ -406,7 +407,7 @@ def compute_intersection_union_all_exions(txInfo, tx, coords, targets, use_union
     return targets
 
 
-#Used in main
+# Used in main
 def parse_targets(target_string, genome, use_db, data, pad_size, target_region, exon_subset, ups_bp, down_bp,
                   index_dir, output_dir, use_union, make_vis, guideLen):
     targets = []
@@ -419,7 +420,8 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
     is_coordinate = pattern.match(str(target_string))
 
     if is_coordinate:
-        target_size, vis_coords = coordinate_search(is_coordinate, target_string, pattern, target_size, vis_coords, targets, pad_size, make_vis)
+        target_size, vis_coords = coordinate_search(is_coordinate, target_string, pattern, target_size, vis_coords,
+                                                    targets, pad_size, make_vis)
 
     else:
         if use_db:
@@ -467,7 +469,6 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
             if make_vis:
                 vis_coords = make_vis_coords(starts_v, ends_v, tx, tx_vis, index_dir, genome, output_dir, vis_coords)
 
-
             # restrict isoforms
             coords = list(map(lambda x: [tx[0], x[0], x[1]], zip(starts, ends)))
             if tx[6] == "-":
@@ -499,7 +500,8 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
         if config.isoforms:
             targets = list(map(lambda x: "%s:%s-%s" % (target_chr, x[0], x[1]), zip(starts, ends)))
         else:
-            targets = list(map(lambda x: "%s:%s-%s" % (target_chr, x[0] - pad_size, x[1] + pad_size), zip(starts, ends)))
+            targets = list(
+                map(lambda x: "%s:%s-%s" % (target_chr, x[0] - pad_size, x[1] + pad_size), zip(starts, ends)))
 
     if target_size > TARGET_MAX:
         sys.stderr.write("Search region is too large (%s nt). Maximum search region is %s nt.\n" % (

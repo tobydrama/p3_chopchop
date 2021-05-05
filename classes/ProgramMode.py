@@ -1,5 +1,5 @@
-from enum import Enum
 import argparse
+from enum import Enum
 
 
 class ProgramModeAction(argparse.Action):

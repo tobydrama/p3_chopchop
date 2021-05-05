@@ -1,25 +1,19 @@
-#####################
-##
-## FUNCTIONS ONLY USED IN MAIN
-##
-from typing import Union, List
-
-import scipy.stats as ss
+import json
 import logging
-import warnings
 import re
 import sys
-import json
+import warnings
+from subprocess import Popen, PIPE
+
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqFeature import SeqFeature, FeatureLocation
+from Bio.SeqRecord import SeqRecord
 
 import config
 from classes.ProgramMode import ProgramMode
-from constants import EXIT, NICKASE_DEFAULT, PRIMER_OFF_TARGET_MIN
 from constants import DOWNSTREAM_NUC, CPF1_DEFAULT, TALEN_DEFAULT, CRISPR_DEFAULT
-from subprocess import Popen, PIPE
-from Bio import SeqIO
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
-from Bio.SeqFeature import SeqFeature, FeatureLocation
+from constants import EXIT, NICKASE_DEFAULT
 
 
 # Here lies concatenate_feature_sets

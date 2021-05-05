@@ -3,13 +3,13 @@ import os
 import subprocess
 import sys
 import warnings
-import pandas
-from subprocess import Popen
 from collections import defaultdict
 from enum import Enum
+from subprocess import Popen
 from typing import Callable, List, Tuple, Dict, Union
 
 import numpy
+import pandas
 import scipy.stats as ss
 
 import config
@@ -17,8 +17,8 @@ import constants
 from classes.Cas9 import Cas9
 from classes.Guide import Guide
 from classes.ProgramMode import ProgramMode
-from functions.TALEN_specific_functions import pair_talens, pair_cas9, cluster_pairs
 from dockers.doench_2016_wrapper import run_doench_2016
+from functions.TALEN_specific_functions import pair_talens, pair_cas9, cluster_pairs
 
 
 class ScoringMethod(Enum):
@@ -302,8 +302,8 @@ def score_zhang_2019(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
         zhang_file.close()
 
         # TODO kind of hacky file path stuff here
-        prog = subprocess.run(["%s/uCRISPR/uCRISPR" % config.file_path(), "-on", config.file_path() + '/' + zhang_input_file],
-                              capture_output=True, check=True)
+        prog = subprocess.run(["%s/uCRISPR/uCRISPR" % config.file_path(), "-on", config.file_path() + '/' +
+                               zhang_input_file], capture_output=True, check=True)
 
         # Convert from bytes, split on newline, remove header
         output = prog.stdout.decode().splitlines()[1:]

@@ -1,7 +1,8 @@
-import config
-from constants import codes, STEM_LEN
 from Bio.Seq import Seq
 from Bio.SeqUtils import GC
+
+import config
+from constants import codes, STEM_LEN
 
 
 def perm_PAM(PAM):

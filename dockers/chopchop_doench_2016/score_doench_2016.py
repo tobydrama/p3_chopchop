@@ -1,19 +1,18 @@
 #!/usr/bin/env python2.7
 import argparse
-import warnings
-
-import pickle
-import pandas
-import numpy
-import featurization as feat
-
-# Receive guides through STDIN
-import sys
-
 # Base64 encoding for guides pickle
 import codecs
+import pickle
+# Receive guides through STDIN
+import sys
+import warnings
+
+import numpy
+import pandas
 
 import Cas9Emulation
+import featurization as feat
+
 
 def parse_args():
     parser = argparse.ArgumentParser()

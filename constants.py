@@ -1,9 +1,3 @@
-import sys
-import os
-import json
-
-import config
-
 CRISPR_DEFAULT = {"GUIDE_SIZE": 20,
                   "PAM": "NGG",
                   "MAX_OFFTARGETS": 300,

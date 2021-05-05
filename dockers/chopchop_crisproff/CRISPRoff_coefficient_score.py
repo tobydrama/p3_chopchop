@@ -1,8 +1,8 @@
 #!/usr/bin/env python2.7
 
 import argparse
-import pickle
 import codecs
+import pickle
 
 from CRISPRoff.CRISPRoff_specificity import CRISPRoff_score
 

@@ -1,7 +1,6 @@
-import subprocess
-
-import pickle
 import codecs
+import pickle
+import subprocess
 
 from classes.Cas9 import Cas9
 

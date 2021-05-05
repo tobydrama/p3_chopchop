@@ -1,8 +1,9 @@
 from unittest import TestCase
-from functions.set_default_modes import get_allowed_five_prime, get_mismatch_vectors, get_CPF1_mismatch_vectors
+
 from classes.ProgramMode import ProgramMode
-from functions.main_functions import mode_select
 from constants import CPF1_DEFAULT, TALEN_DEFAULT, CRISPR_DEFAULT, NICKASE_DEFAULT
+from functions.main_functions import mode_select
+from functions.set_default_modes import get_allowed_five_prime, get_mismatch_vectors, get_CPF1_mismatch_vectors
 
 
 class Test(TestCase):

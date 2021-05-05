@@ -49,6 +49,7 @@ class Guide(object):
                  backbone_regions, PAM, replace5prime=None, scoringMethod=None,
                  genome=None, gene=None, isoform=None, gene_isoforms=None, isKmaxed=False):
 
+        self.GCcontent = 0
         self.isKmaxed = isKmaxed  # to print possibility of more mismatches
         self.scoringMethod = scoringMethod
         self.genome = genome
@@ -157,9 +158,7 @@ class Guide(object):
             g_seq = self.strandedGuideSeq[len(self.PAM):]
             G_count = g_seq.count('G')
             C_count = g_seq.count('C')
-            self.GCcontent = (100*(float(G_count+C_count)/int(len(g_seq))))
-        else:
-            self.GCcontent = 0
+            self.GCcontent = (100 * (float(G_count + C_count) / int(len(g_seq))))
 
         if scoreGC:
             if self.GCcontent > GC_HIGH or self.GCcontent < GC_LOW:
@@ -248,21 +247,23 @@ class Guide(object):
     def __str__(self):
         self.sort_off_targets()
         if config.isoforms:
-            return "%s\t%s:%s\t%s\t%s\t%.0f\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (self.strandedGuideSeq,
-                                                                                            self.chrom, self.start,
-                                                                                            self.gene, self.isoform,
-                                                                                            self.GCcontent, self.folding, self.meanBPP,
-                                                                                            self.offTargetsMM[0], self.offTargetsMM[1],
-                                                                                            self.offTargetsMM[2], self.offTargetsMM[3],
-                                                                                            self.constitutive, (",").join(set(self.offTargetsIso[0])),
-                                                                                            (",").join(set(self.offTargetsIso[1])),
-                                                                                            (",").join(set(self.offTargetsIso[2])),
-                                                                                            (",").join(set(self.offTargetsIso[3])))
-        return "%s\t%s:%s\t%s\t%.0f\t%s\t%s\t%s\t%s\t%s" % (self.strandedGuideSeq, self.chrom, self.start,
-                                                                self.strand, self.GCcontent, self.folding,
-                                                                self.offTargetsMM[0], self.offTargetsMM[1],
-                                                                self.offTargetsMM[2],
-                                                                ">=" + str(self.offTargetsMM[3]) if self.isKmaxed else self.offTargetsMM[3])
+            return "%s\t%s:%s\t%s\t%s\t%.0f\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (
+                self.strandedGuideSeq,
+                self.chrom, self.start,
+                self.gene, self.isoform,
+                self.GCcontent, self.folding, self.meanBPP,
+                self.offTargetsMM[0], self.offTargetsMM[1],
+                self.offTargetsMM[2], self.offTargetsMM[3],
+                self.constitutive, ",".join(set(self.offTargetsIso[0])),
+                ",".join(set(self.offTargetsIso[1])),
+                ",".join(set(self.offTargetsIso[2])),
+                ",".join(set(self.offTargetsIso[3])))
+        return "%s\t%s:%s\t%s\t%.0f\t%s\t%s\t%s\t%s\t%s" % (
+            self.strandedGuideSeq, self.chrom, self.start,
+            self.strand, self.GCcontent, self.folding,
+            self.offTargetsMM[0], self.offTargetsMM[1],
+            self.offTargetsMM[2],
+            ">=" + str(self.offTargetsMM[3]) if self.isKmaxed else self.offTargetsMM[3])
 
     def as_off_target_string(self, label, max_off_targets):
         self.sort_off_targets()

@@ -1,12 +1,7 @@
-
-#####################
-##
-## TALEN SPECIFIC FUNCTIONS
-##
-from constants import TALEN_OFF_TARGET_MIN, TALEN_OFF_TARGET_MAX, PRIMER_OFF_TARGET_MIN
 from classes.Nickase import Nickase
-from operator import attrgetter
 from classes.PAIR import Pair
+from constants import TALEN_OFF_TARGET_MIN, TALEN_OFF_TARGET_MAX, PRIMER_OFF_TARGET_MIN
+from functions.make_primers import has_off_targets
 
 
 def pair_talens(tale_list, fasta_seq, guide_size, tale_min_distance, tale_max_distance,

@@ -1,21 +1,22 @@
+import json
+import logging
+import os
 import re
 import sys
-import json
-import os
-import logging
+from operator import itemgetter
+from subprocess import Popen, PIPE
+
 import pandas
+from Bio import SeqIO
+from Bio.Restriction import Analysis, RestrictionBatch
+from Bio.Seq import Seq
+from Bio.SeqFeature import SeqFeature, FeatureLocation
+from Bio.SeqRecord import SeqRecord
 
 import config
-from constants import PRIMER3_CONFIG, EXIT, PRIMER_OFF_TARGET_MIN
-from Bio import SeqIO
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
-from Bio.SeqFeature import SeqFeature, FeatureLocation
-from subprocess import Popen, PIPE
 from classes.Guide import Guide
 from classes.Hit import Hit
-from operator import itemgetter
-from Bio.Restriction import Analysis, RestrictionBatch
+from constants import PRIMER3_CONFIG, EXIT, PRIMER_OFF_TARGET_MIN
 
 
 # Used in makePrimersFasta and makePrimersGenome
@@ -221,10 +222,10 @@ def dump_genbank_file(seq, target, restSites, primers, outputDir, geneID, lociSt
     pass
 
 
-def has_Off_targets(tale1, tale2, offTargetMin, offTargetMax):
+def has_off_targets(tale1, tale2, off_target_min, off_target_max):
     """ Returns the number of off-targets for a pair of TALENs (10-24bp apart) """
 
-    offTargetPairs = []
+    off_target_pairs = []
 
     # Calls sort function to sort off-targets by chromosome and chromosome position.
     # Bowtie ranks them according to quality of hit
@@ -240,10 +241,10 @@ def has_Off_targets(tale1, tale2, offTargetMin, offTargetMax):
             hit2 = tale2.offTargets[j]
 
             # Determines whether 2 tales are on the same chromosome and 10-24 bp apart.
-            if hit2.chrom == hit1.chrom and offTargetMin <= abs(hit2.start-hit1.start) <= offTargetMax:
-                offTargetPairs.append([hit1, hit2])
+            if hit2.chrom == hit1.chrom and off_target_min <= abs(hit2.start - hit1.start) <= off_target_max:
+                off_target_pairs.append([hit1, hit2])
 
-    return offTargetPairs
+    return off_target_pairs
 
 
 # Used in makePrimersFasta and makePrimersGenome
@@ -345,11 +346,12 @@ def make_primers_fasta(targets, outputDir, flanks, displayFlanks, genome, limitP
 
     primerFastaFileName = '%s/primers.fa' % outputDir
     primerFastaFile = open(primerFastaFileName, 'w')
-    for i in range(min(limitPrintResults-1, len(targets))):
+    for i in range(min(limitPrintResults - 1, len(targets))):
         target = targets[i]
         seq, seqLenBeforeTarget = get_primer_query_sequence_fasta(target, outputDir, flanks, fastaSequence)
         primer3_output = make_primer_for_target(target, outputDir, seq, seqLenBeforeTarget, primerOpt, guidePadding)
-        region = "%s:%s-%s" % (target.chrom, max(0, target.start-flanks), min(len(fastaSequence), target.end+flanks))
+        region = "%s:%s-%s" % (
+        target.chrom, max(0, target.start - flanks), min(len(fastaSequence), target.end + flanks))
         target_primers, primerPos = parse_primer3_output(target, region, primer3_output, primerFastaFile)
         primers[target.ID] = target_primers
 
@@ -359,7 +361,7 @@ def make_primers_fasta(targets, outputDir, flanks, displayFlanks, genome, limitP
         seq2, seqLenBeforeTarget2 = get_primer_query_sequence_fasta(target, outputDir, displayFlanks, fastaSequence)
         dump_locus_sequence(target, outputDir, seq2, seqLenBeforeTarget2, "+")
         # Genbank file for download
-        dump_genbank_file(seq, target, restSites, primerPos, outputDir, geneID, target.start-seqLenBeforeTarget, "+")
+        dump_genbank_file(seq, target, restSites, primerPos, outputDir, geneID, target.start - seqLenBeforeTarget, "+")
 
     primerFastaFile.close()
 
@@ -368,8 +370,9 @@ def make_primers_fasta(targets, outputDir, flanks, displayFlanks, genome, limitP
 
 
 # Used in main, Zombie funky
-def make_primers_genome(targets, outputDir, flanks, display_seq_len, genome, limitPrintResults, bowtieIndexDir, twoBitToFaIndexDir,
-                        primer3options, guidePadding, enzymeCo, minResSiteLen, strand, geneID, maxOffTargets):
+def make_primers_genome(targets, outputDir, flanks, display_seq_len, genome, limitPrintResults, bowtieIndexDir,
+                        twoBitToFaIndexDir, primer3options, guidePadding, enzymeCo, minResSiteLen, strand, geneID,
+                        maxOffTargets):
     primers = {}
 
     primerOpt = get_primer_options(primer3options)
@@ -377,12 +380,12 @@ def make_primers_genome(targets, outputDir, flanks, display_seq_len, genome, lim
     # RUN PRIMER3 ON TARGET SITES AND CREATE FASTA FILE OF PRIMERS FOR BOWTIE
     primerFastaFileName = '%s/primers.fa' % outputDir
     primerFastaFile = open(primerFastaFileName, 'w')
-    for i in range(min(limitPrintResults-1, len(targets))):
+    for i in range(min(limitPrintResults - 1, len(targets))):
         target = targets[i]
         seq, seqLenBeforeTarget = get_primer_query_sequence_2bit(
             target, outputDir, flanks, genome, twoBitToFaIndexDir, strand)
         primer3_output = make_primer_for_target(target, outputDir, seq, seqLenBeforeTarget, primerOpt, guidePadding)
-        region = "%s:%s-%s" % (target.chrom, max(0, target.start-flanks), target.end+flanks)
+        region = "%s:%s-%s" % (target.chrom, max(0, target.start - flanks), target.end + flanks)
         target_primers, primerPos = parse_primer3_output(target, region, primer3_output, primerFastaFile)
         primers[target.ID] = target_primers
 
@@ -393,7 +396,8 @@ def make_primers_genome(targets, outputDir, flanks, display_seq_len, genome, lim
             target, outputDir, display_seq_len, genome, twoBitToFaIndexDir, strand)
         dump_locus_sequence(target, outputDir, seq2, seqLenBeforeTarget2, strand)
         # Genbank file for download
-        dump_genbank_file(seq, target, restSites, primerPos, outputDir, geneID, target.start-seqLenBeforeTarget, strand)
+        dump_genbank_file(seq, target, restSites, primerPos, outputDir, geneID, target.start - seqLenBeforeTarget,
+                          strand)
 
     primerFastaFile.close()
 

@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 import math
 
-from classes.Guide import Guide
 from Bio.Seq import Seq
-from functions.evaluate import gc_content
+
+import config
+from classes.Guide import Guide
 from constants import *
+from functions.evaluate import gc_content
 
 
 class Cas9(Guide):
 
     def __init__(self, *args, **kwargs):
         super(Cas9, self).__init__(*args, **kwargs)
+        self.GCcontent = 0
         self.CoefficientsScore = {"XU_2015": 0,
                                   "DOENCH_2014": 0,
                                   "DOENCH_2016": 0,
@@ -158,8 +161,6 @@ class Cas9(Guide):
             G_count = g_seq.count('G')
             C_count = g_seq.count('C')
             self.GCcontent = (100 * (float(G_count + C_count) / int(len(g_seq))))
-        else:
-            self.GCcontent = 0
 
         if score_GC:
             if self.GCcontent > GC_HIGH or self.GCcontent < GC_LOW:

@@ -1,5 +1,5 @@
-import json
 import filecmp
+import json
 import os
 import subprocess
 
@@ -11,7 +11,7 @@ def main():
     for name, info in data.items():
         print(f"Testing '{name}' (chopchop.py {info['args']})... ", end='')
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ['python', './chopchop.py', '-o', 'testing/end_to_end/temp', '-BED', '-J', '--logLevel', 'DEBUG',
                  '--testing'] + info[
                     'args'].split(' '),

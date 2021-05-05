@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
-import sys
-import os
-import ast
 import argparse
+import ast
+import os
 import subprocess
+import sys
+
 import pandas as pd
-from Bio.Seq import Seq
 from Bio import SeqIO
+from Bio.Seq import Seq
 
 
 def main():
@@ -68,8 +69,8 @@ def main():
                 "PRODUCT_SIZE_MIN=150,PRODUCT_SIZE_MAX=290,PRIMER_MIN_SIZE=18,PRIMER_MAX_SIZE=25,PRIMER_OPT_SIZE=22,PRIMER_MIN_TM=57,PRIMER_MAX_TM=63,PRIMER_OPT_TM=60")
 
         config = pd.DataFrame(columns=(
-        "ID", "Barcode", "Forward_Reads", "Reverse_Reads", "Group", "Control", "guideRNA", "Forward_Primer",
-        "Reverse_Primer", "Direction", "Amplicon", "Donor"))
+            "ID", "Barcode", "Forward_Reads", "Reverse_Reads", "Group", "Control", "guideRNA", "Forward_Primer",
+            "Reverse_Primer", "Direction", "Amplicon", "Donor"))
         previous_guide_positions = {}  # store for reference
 
     if args[0].bed:
@@ -100,7 +101,7 @@ def main():
                 print("No guides for " + gene)
                 continue
 
-            if not previous_guide_positions.has_key(this_gene_chrom):
+            if this_gene_chrom not in previous_guide_positions:
                 previous_guide_positions[this_gene_chrom] = []
 
             guide_row_in_table = 0
@@ -216,7 +217,7 @@ def main():
                             gene) == 0 and guide_num == 0:  # for the first gene only put the browser it's chromosome and add header
                         bed_handle.write("browser position {0}:{1}-{2}\n".format(this_gene_chrom, primer_left_start - 1,
                                                                                  primer_right_end - 1))
-                        header = ("""track name=chopchop_query description=\"""" + (" ").join(sys.argv) +
+                        header = ("""track name=chopchop_query description=\"""" + " ".join(sys.argv) +
                                   """\" visibility="pack" itemRgb="Off"\n""")
                         bed_handle.write(header)
 

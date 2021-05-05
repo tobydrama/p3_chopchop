@@ -1,30 +1,23 @@
 #!/usr/bin/env python3
-import logging
+import json
+import os
 import subprocess
+import sys
+from operator import itemgetter
+from typing import List, Callable, Union
 
 import config
 import scoring
-import json
-import argparse
-import resource
-
-from operator import itemgetter
-from typing import List, Callable, Union
-from Bio.Seq import Seq
-
-from constants import *
-
 from classes.Guide import Guide
 from classes.PAIR import Pair
 from classes.ProgramMode import ProgramMode
-
-# from functions.Main_Functions import *
-from functions.main_functions import coord_to_fasta, run_bowtie
-from functions.main_functions import write_individual_results, parse_fasta_target, connect_db, mode_select
-from functions.main_functions import print_bed, print_genbank, fasta_to_viscoords
+from constants import *
 from functions.arguments import parse_arguments
-from functions.parse_target import parse_targets
+from functions.main_functions import coord_to_fasta, run_bowtie
+from functions.main_functions import print_bed, print_genbank, fasta_to_viscoords
+from functions.main_functions import write_individual_results, parse_fasta_target, connect_db
 from functions.make_primers import make_primers_fasta, make_primers_genome, parse_bowtie
+from functions.parse_target import parse_targets
 from functions.set_default_modes import set_default_modes
 
 
@@ -259,15 +252,16 @@ def main():
 
     # Run bowtie and get results
     bowtieResultsFile = run_bowtie(len(args.PAM), args.uniqueMethod_Cong, candidate_fasta_file, args.outputDir,
-                                  int(args.maxOffTargets),
-                                  config.path("ISOFORMS_INDEX_DIR") if config.isoforms else config.path(
-                                      "BOWTIE_INDEX_DIR"),
-                                  args.genome, int(args.maxMismatches))
+                                   int(args.maxOffTargets),
+                                   config.path("ISOFORMS_INDEX_DIR") if config.isoforms else config.path(
+                                       "BOWTIE_INDEX_DIR"),
+                                   args.genome, int(args.maxMismatches))
 
     results = parse_bowtie(guideClass, bowtieResultsFile, True, args.scoreGC, args.scoreSelfComp,
-                          args.backbone, args.replace5P, args.maxOffTargets, countMM, args.PAM,
-                          args.MODE != ProgramMode.TALENS,
-                          args.scoringMethod, args.genome, gene, isoform, gene_isoforms)  # TALENS: MAKE_PAIRS + CLUSTER
+                           args.backbone, args.replace5P, args.maxOffTargets, countMM, args.PAM,
+                           args.MODE != ProgramMode.TALENS,
+                           args.scoringMethod, args.genome, gene, isoform,
+                           gene_isoforms)  # TALENS: MAKE_PAIRS + CLUSTER
 
     # TODO this is a temporary fix, args.scoringMethod should be converted to type ScoringMethod like args.MODE
     scoring_method = scoring.ScoringMethod.G_20
@@ -289,8 +283,8 @@ def main():
 
     # Write individual results to file
     listOfClusters = write_individual_results(args.outputDir, args.maxOffTargets, sorted_output,
-                                            args.guideSize, args.MODE, cluster,
-                                            args.limitPrintResults, args.offtargetsTable)
+                                              args.guideSize, args.MODE, cluster,
+                                              args.limitPrintResults, args.offtargetsTable)
 
     if args.makePrimers:
         if args.fasta:
@@ -334,9 +328,6 @@ def main():
     for fl in os.listdir(args.outputDir):
         if fl == "primer_results.sam" or fl == "output.sam":
             os.remove(os.path.join(args.outputDir, fl))
-
-
-
 
 
 if __name__ == '__main__':

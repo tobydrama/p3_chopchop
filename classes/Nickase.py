@@ -1,11 +1,13 @@
+import config
 from constants import SINGLE_OFFTARGET_SCORE
 from functions.make_primers import find_restriction_sites
-import config
 
 
 class Nickase:
     """ Pair class for 2 Cas9 that are the correct distance apart """
-    def __init__(self, tale1, tale2, spacer_seq, spacer_size, off_target_pairs, enzyme_co, max_off_targets, minResSiteLen):
+
+    def __init__(self, tale1, tale2, spacer_seq, spacer_size, off_target_pairs, enzyme_co, max_off_targets,
+                 minResSiteLen):
         self.tale1 = tale1
         self.tale2 = tale2
         self.chrom = tale1.chrom
@@ -34,8 +36,8 @@ class Nickase:
         self.strandedGuideSeq = str(self.tale1.guideSeq) + "\n" + self.spacerSeq + "\n" + str(self.tale2.guideSeq)
         self.offTargetPairCount = 0
 
-        # Use bitwise operator to compare flag sum to see whether off-target TALEs are on different strands (bad = good cutting ability)
-        # or on the same strand (not so bad = FokI domains probably too far apart to cut)
+        # Use bitwise operator to compare flag sum to see whether off-target TALEs are on different strands
+        # (bad = good cutting ability) or on the same strand (not so bad = FokI domains probably too far apart to cut)
         indivScore = 0
 
         for (hit1, hit2) in off_target_pairs:

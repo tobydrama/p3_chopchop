@@ -1,6 +1,6 @@
-import subprocess
-import pickle
 import codecs
+import pickle
+import subprocess
 
 # TODO find a good solution to permissions problem
 def run_coefficient_score(stranded_guide_seq: str) -> float:

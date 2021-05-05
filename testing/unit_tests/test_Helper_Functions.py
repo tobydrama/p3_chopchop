@@ -1,4 +1,5 @@
 from unittest import TestCase
+
 from functions.evaluate import gc_content, compare_PAM, perm_PAM
 from functions.set_default_modes import get_allowed_five_prime
 

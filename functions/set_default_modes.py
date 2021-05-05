@@ -1,9 +1,12 @@
-import config
-from classes.ProgramMode import ProgramMode
-from classes.Guide import Guide
-from classes.Cas9 import Cas9
-from classes.CPF1 import Cpf1
+import logging
+import sys
 from operator import attrgetter
+
+import config
+from classes.CPF1 import Cpf1
+from classes.Cas9 import Cas9
+from classes.Guide import Guide
+from classes.ProgramMode import ProgramMode
 from functions.evaluate import eval_TALENS_sequence, eval_CPF1_sequence, eval_CRISPR_sequence
 
 
@@ -14,9 +17,9 @@ def get_allowed_five_prime(allowed):
         if el[0] == 'N' and el[1] == 'N':
             return "AA", "AC", "AG", "AT", "CA", "CC", "CG", "CT", "GA", "GC", "GG", "GT", "TA", "TC", "TG", "TT"
         elif el[0] == 'N':
-            new_allowed.extend(["A"+el[1], "C"+el[1], "G"+el[1], "T"+el[1]])
+            new_allowed.extend(["A" + el[1], "C" + el[1], "G" + el[1], "T" + el[1]])
         elif el[1] == 'N':
-            new_allowed.extend([el[0]+"A", el[0]+"C", el[0]+"G", el[0]+"T"])
+            new_allowed.extend([el[0] + "A", el[0] + "C", el[0] + "G", el[0] + "T"])
         else:
             new_allowed.append(el)
     return dict(zip(new_allowed, [True] * len(new_allowed)))
@@ -24,12 +27,11 @@ def get_allowed_five_prime(allowed):
 
 # Used in set_default_modes and tests
 def get_mismatch_vectors(pam, gLength, cong):
-
-    allowed = [True] * (gLength -len(pam))
-    count = [True] * (gLength -len(pam))
+    allowed = [True] * (gLength - len(pam))
+    count = [True] * (gLength - len(pam))
 
     if cong:
-        allowed = [True] * 9 + [False] * (gLength -len(pam) -9)
+        allowed = [True] * 9 + [False] * (gLength - len(pam) - 9)
 
     for char in pam:
         count.append(False)
@@ -43,16 +45,15 @@ def get_mismatch_vectors(pam, gLength, cong):
 
 # Used in set_default_modes
 def get_CPF1_mismatch_vectors(pam, gLength):
-
-    allowed = [True] * (gLength -len(pam))
-    count = [True] * (gLength -len(pam))
+    allowed = [True] * (gLength - len(pam))
+    count = [True] * (gLength - len(pam))
 
     for char in pam[::-1]:
         count.insert(0, False)
         if char == "N":
-            allowed.insert(0,True)
+            allowed.insert(0, True)
         else:
-            allowed.insert(0,False)
+            allowed.insert(0, False)
 
     return allowed, count
 
@@ -97,10 +98,13 @@ def set_default_modes(args):
         sortOutput = sort_CRISPR_guides
 
     elif args.MODE == ProgramMode.TALENS:
-        (allowedMM, countMM) = get_mismatch_vectors(args.PAM, args.guideSize, None)
-        guideClass = Guide
-        evalSequence = eval_TALENS_sequence
-        sortOutput = sort_TALEN_pairs
+        (allowed_mm, count_mm) = get_mismatch_vectors(args.PAM, args.guideSize, None)
+        guide_class = Guide
+        eval_sequence = eval_TALENS_sequence
+        sort_output = sort_TALEN_pairs
+    else:
+        logging.critical("set_default_modes: unknown program mode selected, exiting.")
+        sys.exit(1)
 
     return countMM, evalSequence, guideClass, sortOutput
 
