@@ -82,11 +82,11 @@ def set_default_modes(args):
             filterGCmin=args.filterGCmin, filterGCmax=args.filterGCmax,
             filterSelfCompMax=args.filterSelfCompMax, replace5prime=args.replace5P, backbone=args.backbone)
         if args.MODE == ProgramMode.CRISPR:
-            guideClass = Cas9 if not config.isoforms else Guide
-            sortOutput = sort_CRISPR_guides
+            guide_class = Cas9 if not config.isoforms else Guide
+            sort_output = sort_CRISPR_guides
         elif args.MODE == ProgramMode.NICKASE:
-            guideClass = Cas9
-            sortOutput = sort_TALEN_pairs
+            guide_class = Cas9
+            sort_output = sort_TALEN_pairs
 
     elif args.MODE == ProgramMode.CPF1:
         (allowedMM, countMM) = get_CPF1_mismatch_vectors(args.PAM, args.guideSize)

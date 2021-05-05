@@ -61,14 +61,14 @@ def pair_talens(tale_list, fasta_seq, guide_size, tale_min_distance, tale_max_di
                 off_target_pairs = has_off_targets(tale1, tale2, TALEN_OFF_TARGET_MIN, TALEN_OFF_TARGET_MAX)
 
                 # Makes tale1 and tale2 into a Pair object, and adds to list of Pair objects
-                pairs.append(Pair(tale1, tale2, spacer_seq, spacer_size, off_target_pairs, enzyme_co, max_off_targets, g_RVD,
-                                  min_res_site_len))
+                pairs.append(Pair(tale1, tale2, spacer_seq, spacer_size, off_target_pairs, enzyme_co, max_off_targets,
+                                  g_RVD, min_res_site_len))
 
     return pairs
 
 
-def pair_cas9(tale_list, fasta_seq, guide_size, tale_min_distance, tale_max_distance, enzyme_co, max_off_targets, min_res_site_len,
-              offtarget_max_dist):
+def pair_cas9(tale_list, fasta_seq, guide_size, tale_min_distance, tale_max_distance, enzyme_co, max_off_targets,
+              min_res_site_len, offtarget_max_dist):
     pairs = []
 
     for i in range(len(tale_list) - 1):
@@ -156,7 +156,7 @@ def cluster_pairs(pairs):
     in_cluster = 0
 
     # Compares each TALE pair to previous pair in list to see whether redundant. Assigns cluster number accordingly
-    for i in range(1,len(pairs)):
+    for i in range(1, len(pairs)):
         cur = pairs[i]
         prev = pairs[i-1]
 
