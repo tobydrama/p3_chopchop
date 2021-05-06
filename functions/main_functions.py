@@ -19,8 +19,8 @@ from constants import EXIT, NICKASE_DEFAULT
 # Here lies concatenate_feature_sets
 
 # Used in main
-def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc, nonOver, indexDir, genome, strand,
-                   ext):
+def coord_to_fasta(regions, fasta_file, output_dir, target_size, eval_and_print_func, non_over, index_dir, genome,
+                   strand, ext):
     """ Extracts the sequence corresponding to genomic coordinates from a FASTA file """
 
     ext = 0 if config.isoforms else ext  # for genomic context for some models
@@ -44,7 +44,7 @@ def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc,
         # Run twoBitToFa program to get actual dna sequence corresponding to input genomic coordinates
         # Popen runs twoBitToFa program. PIPE pipes stdout.
         prog = Popen("%s -seq=%s -start=%d -end=%d %s/%s.2bit stdout 2> %s/twoBitToFa.err" % (
-            config.path("TWOBITTOFA"), chrom, start - ext, finish + ext, indexDir, genome, outputDir), stdout=PIPE,
+            config.path("TWOBITTOFA"), chrom, start - ext, finish + ext, index_dir, genome, output_dir), stdout=PIPE,
                      shell=True)
 
         # Communicate converts stdout to a string
@@ -71,17 +71,17 @@ def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc,
         name = "C:%s:%d-%d" % (chrom, start, finish)
 
         # Loop over exon sequence, write every g-mer into file in which g-mer ends in PAM in fasta format
-        positions = list(range(0, len(dna) - (targetSize - 1)))
+        positions = list(range(0, len(dna) - (target_size - 1)))
         while len(positions) != 0:
             num = positions.pop(0)
             downstream_5prim = ext_dna[num:(num + ext)]
-            g_end = num + ext + targetSize
+            g_end = num + ext + target_size
             downstream_3prim = ext_dna[g_end:(g_end + ext)]
-            if evalAndPrintFunc(name, targetSize, dna[num:(num + targetSize)],
-                                len(dna) - num - targetSize if config.isoforms and strand == "-" else num, fasta_file,
-                                downstream_5prim, downstream_3prim):
-                if nonOver:  # positions overlapping those of this guide
-                    for p in range(num, num + targetSize):
+            if eval_and_print_func(name, target_size, dna[num:(num + target_size)],
+                                len(dna) - num - target_size if config.isoforms and strand == "-" else num, fasta_file,
+                                   downstream_5prim, downstream_3prim):
+                if non_over:  # positions overlapping those of this guide
+                    for p in range(num, num + target_size):
                         if p in positions:
                             positions.remove(p)
 
@@ -97,7 +97,7 @@ def coord_to_fasta(regions, fasta_file, outputDir, targetSize, evalAndPrintFunc,
 
 
 # Used in main
-def run_bowtie(PAMlength, unique_method_cong, fasta_file, output_dir,
+def run_bowtie(PAM_length, unique_method_cong, fasta_file, output_dir,
                max_off_targets, index_dir, genome, max_mismatches):
     logging.info("Running bowtie.")
 
@@ -108,7 +108,7 @@ def run_bowtie(PAMlength, unique_method_cong, fasta_file, output_dir,
         # -n option. Outside of that seed, up to 2 mismatches are searched.
         # E.g. -l 15 -n 0 will search the first 15 bases with no mismatches, and the rest with up to 3 mismatches
         command = "%s -p %s -l %d -n %d -m %d --sam-nohead -k %d %s/%s -f %s -S %s " % (
-            config.path("BOWTIE"), config.threads(), (PAMlength + 11), max_mismatches, max_off_targets, max_off_targets,
+            config.path("BOWTIE"), config.threads(), (PAM_length + 11), max_mismatches, max_off_targets, max_off_targets,
             index_dir,
             genome, fasta_file, bwt_results_file)
     else:
@@ -229,17 +229,17 @@ def parse_fasta_target(fasta_file, candidate_fasta_file, target_size, eval_and_p
     for num in range(0, len(sequence) - (target_size - 1)):
 
         if (num - DOWNSTREAM_NUC) > 0:
-            start5prim = num - DOWNSTREAM_NUC
+            start_5prim = num - DOWNSTREAM_NUC
         else:
-            start5prim = 0
+            start_5prim = 0
 
         if (num + target_size + DOWNSTREAM_NUC) > len(sequence):
-            end3prim = len(sequence)
+            end_3prim = len(sequence)
         else:
-            end3prim = num + target_size + DOWNSTREAM_NUC
+            end_3prim = num + target_size + DOWNSTREAM_NUC
 
-        downstream_5prim = sequence[start5prim:num]
-        downstream_3prim = sequence[(num + target_size):end3prim]
+        downstream_5prim = sequence[start_5prim:num]
+        downstream_3prim = sequence[(num + target_size):end_3prim]
 
         if eval_and_print(id_name, target_size, sequence[num:(num + target_size)], num,
                           candidate_fasta_file, downstream_5prim, downstream_3prim):
@@ -387,20 +387,20 @@ def complement(sequence):
 # Used in main
 def fasta_to_viscoords(sequences, strand):
     """ Makes the exons in 'sequences' array generated in coordToFasta json readable for visualization"""
-    exonstart = []
-    exonend = []
-    exonsequence = []
+    exon_start = []
+    exon_end = []
+    exon_sequence = []
 
     for exon in sequences:
         # sys.stderr.write("%s\n" % exon)
-        exonlist = exon.split(':')
-        exoncoord = exonlist[2].split('-')
-        exonstart.append(exoncoord[0])
-        exonend.append(exoncoord[1])
+        exon_list = exon.split(':')
+        exon_coord = exon_list[2].split('-')
+        exon_start.append(exon_coord[0])
+        exon_end.append(exon_coord[1])
         seq = sequences[exon]
         if strand == "-":
             seq = complement(seq)
 
-        exonsequence.append(seq)
+        exon_sequence.append(seq)
 
-    return zip(exonstart, exonend, exonsequence)
+    return zip(exon_start, exon_end, exon_sequence)

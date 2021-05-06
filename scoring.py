@@ -137,7 +137,7 @@ def score_guides(guides: List[Guide], info: ScoringInfo) -> Tuple[List[Guide], i
     return sorted_guides, cluster
 
 
-def scoreChari_2015(svmInputFile, svmOutputFile, PAM, genome):  # Only one use in main
+def scoreChari_2015(svm_input_file, svm_output_file, PAM, genome):  # Only one use in main
     f_p = sys.path[0]
     """ Calculate score from SVM model as in Chari 2015 20-NGG or 20-NNAGAAW, only for hg19 and mm10"""
 
@@ -154,30 +154,30 @@ def scoreChari_2015(svmInputFile, svmOutputFile, PAM, genome):  # Only one use i
         model = f_p + '/models/293T_HiSeq_ST1_Nuclease_100_V2_SVM_Model.txt'
         dist = f_p + '/models/Mm10_RefFlat_Genes_75bp_NoUTRs_ST1Sites_SVMOutput.txt'
 
-    prog = Popen("%s/svm_light/svm_classify -v 0 %s %s %s" % (f_p, svmInputFile, model, svmOutputFile), shell=True)
+    prog = Popen("%s/svm_light/svm_classify -v 0 %s %s %s" % (f_p, svm_input_file, model, svm_output_file), shell=True)
     prog.communicate()
 
-    svmAll = open(dist, 'r')
-    svmThis = open(svmOutputFile, 'r')
+    svm_all = open(dist, 'r')
+    svm_this = open(svm_output_file, 'r')
 
     # first through go all scores and get the max and min
-    allData = []
-    for line in svmAll:
+    all_data = []
+    for line in svm_all:
         line = line.rstrip('\r\n')
-        allData.append(float(line))
-    svmAll.close()
+        all_data.append(float(line))
+    svm_all.close()
 
-    scoreArray = []
-    for line in svmThis:
+    score_array = []
+    for line in svm_this:
         line = line.rstrip('\r\n')
-        scoreArray.append(float(line))
+        score_array.append(float(line))
 
-    return [ss.percentileofscore(allData, i) for i in scoreArray]
+    return [ss.percentileofscore(all_data, i) for i in score_array]
 
 
-def tx_relative_coordinates(visCoords, tx_id, start, end):
+def tx_relative_coordinates(vis_coords, tx_id, start, end):
     tx_start, tx_end = -1, -1
-    exons = [e["exons"] for e in visCoords if e["name"] == tx_id][0]
+    exons = [e["exons"] for e in vis_coords if e["name"] == tx_id][0]
     e_id = -1
     for i, e in enumerate(exons):
         if e[1] <= (start - 1) and e[2] >= (end - 1):

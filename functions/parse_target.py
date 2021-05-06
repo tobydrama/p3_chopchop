@@ -26,24 +26,24 @@ def bins(x):  # from ranges to bins
 # Used in ParseTargets
 def get_isoforms(gene, table_file):
     gene_isoforms = set()
-    tableR = open(table_file, 'r')
-    tablereader = csv.DictReader(tableR, delimiter='\t', quoting=csv.QUOTE_NONE)
-    for row in tablereader:
+    table_r = open(table_file, 'r')
+    table_reader = csv.DictReader(table_r, delimiter='\t', quoting=csv.QUOTE_NONE)
+    for row in table_reader:
         if row['name2'] == gene:
             gene_isoforms.add(row['name'])
-    tableR.close()
+    table_r.close()
     return gene_isoforms
 
 
 # Used in parse_targets
-def filter_repeating_names(txInfo, filter_names=["fix", "random", "alt"]):
+def filter_repeating_names(tx_info, filter_names=["fix", "random", "alt"]):
     # if more isoforms have exact same name filter the ones
     # with "alt", "fix", "random" in chr names
     # then take the first one
     seen = []
     same_name_tx = []
     is_special = []
-    for x in txInfo:
+    for x in tx_info:
         if str(x[3]) not in seen:
             seen.append(str(x[3]))
             same_name_tx.append([x])
@@ -53,15 +53,15 @@ def filter_repeating_names(txInfo, filter_names=["fix", "random", "alt"]):
             same_name_tx[idx].append(x)
             is_special[idx].append(any(fn in str(x[0]) for fn in filter_names))
 
-    txInfo_ = []
+    tx_info_ = []
     for i, tx in enumerate(same_name_tx):
         if any(is_special[i]) and sum(is_special[i]) < len(is_special[i]):
             idx = [i for i, x in enumerate(is_special[i]) if not x]
-            txInfo_.append(tx[idx[0]])
+            tx_info_.append(tx[idx[0]])
         else:
-            txInfo_.append(tx[0])
+            tx_info_.append(tx[0])
 
-    return txInfo_
+    return tx_info_
 
 
 # Used in subsetExon
@@ -238,11 +238,11 @@ def gene_to_coord_file(gene_in, table_file):
     """ Extracts coordinates of genomic regions to parse for suitable guide binding sites """
     table_r = open(table_file, 'r')
 
-    tablereader = csv.DictReader(table_r, delimiter='\t', quoting=csv.QUOTE_NONE)
+    table_reader = csv.DictReader(table_r, delimiter='\t', quoting=csv.QUOTE_NONE)
     tx_info = []
     gene = None
     # Look in genome table for gene of question
-    for row in tablereader:
+    for row in table_reader:
         if row['name'] == gene_in or row['name2'] == gene_in or row['name'] == gene_in.upper() \
                 or row['name2'] == gene_in.upper():
             tx_info.append([row['chrom'], row['exonStarts'], row['exonEnds'], row['name'],
@@ -377,8 +377,8 @@ def truncate_to_region(target_region, tx, coords, ups_bp, down_bp):
     return coords
 
 
-def compute_intersection_union_all_exions(txInfo, tx, coords, targets, use_union, guideLen, isoforms):
-    if txInfo[0][3] == tx[3]:  # if this is first of the isoforms
+def compute_intersection_union_all_exions(tx_info, tx, coords, targets, use_union, guide_len, isoforms):
+    if tx_info[0][3] == tx[3]:  # if this is first of the isoforms
         for x in coords:
             targets.extend(range(x[1], x[2] + 1))
         targets = set(targets)
@@ -388,10 +388,10 @@ def compute_intersection_union_all_exions(txInfo, tx, coords, targets, use_union
             for x in coords:
                 targets_.extend(range(x[1], x[2] + 1))
 
-            if len(targets_) >= guideLen:  # cover cases where some transcripts provide short or none bp
+            if len(targets_) >= guide_len:  # cover cases where some transcripts provide short or none bp
                 targets &= set(targets_)
 
-            if len(targets) < guideLen:
+            if len(targets) < guide_len:
                 sys.stderr.write(
                     "Computing intersection over specified isoforms resulted in lack of targets." +
                     " Consider either using specific isoform as input: " + ', '.join(isoforms) +
@@ -409,7 +409,7 @@ def compute_intersection_union_all_exions(txInfo, tx, coords, targets, use_union
 
 # Used in main
 def parse_targets(target_string, genome, use_db, data, pad_size, target_region, exon_subset, ups_bp, down_bp,
-                  index_dir, output_dir, use_union, make_vis, guideLen):
+                  index_dir, output_dir, use_union, make_vis, guide_len):
     targets = []
     vis_coords = []
     target_strand = "+"
@@ -428,20 +428,20 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
             if config.isoforms:
                 sys.stderr.write("--isoforms is not working with database search.\n")
                 sys.exit(EXIT['ISOFORMS_ERROR'])
-            txInfo = gene_to_coord_db(target_string, genome, data)
-            txInfo = filter_repeating_names(txInfo)
+            tx_info = gene_to_coord_db(target_string, genome, data)
+            tx_info = filter_repeating_names(tx_info)
         else:
-            gene, txInfo = gene_to_coord_file(target_string, data)
-            txInfo = filter_repeating_names(txInfo)
+            gene, tx_info = gene_to_coord_file(target_string, data)
+            tx_info = filter_repeating_names(tx_info)
             isoform = "union" if use_union else "intersection"
-            gene_isoforms = set([str(x[3]) for x in txInfo])
+            gene_isoforms = set([str(x[3]) for x in tx_info])
             if target_string in gene_isoforms:
                 isoform = target_string
                 gene_isoforms = get_isoforms(gene, data)
 
-        target_chr = set([x[0] for x in txInfo])
-        target_strand = set([x[6] for x in txInfo])
-        isoforms = [str(x[3]) for x in txInfo]
+        target_chr = set([x[0] for x in tx_info])
+        target_strand = set([x[6] for x in tx_info])
+        isoforms = [str(x[3]) for x in tx_info]
         if len(target_strand) > 1 or len(target_chr) > 1:
             sys.stderr.write(
                 "Specify which isoform you want to target as your query " + str(target_string) +
@@ -452,7 +452,7 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
             target_strand = list(target_strand)[0]
             target_chr = list(target_chr)[0]
 
-        for tx in txInfo:
+        for tx in tx_info:
             tx = list(tx)
             tx[4] = int(tx[4])
             tx[5] = int(tx[5])
@@ -489,10 +489,10 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
                     del vis_coords[-1]
 
             # compute intersection/union on all exons
-            targets = compute_intersection_union_all_exions(txInfo, tx, coords, targets, use_union, guideLen, isoforms)
+            targets = compute_intersection_union_all_exions(tx_info, tx, coords, targets, use_union, guide_len, isoforms)
 
         target_size = len(targets)
-        if target_size < guideLen:
+        if target_size < guide_len:
             sys.stderr.write("Search region is too small. You probably want to specify -t option as WHOLE")
             sys.exit(EXIT['GENE_ERROR'])
 

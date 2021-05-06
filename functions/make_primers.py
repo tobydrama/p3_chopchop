@@ -20,22 +20,22 @@ from constants import PRIMER3_CONFIG, EXIT, PRIMER_OFF_TARGET_MIN
 
 
 # Used in makePrimersFasta and makePrimersGenome
-def parse_primer3_output(target, region, primer3output, primerFastaFile):
-    posPattern = re.compile(r'PRIMER_(\w+)_(\d+)')
-    attPattern = re.compile(r'PRIMER_(\w+)_(\d+)_(\w+)')
+def parse_primer3_output(target, region, primer3output, primer_fasta_file):
+    pos_pattern = re.compile(r'PRIMER_(\w+)_(\d+)')
+    att_pattern = re.compile(r'PRIMER_(\w+)_(\d+)_(\w+)')
     primers = {}
-    primerPos = {}
+    primer_pos = {}
 
     for line in primer3output.split("\n"):
         if line[0] == "=":
             break
 
         label, value = line.split("=")
-        m = attPattern.match(label)
+        m = att_pattern.match(label)
         if m:
             primers[(m.group(2), m.group(1), m.group(3))] = value
         else:
-            m = posPattern.match(label)
+            m = pos_pattern.match(label)
 
             if m:
                 position, length = value.split(",")
@@ -43,18 +43,18 @@ def parse_primer3_output(target, region, primer3output, primerFastaFile):
                 s, e = int(position), int(position) + int(length)
                 if m.group(1) == "RIGHT":
                     s, e = int(position) - int(length) + 1, int(position) + 1
-                primerPos[label] = [s, e]
+                primer_pos[label] = [s, e]
 
-                primerFastaFile.write(">%s_%s_%s:%s_%s-%s\n%s\n" % (
+                primer_fasta_file.write(">%s_%s_%s:%s_%s-%s\n%s\n" % (
                     target.ID, m.group(2), m.group(1), region, s, e, primers[(m.group(2), m.group(1), "SEQUENCE")]))
 
-    return primers, primerPos
+    return primers, primer_pos
 
 
 # Used in makePrimersFasta and makePrimersGenome
 def get_primer_options(options):
     # Parse primer3 options. Update config if known option, otherwise append to primer3 input file
-    primerOpt = ""
+    primer_opt = ""
 
     if options:
         for opt in options.split(","):
@@ -62,38 +62,38 @@ def get_primer_options(options):
             if key in PRIMER3_CONFIG:
                 PRIMER3_CONFIG[key] = value
             else:
-                primerOpt += opt + "\n"
+                primer_opt += opt + "\n"
 
-    return primerOpt
+    return primer_opt
 
 
 # Used in makePrimersFasta
-def get_primer_query_sequence_fasta(target, outputDir, flank, fastaSequence):
+def get_primer_query_sequence_fasta(target, output_dir, flank, fasta_sequence):
     s = target.start - flank
     e = target.end + flank
-    seqLenBeforeTarget = flank
+    seq_len_before_target = flank
 
     if s < 0:
-        seqLenBeforeTarget -= abs(s)
+        seq_len_before_target -= abs(s)
         s = 0
 
-    if e > len(fastaSequence):
-        e = len(fastaSequence)
+    if e > len(fasta_sequence):
+        e = len(fasta_sequence)
 
-    return fastaSequence[s:e], seqLenBeforeTarget
+    return fasta_sequence[s:e], seq_len_before_target
 
 
 # Used in makePrimerGnome
-def get_primer_query_sequence_2bit(target, outputDir, flank, genome, twoBitToFaIndexDir, strand):
+def get_primer_query_sequence_2bit(target, output_dir, flank, genome, twoBitToFa_index_dir, strand):
     s = target.start - flank
-    seqLenBeforeTarget = flank
+    seq_len_before_target = flank
 
     if s < 0:
-        seqLenBeforeTarget -= abs(s)
+        seq_len_before_target -= abs(s)
         s = 0
 
     prog = Popen("%s -seq=%s -start=%d -end=%d %s/%s.2bit stdout 2>> %s/twoBitToFa.err" % (
-        config.path("TWOBITTOFA"), target.chrom, s, target.end + flank, twoBitToFaIndexDir, genome, outputDir),
+        config.path("TWOBITTOFA"), target.chrom, s, target.end + flank, twoBitToFa_index_dir, genome, output_dir),
                  stdout=PIPE, shell=True)
     output = prog.communicate()
 
@@ -104,13 +104,13 @@ def get_primer_query_sequence_2bit(target, outputDir, flank, genome, twoBitToFaI
     output = output[0].decode().split("\n")
     del (output[0])
     seq = "".join(output)
-    return seq, seqLenBeforeTarget
+    return seq, seq_len_before_target
 
 
 # Used in makePrimersFasta and makePrimersGenome
-def run_bowtie_primers(primerFastaFileName, outputDir, genome, bowtieIndexDir, maxOffTargets):
+def run_bowtie_primers(primer_fasta_file_name, output_dir, genome, bowtie_index_dir, max_off_targets):
     command = "%s -v 0 --best --sam-nohead -k 10 %s/%s -f %s -S %s/primer_results.sam 2> %s/bowtie_primers.err" % (
-        config.path("BOWTIE"), bowtieIndexDir, genome, primerFastaFileName, outputDir, outputDir)
+        config.path("BOWTIE"), bowtie_index_dir, genome, primer_fasta_file_name, output_dir, output_dir)
     prog = Popen(command, shell=True)
     prog.wait()
 
@@ -118,43 +118,43 @@ def run_bowtie_primers(primerFastaFileName, outputDir, genome, bowtieIndexDir, m
         sys.stderr.write("Running bowtie on primers failed\n")
         sys.exit(EXIT['BOWTIE_PRIMER_ERROR'])
 
-    return parse_bowtie(Guide, "%s/primer_results.sam" % outputDir, False, False, False, None, None,
-                        maxOffTargets, None, None, False, None, None)
+    return parse_bowtie(Guide, "%s/primer_results.sam" % output_dir, False, False, False, None, None,
+                        max_off_targets, None, None, False, None, None)
 
 
 # Used in Nickase, Pair, dump_restriction_sites
-def find_restriction_sites(sequence, enzymeCompany, minSize=1):
+def find_restriction_sites(sequence, enzyme_company, min_size=1):
     # Take spacer_seq as DNA input for restriction site search
-    mySeq = Seq(sequence)
+    my_seq = Seq(sequence)
 
     # Restricts enzyme possibilities to NEB enzymes. Can ultimately change to any supplier.
-    rb = RestrictionBatch(first=[], suppliers=[enzymeCompany])
+    rb = RestrictionBatch(first=[], suppliers=[enzyme_company])
 
     # Filter binding sites shorter than given length
-    rb = filter(lambda x: len(x) > minSize, rb)
+    rb = filter(lambda x: len(x) > min_size, rb)
 
     # Determine which restriction enzymes cut in the sequence provided
-    analyze = Analysis(rb, mySeq)
+    analyze = Analysis(rb, my_seq)
     return analyze.with_sites()
 
 
 # Used in makePrimersFasta and makePrimersGenome
-def dump_restriction_sites(target, seq, flanks, enzymeCo, outputDir, minResSiteLen):
-    sites = find_restriction_sites(seq, enzymeCo, minResSiteLen)
+def dump_restriction_sites(target, seq, flanks, enzyme_co, output_dir, min_res_site_len):
+    sites = find_restriction_sites(seq, enzyme_co, min_res_site_len)
     out = [map(lambda x: [str(enzyme), x + target.start - flanks, enzyme.size], sites[enzyme]) for enzyme in sites]
     out = [item for sublist in out for item in sublist]
     out = sorted(out, key=itemgetter(1))
 
     # Assign tier to avoid overlaps
-    siteCount = {}
+    site_count = {}
     tiers = [0] * 23
     for site in out:
         tier = 0
 
         # count number of sites for each enzyme
-        if not site[0] in siteCount:
-            siteCount[site[0]] = 0
-        siteCount[site[0]] += 1
+        if not site[0] in site_count:
+            site_count[site[0]] = 0
+        site_count[site[0]] += 1
 
         for j in range(len(tiers)):
             if site[1] > tiers[j]:
@@ -165,36 +165,36 @@ def dump_restriction_sites(target, seq, flanks, enzymeCo, outputDir, minResSiteL
 
     # Assign colors depending on uniqueness
     for site in out:
-        if siteCount[site[0]] == 1:
+        if site_count[site[0]] == 1:
             site.append("green")
         else:
             site.append("red")
 
-    outputFile = open("%s/restriction_%s.json" % (outputDir, target.ID), 'w')
-    json.dump(out, outputFile)
-    outputFile.close()
+    output_file = open("%s/restriction_%s.json" % (output_dir, target.ID), 'w')
+    json.dump(out, output_file)
+    output_file.close()
 
     return sites
 
 
 # Used in make_primers_fasta and make_primers_Genome
-def dump_locus_sequence(target, outputDir, seq, seqLenBeforeTarget, strand):
+def dump_locus_sequence(target, output_dir, seq, seq_len_before_target, strand):
     if strand == "-":
         seq = str(Seq(seq).complement())
-    out = [[target.start - seqLenBeforeTarget, target.end, seq]]
-    outputFile = open("%s/locusSeq_%s.json" % (outputDir, target.ID), 'w')
-    json.dump(out, outputFile)
-    outputFile.close()
+    out = [[target.start - seq_len_before_target, target.end, seq]]
+    output_file = open("%s/locusSeq_%s.json" % (output_dir, target.ID), 'w')
+    json.dump(out, output_file)
+    output_file.close()
 
 
 # Used in makePrimersFasta and makePrimersGenome
-def dump_genbank_file(seq, target, restSites, primers, outputDir, geneID, lociStart, strand):
-    name = "%s, locus %s" % (geneID, target.ID)
-    desc = "CHOPCHOP prediction for gene %s, target %s" % (geneID, target.ID)
+def dump_genbank_file(seq, target, rest_sites, primers, output_dir, gene_ID, loci_start, strand):
+    name = "%s, locus %s" % (gene_ID, target.ID)
+    desc = "CHOPCHOP prediction for gene %s, target %s" % (gene_ID, target.ID)
     annotation = {"organism": "Danio rerio", "Target location": "chrT:1-20"}
 
     # Genbank file
-    genbankFile = open('%s/%s_%s.gb' % (outputDir, geneID, target.ID), 'w')
+    genbank_file = open('%s/%s_%s.gb' % (output_dir, gene_ID, target.ID), 'w')
     record = SeqRecord(Seq(seq), description=desc, name="CHOPCHOP", id=name)
     record.annotation = annotation
 
@@ -204,7 +204,7 @@ def dump_genbank_file(seq, target, restSites, primers, outputDir, geneID, lociSt
         ts = -1
 
     record.features.append(
-        SeqFeature(FeatureLocation(target.start - lociStart - 1, target.end - lociStart - 1, strand=ts),
+        SeqFeature(FeatureLocation(target.start - loci_start - 1, target.end - loci_start - 1, strand=ts),
                    type="Target"))
 
     for primer in primers:
@@ -216,8 +216,8 @@ def dump_genbank_file(seq, target, restSites, primers, outputDir, geneID, lociSt
     # TODO: Have an actual bioinformatics person look at this.
     record.annotations["molecule_type"] = "DNA"
 
-    SeqIO.write(record, genbankFile, "genbank")
-    genbankFile.close()
+    SeqIO.write(record, genbank_file, "genbank")
+    genbank_file.close()
 
     pass
 
@@ -248,11 +248,11 @@ def has_off_targets(tale1, tale2, off_target_min, off_target_max):
 
 
 # Used in makePrimersFasta and makePrimersGenome
-def pair_primers(primerAttributes, primerList, outputDir):
+def pair_primers(primer_attributes, primer_list, output_dir):
     primers = {}
 
-    for primer in primerList:
-        guide, primerPairID, side = primer.ID.split("_")
+    for primer in primer_list:
+        guide, primer_pair_id, side = primer.ID.split("_")
 
         s = 0
         if side == "RIGHT":
@@ -261,17 +261,17 @@ def pair_primers(primerAttributes, primerList, outputDir):
         if guide not in primers:
             primers[guide] = {}
 
-        if primerPairID not in primers[guide]:
-            primers[guide][primerPairID] = [None, None]
+        if primer_pair_id not in primers[guide]:
+            primers[guide][primer_pair_id] = [None, None]
 
-        primers[guide][primerPairID][s] = primer
+        primers[guide][primer_pair_id][s] = primer
 
     for guideID in primers:
         guide = primers[guideID]
 
-        att = primerAttributes[int(guideID)]
+        att = primer_attributes[int(guideID)]
 
-        outputFile = open("%s/primer_%s.json" % (outputDir, guideID), 'w')
+        output_file = open("%s/primer_%s.json" % (output_dir, guideID), 'w')
         output = []
         i = 0
 
@@ -285,19 +285,19 @@ def pair_primers(primerAttributes, primerList, outputDir):
             lsq = Seq(att[(pairID, "LEFT", "SEQUENCE")])
             rsq = Seq(att[(pairID, "RIGHT", "SEQUENCE")])
 
-            offTargetPairs = has_off_targets(pair[0], pair[1], PRIMER_OFF_TARGET_MIN, PRIMER_OFF_TARGET_MIN)
+            off_target_pairs = has_off_targets(pair[0], pair[1], PRIMER_OFF_TARGET_MIN, PRIMER_OFF_TARGET_MIN)
             output.append([pair[0].chrom, pair[0].start, pair[0].end, pair[1].start, pair[1].end, i, pair[0].strand,
                            "%s" % lsq, "%s" % rsq, len(pair[0].offTargets), len(pair[1].offTargets),
-                           len(offTargetPairs), ltm, rtm, size])
+                           len(off_target_pairs), ltm, rtm, size])
 
             i += 1
 
-        json.dump(output, outputFile)
-        outputFile.close()
+        json.dump(output, output_file)
+        output_file.close()
 
 
 # Used in makePrimersFasta and makePrimersGenome
-def make_primer_for_target(guide, outputDir, sequence, seqLenBeforeTarget, primer3options, padding):
+def make_primer_for_target(guide, output_dir, sequence, seq_len_before_target, primer3_options, padding):
     template = """PRIMER_SEQUENCE_ID={PRIMER_SEQUENCE_ID:s}
 SEQUENCE_TEMPLATE={SEQUENCE_TEMPLATE:s}
 SEQUENCE_TARGET={SEQUENCE_TARGET_START:s},{SEQUENCE_TARGET_LEN:s}
@@ -313,20 +313,20 @@ P3_FILE_FLAG=0
 PRIMER_EXPLAIN_FLAG=1
 """
 
-    primConfig = PRIMER3_CONFIG.copy()
-    primConfig['PRIMER_SEQUENCE_ID'] = str(guide.ID)
-    primConfig['SEQUENCE_TEMPLATE'] = sequence
-    primConfig['SEQUENCE_TARGET_START'] = str(seqLenBeforeTarget - padding)
-    primConfig['SEQUENCE_TARGET_LEN'] = str(guide.targetSize + (2 * padding))
+    prim_config = PRIMER3_CONFIG.copy()
+    prim_config['PRIMER_SEQUENCE_ID'] = str(guide.ID)
+    prim_config['SEQUENCE_TEMPLATE'] = sequence
+    prim_config['SEQUENCE_TARGET_START'] = str(seq_len_before_target - padding)
+    prim_config['SEQUENCE_TARGET_LEN'] = str(guide.targetSize + (2 * padding))
 
-    primer3InputFile = '%s/%s.primer3Input' % (outputDir, guide.ID)
-    f = open(primer3InputFile, 'w')
-    f.write(template.format(**primConfig))
-    f.write(primer3options)
+    primer_3_input_file = '%s/%s.primer3Input' % (output_dir, guide.ID)
+    f = open(primer_3_input_file, 'w')
+    f.write(template.format(**prim_config))
+    f.write(primer3_options)
     f.write("=\n")
     f.close()
 
-    command = "%s < %s 2>> %s/primer3.error" % (config.path("PRIMER3"), primer3InputFile, outputDir)
+    command = "%s < %s 2>> %s/primer3.error" % (config.path("PRIMER3"), primer_3_input_file, output_dir)
     # sys.stderr.write("%s\n" % command)
     prog = Popen(command, stdout=PIPE, shell=True)
     output = prog.communicate()
@@ -339,95 +339,99 @@ PRIMER_EXPLAIN_FLAG=1
 
 
 # Used in main, He lives once more
-def make_primers_fasta(targets, outputDir, flanks, displayFlanks, genome, limitPrintResults, bowtieIndexDir,
-                       fastaSequence, primer3options, guidePadding, enzymeCo, minResSiteLen, geneID, maxOffTargets):
+def make_primers_fasta(targets, output_dir, flanks, display_flanks, genome, limit_print_results, bowtie_index_dir,
+                       fasta_sequence, primer3_options, guide_padding, enzyme_co, min_res_site_len, gene_ID,
+                       max_off_targets):
     primers = {}
-    primerOpt = get_primer_options(primer3options)
+    primer_opt = get_primer_options(primer3_options)
 
-    primerFastaFileName = '%s/primers.fa' % outputDir
-    primerFastaFile = open(primerFastaFileName, 'w')
-    for i in range(min(limitPrintResults - 1, len(targets))):
+    primer_fasta_file_name = '%s/primers.fa' % output_dir
+    primer_fasta_file = open(primer_fasta_file_name, 'w')
+    for i in range(min(limit_print_results - 1, len(targets))):
         target = targets[i]
-        seq, seqLenBeforeTarget = get_primer_query_sequence_fasta(target, outputDir, flanks, fastaSequence)
-        primer3_output = make_primer_for_target(target, outputDir, seq, seqLenBeforeTarget, primerOpt, guidePadding)
+        seq, seq_len_before_target = get_primer_query_sequence_fasta(target, output_dir, flanks, fasta_sequence)
+        primer3_output = make_primer_for_target(target, output_dir, seq, seq_len_before_target, primer_opt,
+                                                guide_padding)
         region = "%s:%s-%s" % (
-        target.chrom, max(0, target.start - flanks), min(len(fastaSequence), target.end + flanks))
-        target_primers, primerPos = parse_primer3_output(target, region, primer3_output, primerFastaFile)
+        target.chrom, max(0, target.start - flanks), min(len(fasta_sequence), target.end + flanks))
+        target_primers, primer_pos = parse_primer3_output(target, region, primer3_output, primer_fasta_file)
         primers[target.ID] = target_primers
 
         # Restriction sites
-        restSites = dump_restriction_sites(target, seq, flanks, enzymeCo, outputDir, minResSiteLen)
+        rest_sites = dump_restriction_sites(target, seq, flanks, enzyme_co, output_dir, min_res_site_len)
         # Sequence for visualization of locus
-        seq2, seqLenBeforeTarget2 = get_primer_query_sequence_fasta(target, outputDir, displayFlanks, fastaSequence)
-        dump_locus_sequence(target, outputDir, seq2, seqLenBeforeTarget2, "+")
+        seq2, seq_len_before_target2 = get_primer_query_sequence_fasta(target, output_dir, display_flanks,
+                                                                       fasta_sequence)
+        dump_locus_sequence(target, output_dir, seq2, seq_len_before_target2, "+")
         # Genbank file for download
-        dump_genbank_file(seq, target, restSites, primerPos, outputDir, geneID, target.start - seqLenBeforeTarget, "+")
+        dump_genbank_file(seq, target, rest_sites, primer_pos, output_dir, gene_ID, target.start - seq_len_before_target
+                          , "+")
 
-    primerFastaFile.close()
+    primer_fasta_file.close()
 
-    primerResults = run_bowtie_primers(primerFastaFileName, outputDir, genome, bowtieIndexDir, maxOffTargets)
-    pair_primers(primers, primerResults, outputDir)
+    primer_results = run_bowtie_primers(primer_fasta_file_name, output_dir, genome, bowtie_index_dir, max_off_targets)
+    pair_primers(primers, primer_results, output_dir)
 
 
 # Used in main, Zombie funky
-def make_primers_genome(targets, outputDir, flanks, display_seq_len, genome, limitPrintResults, bowtieIndexDir,
-                        twoBitToFaIndexDir, primer3options, guidePadding, enzymeCo, minResSiteLen, strand, geneID,
-                        maxOffTargets):
+def make_primers_genome(targets, output_dir, flanks, display_seq_len, genome, limit_print_results, bowtie_index_dir,
+                        twoBitToFa_index_dir, primer3options, guide_padding, enzyme_co, min_res_site_len, strand,
+                        gene_ID, max_off_targets):
     primers = {}
 
-    primerOpt = get_primer_options(primer3options)
+    primer_opt = get_primer_options(primer3options)
 
     # RUN PRIMER3 ON TARGET SITES AND CREATE FASTA FILE OF PRIMERS FOR BOWTIE
-    primerFastaFileName = '%s/primers.fa' % outputDir
-    primerFastaFile = open(primerFastaFileName, 'w')
-    for i in range(min(limitPrintResults - 1, len(targets))):
+    primer_fasta_file_name = '%s/primers.fa' % output_dir
+    primer_fasta_file = open(primer_fasta_file_name, 'w')
+    for i in range(min(limit_print_results - 1, len(targets))):
         target = targets[i]
-        seq, seqLenBeforeTarget = get_primer_query_sequence_2bit(
-            target, outputDir, flanks, genome, twoBitToFaIndexDir, strand)
-        primer3_output = make_primer_for_target(target, outputDir, seq, seqLenBeforeTarget, primerOpt, guidePadding)
+        seq, seq_len_before_target = get_primer_query_sequence_2bit(
+            target, output_dir, flanks, genome, twoBitToFa_index_dir, strand)
+        primer3_output = make_primer_for_target(target, output_dir, seq, seq_len_before_target, primer_opt, guide_padding)
         region = "%s:%s-%s" % (target.chrom, max(0, target.start - flanks), target.end + flanks)
-        target_primers, primerPos = parse_primer3_output(target, region, primer3_output, primerFastaFile)
+        target_primers, primer_pos = parse_primer3_output(target, region, primer3_output, primer_fasta_file)
         primers[target.ID] = target_primers
 
         # Restriction sites
-        restSites = dump_restriction_sites(target, seq, flanks, enzymeCo, outputDir, minResSiteLen)
+        rest_sites = dump_restriction_sites(target, seq, flanks, enzyme_co, output_dir, min_res_site_len)
         # Sequence for visualization of locus
-        seq2, seqLenBeforeTarget2 = get_primer_query_sequence_2bit(
-            target, outputDir, display_seq_len, genome, twoBitToFaIndexDir, strand)
-        dump_locus_sequence(target, outputDir, seq2, seqLenBeforeTarget2, strand)
+        seq2, seq_len_before_target2 = get_primer_query_sequence_2bit(
+            target, output_dir, display_seq_len, genome, twoBitToFa_index_dir, strand)
+        dump_locus_sequence(target, output_dir, seq2, seq_len_before_target2, strand)
         # Genbank file for download
-        dump_genbank_file(seq, target, restSites, primerPos, outputDir, geneID, target.start - seqLenBeforeTarget,
+        dump_genbank_file(seq, target, rest_sites, primer_pos, output_dir, gene_ID, target.start - seq_len_before_target,
                           strand)
 
-    primerFastaFile.close()
+    primer_fasta_file.close()
 
-    primerResults = run_bowtie_primers(primerFastaFileName, outputDir, genome, bowtieIndexDir, maxOffTargets)
-    pair_primers(primers, primerResults, outputDir)
+    primer_results = run_bowtie_primers(primer_fasta_file_name, output_dir, genome, bowtie_index_dir, max_off_targets)
+    pair_primers(primers, primer_results, output_dir)
 
 
 # Used in main and runbowtiePrimer
-def parse_bowtie(guideClass, bowtieResultsFile, checkMismatch, scoreGC, scoreSelfComp,
-                 backbone, replace5prime, maxOffTargets, countMM, PAM, mode, scoringMethod=None,
+def parse_bowtie(guide_class, bowtie_results_file, check_mismatch, score_GC, score_self_comp,
+                 backbone, replace_5prime, max_off_targets, count_MM, PAM, mode, scoring_method=None,
                  genome=None, gene=None, isoform=None, gene_isoforms=None):
     """ Parses bowtie hits and build list of guides"""
-    logging.info("Parsing bowtie file '%s'." % bowtieResultsFile)
+    logging.info("Parsing bowtie file '%s'." % bowtie_results_file)
 
     curr_guide = None
     guide_list = []
 
-    if os.stat(bowtieResultsFile).st_size == 0:  # file is empty
+    if os.stat(bowtie_results_file).st_size == 0:  # file is empty
         return guide_list
 
-    sam = pandas.read_csv(bowtieResultsFile, sep='\t', names=list(range(14)),
+    sam = pandas.read_csv(bowtie_results_file, sep='\t', names=list(range(14)),
                           header=None, index_col=False,
                           dtype={0: str, 1: int, 2: str, 3: int, 4: int, 5: str, 6: str, 7: int,
                                  8: int, 9: str, 10: str, 11: str, 12: str, 13: str, 14: str})
     sam_name = sam.iloc[:, 0].value_counts()
-    sam_name = sam_name >= maxOffTargets
+    sam_name = sam_name >= max_off_targets
     if mode:  # Cas9, Cpf1, Nickase and not TALEN
         sam[14] = sam[0].str[-(len(PAM) + 1):]
         sam[0] = sam[0].str[:-(len(PAM) + 1)]
-        sam_name = sam.groupby(0).apply(lambda x, m=maxOffTargets: any(x.iloc[:, 14].value_counts() >= m))
+        sam_name = sam.groupby(0).apply(lambda x, m=max_off_targets: any(x.iloc[:, 14].value_counts() >= m))
         sam = sam.drop([14], axis=1)
 
         sam = sam.groupby([0, 1, 2, 3]).apply(  # remove duplicates
@@ -449,17 +453,17 @@ def parse_bowtie(guideClass, bowtieResultsFile, checkMismatch, scoreGC, scoreSel
         if len(elements) == 7 and line[1] == 16:
             elements[6] = str(Seq(elements[6]).reverse_complement())
         if curr_guide is None or name != curr_guide.name:
-            curr_guide = guideClass(line[0], line[1], len(line[9]),
-                                    elements[6] if len(elements) == 7 else line[9], scoreGC, scoreSelfComp,
-                                    backbone, PAM, replace5prime, scoringMethod,
-                                    genome, gene, isoform, gene_isoforms,
-                                    isKmaxed=is_kmaxed)
+            curr_guide = guide_class(line[0], line[1], len(line[9]),
+                                     elements[6] if len(elements) == 7 else line[9], score_GC, score_self_comp,
+                                     backbone, PAM, replace_5prime, scoring_method,
+                                     genome, gene, isoform, gene_isoforms,
+                                     isKmaxed=is_kmaxed)
             guide_list.append(curr_guide)
 
         # Adds hit to off-target list of current guide.
-        curr_guide.add_off_target(Hit(line), checkMismatch, maxOffTargets, countMM)
+        curr_guide.add_off_target(Hit(line), check_mismatch, max_off_targets, count_MM)
 
-    logging.debug("Parsed %d guides from bowtie file '%s'." % (len(guide_list), bowtieResultsFile))
+    logging.debug("Parsed %d guides from bowtie file '%s'." % (len(guide_list), bowtie_results_file))
 
     return guide_list
 

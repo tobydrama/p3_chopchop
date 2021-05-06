@@ -26,12 +26,12 @@ def get_allowed_five_prime(allowed):
 
 
 # Used in set_default_modes and tests
-def get_mismatch_vectors(pam, gLength, cong):
-    allowed = [True] * (gLength - len(pam))
-    count = [True] * (gLength - len(pam))
+def get_mismatch_vectors(pam, g_length, cong):
+    allowed = [True] * (g_length - len(pam))
+    count = [True] * (g_length - len(pam))
 
     if cong:
-        allowed = [True] * 9 + [False] * (gLength - len(pam) - 9)
+        allowed = [True] * 9 + [False] * (g_length - len(pam) - 9)
 
     for char in pam:
         count.append(False)
@@ -44,9 +44,9 @@ def get_mismatch_vectors(pam, gLength, cong):
 
 
 # Used in set_default_modes
-def get_CPF1_mismatch_vectors(pam, gLength):
-    allowed = [True] * (gLength - len(pam))
-    count = [True] * (gLength - len(pam))
+def get_CPF1_mismatch_vectors(pam, g_length):
+    allowed = [True] * (g_length - len(pam))
+    count = [True] * (g_length - len(pam))
 
     for char in pam[::-1]:
         count.insert(0, False)
@@ -77,11 +77,11 @@ def set_default_modes(args):
         # Set mismatch checking policy
         (allowed_mm, count_mm) = get_mismatch_vectors(args.PAM, args.guideSize, args.uniqueMethod_Cong)
         allowed = get_allowed_five_prime(args.fivePrimeEnd)
-        eval_sequence = lambda name, guide_size, dna, num, fasta_file, downstream_5_prim, downstream_3_prim: \
-            eval_CRISPR_sequence(name, guide_size, dna, num, fasta_file, downstream_5_prim, downstream_3_prim,
-                                 allowed=allowed, PAM=args.PAM, filterGCmin=args.filterGCmin,
-                                 filterGCmax=args.filterGCmax, filterSelfCompMax=args.filterSelfCompMax,
-                                 replace5prime=args.replace5P, backbone=args.backbone)
+        eval_sequence = lambda name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim: \
+            eval_CRISPR_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim,
+                                 allowed=allowed, PAM=args.PAM, filter_GC_min=args.filterGCmin,
+                                 filter_GC_max=args.filterGCmax, filter_self_comp_max=args.filterSelfCompMax,
+                                 replace_5prime=args.replace5P, backbone=args.backbone)
         if args.MODE == ProgramMode.CRISPR:
             guide_class = Cas9 if not config.isoforms else Guide
             sort_output = sort_CRISPR_guides
@@ -91,10 +91,10 @@ def set_default_modes(args):
 
     elif args.MODE == ProgramMode.CPF1:
         (allowed_mm, count_mm) = get_CPF1_mismatch_vectors(args.PAM, args.guideSize)
-        eval_sequence = lambda name, guide_size, dna, num, fasta_file, downstream_5_prim, downstream_3_prim: \
-            eval_CPF1_sequence(name, guide_size, dna, num, fasta_file, downstream_5_prim, downstream_3_prim,
-                               PAM=args.PAM, filterGCmin=args.filterGCmin, filterGCmax=args.filterGCmax,
-                               filterSelfCompMax=args.filterSelfCompMax, replace5prime=args.replace5P,
+        eval_sequence = lambda name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim: \
+            eval_CPF1_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim,
+                               PAM=args.PAM, filter_GC_min=args.filterGCmin, filter_GC_max=args.filterGCmax,
+                               filter_self_comp_max=args.filterSelfCompMax, replace_5prime=args.replace5P,
                                backbone=args.backbone)
         guide_class = Cpf1 if not config.isoforms else Guide
         sort_output = sort_CRISPR_guides

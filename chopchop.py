@@ -21,37 +21,37 @@ from functions.parse_target import parse_targets
 from functions.set_default_modes import set_default_modes
 
 
-def get_coordinates_for_json_visualization(args, visCoords, sequences, strand, resultCoords):
+def get_coordinates_for_json_visualization(args, vis_coords, sequences, strand, result_coords):
     # Coordinates for gene
-    visCoordsFile = open('%s/viscoords.json' % args.outputDir, 'w')
+    vis_coords_file = open('%s/viscoords.json' % args.outputDir, 'w')
     # visCoords = sorted(visCoords,  key=itemgetter(1))
-    json.dump(visCoords, visCoordsFile)
+    json.dump(vis_coords, vis_coords_file)
 
     # Coordinates for sequence
     seqvis = fasta_to_viscoords(sequences, strand)
-    seqvisFile = open('%s/seqviscoords.json' % args.outputDir, 'w')
+    seqvis_file = open('%s/seqviscoords.json' % args.outputDir, 'w')
     # TODO dont use hack fix with list her
-    json.dump(list(seqvis), seqvisFile)
+    json.dump(list(seqvis), seqvis_file)
 
     # Coordinates for cutters
-    cutCoord_file = open('%s/cutcoords.json' % args.outputDir, 'w')
+    cut_coord_file = open('%s/cutcoords.json' % args.outputDir, 'w')
 
     cutcoords = []
-    for i in range(len(resultCoords)):
+    for i in range(len(result_coords)):
         el = []
 
         if args.MODE == ProgramMode.CRISPR or args.MODE == ProgramMode.CPF1:
             el.append(i + 1)
-            el.extend(resultCoords[i])
+            el.extend(result_coords[i])
         elif args.MODE == ProgramMode.TALENS or args.MODE == ProgramMode.NICKASE:
-            el.extend(resultCoords[i])
+            el.extend(result_coords[i])
 
         cutcoords.append(el)
 
     # Put bars at different heights to avoid overlap
     tiers = [0] * 23
-    sortedCoords = sorted(cutcoords, key=itemgetter(1))
-    for coord in sortedCoords:
+    sorted_coords = sorted(cutcoords, key=itemgetter(1))
+    for coord in sorted_coords:
         t = 0
         for j in range(len(tiers)):
             if coord[1] > tiers[j]:
@@ -61,7 +61,7 @@ def get_coordinates_for_json_visualization(args, visCoords, sequences, strand, r
 
         coord.append(t)
 
-    json.dump(cutcoords, cutCoord_file)
+    json.dump(cutcoords, cut_coord_file)
 
     return cutcoords
 
@@ -134,9 +134,9 @@ def generate_result_coordinates(sorted_output: Union[List[Guide], List[Pair]],
     return result_coordinates
 
 
-def visualize_with_json(args, visCoords, sequences, strand, resultCoords, fastaSequence, targets):
+def visualize_with_json(args, vis_coords, sequences, strand, result_coords, fasta_sequence, targets):
     # new function
-    cutcoords = get_coordinates_for_json_visualization(args, visCoords, sequences, strand, resultCoords)
+    cutcoords = get_coordinates_for_json_visualization(args, vis_coords, sequences, strand, result_coords)
 
     info = open("%s/run.info" % args.outputDir, 'w')
     info.write("%s\t%s\t%s\t%s\t%s\n" % ("".join(args.targets), args.genome, args.MODE, args.uniqueMethod_Cong,
@@ -144,15 +144,15 @@ def visualize_with_json(args, visCoords, sequences, strand, resultCoords, fastaS
     info.close()
 
     if args.BED:
-        print_bed(args.MODE, visCoords, cutcoords, '%s/results.bed' % args.outputDir,
-                  visCoords[0]["name"] if args.fasta else args.targets)
+        print_bed(args.MODE, vis_coords, cutcoords, '%s/results.bed' % args.outputDir,
+                  vis_coords[0]["name"] if args.fasta else args.targets)
 
     if args.GenBank:
         if args.fasta:
-            seq = fastaSequence
-            chrom = visCoords[0]["name"]
+            seq = fasta_sequence
+            chrom = vis_coords[0]["name"]
             start = 0
-            finish = len(fastaSequence)
+            finish = len(fasta_sequence)
         else:
             # targets min-max (with introns)
             regions = targets
@@ -197,18 +197,18 @@ def main():
 
     # Pad each exon equal to guidesize unless
     if args.padSize != -1:
-        padSize = args.padSize
+        pad_size = args.padSize
     else:
         if args.MODE == ProgramMode.TALENS:
-            padSize = args.taleMax
+            pad_size = args.taleMax
         elif args.MODE == ProgramMode.NICKASE:
-            padSize = args.nickaseMax
+            pad_size = args.nickaseMax
         elif args.MODE == ProgramMode.CRISPR or args.MODE == ProgramMode.CPF1:
-            padSize = args.guideSize
+            pad_size = args.guideSize
 
     # Set default functions for different modes
     # new function
-    countMM, evalSequence, guideClass, sortOutput = set_default_modes(args)
+    count_MM, eval_sequence, guide_class, sort_output = set_default_modes(args)
 
     # General ARGPARSE done, upcoming Target parsing
 
@@ -230,18 +230,18 @@ def main():
     candidate_fasta_file = '%s/sequence.fa' % args.outputDir
     gene, isoform, gene_isoforms = (None, None, set())
     if args.fasta:
-        sequences, targets, visCoords, fastaSequence, strand = parse_fasta_target(
-            args.targets, candidate_fasta_file, args.guideSize, evalSequence)
+        sequences, targets, vis_coords, fasta_sequence, strand = parse_fasta_target(
+            args.targets, candidate_fasta_file, args.guideSize, eval_sequence)
 
     else:
-        targets, visCoords, strand, gene, isoform, gene_isoforms = parse_targets(
-            args.targets, args.genome, use_db, db, padSize, args.targetRegion, args.exons,
+        targets, vis_coords, strand, gene, isoform, gene_isoforms = parse_targets(
+            args.targets, args.genome, use_db, db, pad_size, args.targetRegion, args.exons,
             args.targetUpstreamPromoter, args.targetDownstreamPromoter,
             config.path("TWOBIT_INDEX_DIR") if not config.isoforms else config.path("ISOFORMS_INDEX_DIR"),
             args.outputDir, args.consensusUnion, args.jsonVisualize, args.guideSize)
 
-        sequences, fastaSequence = coord_to_fasta(
-            targets, candidate_fasta_file, args.outputDir, args.guideSize, evalSequence, args.nonOverlapping,
+        sequences, fasta_sequence = coord_to_fasta(
+            targets, candidate_fasta_file, args.outputDir, args.guideSize, eval_sequence, args.nonOverlapping,
             config.path("TWOBIT_INDEX_DIR") if not config.isoforms else config.path("ISOFORMS_INDEX_DIR"),
             args.genome, strand, DOWNSTREAM_NUC)
 
@@ -251,14 +251,14 @@ def main():
         sys.exit()
 
     # Run bowtie and get results
-    bowtieResultsFile = run_bowtie(len(args.PAM), args.uniqueMethod_Cong, candidate_fasta_file, args.outputDir,
+    bowtie_results_file = run_bowtie(len(args.PAM), args.uniqueMethod_Cong, candidate_fasta_file, args.outputDir,
                                    int(args.maxOffTargets),
                                    config.path("ISOFORMS_INDEX_DIR") if config.isoforms else config.path(
                                        "BOWTIE_INDEX_DIR"),
                                    args.genome, int(args.maxMismatches))
 
-    results = parse_bowtie(guideClass, bowtieResultsFile, True, args.scoreGC, args.scoreSelfComp,
-                           args.backbone, args.replace5P, args.maxOffTargets, countMM, args.PAM,
+    results = parse_bowtie(guide_class, bowtie_results_file, True, args.scoreGC, args.scoreSelfComp,
+                           args.backbone, args.replace5P, args.maxOffTargets, count_MM, args.PAM,
                            args.MODE != ProgramMode.TALENS,
                            args.scoringMethod, args.genome, gene, isoform,
                            gene_isoforms)  # TALENS: MAKE_PAIRS + CLUSTER
@@ -276,13 +276,13 @@ def main():
                                        args.enzymeCo, args.maxOffTargets, args.g_RVD, args.minResSiteLen,
                                        args.offtargetMaxDist)
 
-    info = scoring.ScoringInfo(args.genome, args.PAM, strand, sortOutput, cluster_info, args.outputDir,
+    info = scoring.ScoringInfo(args.genome, args.PAM, strand, sort_output, cluster_info, args.outputDir,
                                args.repairPredictions is not None, args.repairPredictions, args.isoforms,
-                               visCoords, args.fasta, args.rm1perfOff, args.MODE, scoring_method)
+                               vis_coords, args.fasta, args.rm1perfOff, args.MODE, scoring_method)
     sorted_output, cluster = scoring.score_guides(results, info)
 
     # Write individual results to file
-    listOfClusters = write_individual_results(args.outputDir, args.maxOffTargets, sorted_output,
+    list_of_clusters = write_individual_results(args.outputDir, args.maxOffTargets, sorted_output,
                                               args.guideSize, args.MODE, cluster,
                                               args.limitPrintResults, args.offtargetsTable)
 
@@ -290,7 +290,7 @@ def main():
         if args.fasta:
             make_primers_fasta(sorted_output, args.outputDir, args.primerFlanks,
                                args.displaySeqFlanks, args.genome, args.limitPrintResults,
-                               config.path("BOWTIE_INDEX_DIR"), fastaSequence,
+                               config.path("BOWTIE_INDEX_DIR"), fasta_sequence,
                                args.primer3options, args.guidePadding, args.enzymeCo,
                                args.minResSiteLen, "sequence", args.maxOffTargets)
         else:
@@ -305,23 +305,23 @@ def main():
     # Print results
     print_scores(sorted_output, args.MODE, args.scoringMethod, args.isoforms)
 
-    resultCoords = generate_result_coordinates(sorted_output,
-                                               listOfClusters,
-                                               sortOutput,
+    result_coords = generate_result_coordinates(sorted_output,
+                                               list_of_clusters,
+                                               sort_output,
                                                args.MODE,
                                                args.isoforms)
 
     # Print gene annotation files
     # FASTA file
-    geneFile = open('%s/gene_file.fa' % args.outputDir, 'w')
-    geneFile.write(">%s\n" % args.targets)
-    geneFile.write(fastaSequence)
-    geneFile.close()
+    gene_file = open('%s/gene_file.fa' % args.outputDir, 'w')
+    gene_file.write(">%s\n" % args.targets)
+    gene_file.write(fasta_sequence)
+    gene_file.close()
 
     # Visualize with json
     if args.jsonVisualize:
         # new function
-        visualize_with_json(args, visCoords, sequences, strand, resultCoords, fastaSequence, targets)
+        visualize_with_json(args, vis_coords, sequences, strand, result_coords, fasta_sequence, targets)
 
     # remove .sam files as they take up wayyy to much space
     for fl in os.listdir(args.outputDir):

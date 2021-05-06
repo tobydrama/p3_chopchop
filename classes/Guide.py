@@ -50,13 +50,13 @@ class Guide(object):
     """ This defines a class for each guide. The (off-target) hits for each guide form a separate class. The functions
     "add_off_target" and "sort_off_targets" applies to just the Tale class """
 
-    def __init__(self, name, flagSum, guideSize, guideSeq, scoreGC, scoreSelfComp,
-                 backbone_regions, PAM, replace5prime=None, scoringMethod=None,
-                 genome=None, gene=None, isoform=None, gene_isoforms=None, isKmaxed=False):
+    def __init__(self, name, flag_sum, guide_size, guide_seq, score_GC, score_self_comp,
+                 backbone_regions, PAM, replace_5prime=None, scoring_method=None,
+                 genome=None, gene=None, isoform=None, gene_isoforms=None, is_kmaxed=False):
 
         self.GCcontent = 0
-        self.isKmaxed = isKmaxed  # to print possibility of more mismatches
-        self.scoringMethod = scoringMethod
+        self.isKmaxed = is_kmaxed  # to print possibility of more mismatches
+        self.scoringMethod = scoring_method
         self.genome = genome
         self.gene = gene
         self.isoform = isoform
@@ -65,7 +65,7 @@ class Guide(object):
         self.constitutive = False  # conservation of guide across all isoforms
         self.PAM = PAM
         # From the guide's name we can get the chromosome
-        self.flagSum = str(flagSum)
+        self.flagSum = str(flag_sum)
         elements = name.split(":")
         self.ID = elements[0]
         self.chrom = elements[1]
@@ -82,8 +82,8 @@ class Guide(object):
             self.downstream3prim = ''
             self.strand = None
 
-        self.guideSize = guideSize
-        self.targetSize = guideSize
+        self.guideSize = guide_size
+        self.targetSize = guide_size
         self.cluster = -1
         self.score = 0
         self.ALL_scores = [0, 0, 0, 0, 0, 0]
@@ -107,20 +107,20 @@ class Guide(object):
         self.exonStart = int(coord[0:mid])
 
         # The number of bases after the exon start
-        guidePos = int(region[:location]) + 1
+        guide_pos = int(region[:location]) + 1
 
         # guide start coordinate
-        self.start = self.exonStart + guidePos
-        self.end = self.start + guideSize
-        self.guideSeq = guideSeq
+        self.start = self.exonStart + guide_pos
+        self.end = self.start + guide_size
+        self.guideSeq = guide_seq
 
         # Record which strand the guide is on
         if self.flagSum == "16" or config.isoforms:  # due to reverse complementing before alignments
-            self.strandedGuideSeq = guideSeq
+            self.strandedGuideSeq = guide_seq
             if self.strand is None:
                 self.strand = '+'
         else:
-            self.strandedGuideSeq = str(Seq(guideSeq).reverse_complement())
+            self.strandedGuideSeq = str(Seq(guide_seq).reverse_complement())
             if self.strand is None:
                 self.strand = '-'
 
@@ -129,15 +129,15 @@ class Guide(object):
         self.offTarget_hash = {}
         self.offTargets_sorted = False
 
-        if scoreSelfComp:
-            self.calc_self_complementarity(scoreSelfComp, backbone_regions, PAM, replace5prime)
+        if score_self_comp:
+            self.calc_self_complementarity(score_self_comp, backbone_regions, PAM, replace_5prime)
         else:
             self.folding = "N/A"
 
         # Scoring
-        self.calc_GC_content(scoreGC)
+        self.calc_GC_content(score_GC)
 
-    def calc_self_complementarity(self, scoreSelfComp, backbone_regions, PAM, replace5prime=None):
+    def calc_self_complementarity(self, score_self_comp, backbone_regions, PAM, replace5prime=None):
         if replace5prime:
             # Replace the 2 first bases with e.g. "GG"
             fwd = self.strandedGuideSeq[len(PAM):-len(replace5prime)] + replace5prime
@@ -158,7 +158,7 @@ class Guide(object):
 
         self.score += self.folding * config.score('FOLDING')
 
-    def calc_GC_content(self, scoreGC):
+    def calc_GC_content(self, score_GC):
         """ Calculate the GC content of the guide """
         if self.PAM is not None and self.strandedGuideSeq is not None:
             g_seq = self.strandedGuideSeq[len(self.PAM):]
@@ -166,15 +166,15 @@ class Guide(object):
             C_count = g_seq.count('C')
             self.GCcontent = (100 * (float(G_count + C_count) / int(len(g_seq))))
 
-        if scoreGC:
+        if score_GC:
             if self.GCcontent > GC_HIGH or self.GCcontent < GC_LOW:
                 self.score += config.score('CRISPR_BAD_GC')
 
-    def add_off_target(self, hit, checkMismatch, maxOffTargets, countMMPos):
+    def add_off_target(self, hit, check_mismatch, max_off_targets, count_MM_pos):
         """ Add off target hits (and not original hit) to list for each guide RNA """
 
         hit_id = "%s:%s" % (hit.chrom, hit.start)
-        nmiss = 0
+        n_miss = 0
         mm_pattern = re.compile(r'NM:i:(\d+)')
 
         # If the hit is identical to the guide coord it is the original correct hit
@@ -193,28 +193,28 @@ class Guide(object):
             return
 
         # Reverse count+allowed arrays if on the reverse strand
-        if checkMismatch and hit.flagSum == 0 and not config.isoforms:
-            countMMPos = countMMPos[::-1]
+        if check_mismatch and hit.flagSum == 0 and not config.isoforms:
+            count_MM_pos = count_MM_pos[::-1]
 
         self.offTarget_hash[hit_id] = hit
-        if checkMismatch:
+        if check_mismatch:
             MMs = get_mismatch_pos(hit.mismatchPos[5:])
             for mm in MMs:
-                if not countMMPos[mm]:
+                if not count_MM_pos[mm]:
                     del (self.offTarget_hash[hit_id])
                     return
 
-                elif not countMMPos[mm]:
-                    nmiss += 1
+                elif not count_MM_pos[mm]:
+                    n_miss += 1
 
         # Calculate score
         for opt in hit.opts:
             m = mm_pattern.match(opt)
             if m:
-                mm = int(m.group(1)) - nmiss
+                mm = int(m.group(1)) - n_miss
 
                 # ugly repeat to save time from iterating all isoforms
-                if config.isoforms and checkMismatch:
+                if config.isoforms and check_mismatch:
                     if hit.chrom in self.gene_isoforms:  # and hit.chrom not in self.offTargetsIso[mm]:
                         self.offTargetsIso[mm].add(hit.chrom)
                         # don't count/score isoform mismatches but display which isoforms have them
@@ -225,12 +225,12 @@ class Guide(object):
                     self.offTargetsMM[mm] += 1
                     self.score += SINGLE_OFFTARGET_SCORE[mm]
 
-            if opt == "XM:i:" + str(maxOffTargets):
+            if opt == "XM:i:" + str(max_off_targets):
                 self.score += config.score('MAX_OFFTARGETS')
-                self.offTargetsMM[0] += maxOffTargets
-                self.offTargetsMM[1] += maxOffTargets
-                self.offTargetsMM[2] += maxOffTargets
-                self.offTargetsMM[3] += maxOffTargets
+                self.offTargetsMM[0] += max_off_targets
+                self.offTargetsMM[1] += max_off_targets
+                self.offTargetsMM[2] += max_off_targets
+                self.offTargetsMM[3] += max_off_targets
 
         self.offTargets_sorted = False
 

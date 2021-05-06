@@ -132,9 +132,9 @@ class Cas9(Guide):
                                                                       self.offTargetsMM[3],
                                                                       self.CoefficientsScore[self.scoringMethod])
 
-    def calc_self_complementarity(self, score_self_comp, backbone_regions, PAM, replace5prime=None):
-        if replace5prime:
-            fwd = replace5prime + self.strandedGuideSeq[len(replace5prime):(
+    def calc_self_complementarity(self, score_self_comp, backbone_regions, PAM, replace_5prime=None):
+        if replace_5prime:
+            fwd = replace_5prime + self.strandedGuideSeq[len(replace_5prime):(
                 None if PAM == "" else -len(PAM))]  # Replace the 2 first bases with e.g. "GG"
         else:
             fwd = self.guideSeq[

@@ -7,7 +7,7 @@ class Nickase:
     """ Pair class for 2 Cas9 that are the correct distance apart """
 
     def __init__(self, tale1, tale2, spacer_seq, spacer_size, off_target_pairs, enzyme_co, max_off_targets,
-                 minResSiteLen):
+                 min_res_site_len):
         self.tale1 = tale1
         self.tale2 = tale2
         self.chrom = tale1.chrom
@@ -38,7 +38,7 @@ class Nickase:
 
         # Use bitwise operator to compare flag sum to see whether off-target TALEs are on different strands
         # (bad = good cutting ability) or on the same strand (not so bad = FokI domains probably too far apart to cut)
-        indivScore = 0
+        indiv_score = 0
 
         for (hit1, hit2) in off_target_pairs:
             # Using boolean, count number of offtarget pairs on different strands
@@ -47,20 +47,20 @@ class Nickase:
 
             for opt in [hit1.opts, hit2.opts]:
                 if opt == "NM:i:0":
-                    indivScore += SINGLE_OFFTARGET_SCORE[0]
+                    indiv_score += SINGLE_OFFTARGET_SCORE[0]
                 if opt == "NM:i:1":
-                    indivScore += SINGLE_OFFTARGET_SCORE[1]
+                    indiv_score += SINGLE_OFFTARGET_SCORE[1]
                 if opt == "NM:i:2":
-                    indivScore += SINGLE_OFFTARGET_SCORE[2]
+                    indiv_score += SINGLE_OFFTARGET_SCORE[2]
                 if opt == "NM:i:3":
-                    indivScore += SINGLE_OFFTARGET_SCORE[3]
+                    indiv_score += SINGLE_OFFTARGET_SCORE[3]
 
         # Compute penalties (scores) for off-target hits. Worst = off-target pair, Not so bad = off-target single tale
         self.score = (self.diffStrandOffTarget * config.score(
-            'OFFTARGET_PAIR_DIFF_STRAND')) + tale1.score + tale2.score - indivScore + (
+            'OFFTARGET_PAIR_DIFF_STRAND')) + tale1.score + tale2.score - indiv_score + (
                                  tale1.strand == "+") * config.score('PAM_IN_PENALTY')
-        resSites = find_restriction_sites(self.spacerSeq, enzyme_co, minResSiteLen)
-        self.restrictionSites = ";".join(map(lambda x: "%s:%s" % (str(x), ",".join(map(str, resSites[x]))), resSites))
+        res_sites = find_restriction_sites(self.spacerSeq, enzyme_co, min_res_site_len)
+        self.restrictionSites = ";".join(map(lambda x: "%s:%s" % (str(x), ",".join(map(str, res_sites[x]))), res_sites))
 
     def __str__(self):
         # This creates a tab delimited list of output, with the final column as a semicolon-separated list of REs that
