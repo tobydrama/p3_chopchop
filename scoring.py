@@ -239,6 +239,99 @@ def score_isoforms(guides: List[Guide], info: ScoringInfo) -> List[Guide]:
     return guides
 
 
+def score_cas9(guides: List[Cas9], info: ScoringInfo):
+    logging.info("Scoring coefficients for Cas9 guides.")
+    for guide in guides:
+        if guide.scoringMethod not in ["CHARI_2015", "DOENCH_2016", "ALKAN_2018", "ZHANG_2019", "ALL"]:
+            guide.CoefficientsScore[guide.scoringMethod] = score_grna(
+                guide.downstream5prim + guide.strandedGuideSeq[:-len(guide.PAM)],
+                guide.strandedGuideSeq[-len(guide.PAM):],
+                guide.downstream3prim,
+                constants.scores[guide.scoringMethod]
+            )
+            guide.score -= guide.CoefficientsScore[guide.scoringMethod] * config.score('COEFFICIENTS')
+        elif guide.scoringMethod == "ALL":
+            for met in ["XU_2015", "DOENCH_2014", "MORENO_MATEOS_2015", "G_20"]:
+                guide.CoefficientsScore[met] = score_grna(
+                    guide.downstream5prim + guide.strandedGuideSeq[:-len(guide.PAM)],
+                    guide.strandedGuideSeq[-len(guide.PAM):],
+                    guide.downstream3prim,
+                    constants.scores[met]
+                )
+
+    logging.debug("Finished scoring coefficients.")
+
+    return guides
+
+def score_alkan_2018(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
+    logging.info("Running Alkan 2018 scoring method.")
+
+    from dockers.CRISPRoff_wrapper import run_coefficient_score
+
+    for guide in guides:
+        guide.CoefficientsScore['ALKAN_2018'] = run_coefficient_score(guide.strandedGuideSeq)
+        guide.score -= guide.CoefficientsScore['ALKAN_2018'] * config.score('COEFFICIENTS')
+
+    logging.debug("Finished running Alkan 2018.")
+
+    return guides
+
+
+def score_grna(seq, PAM, tail, lookup):
+    """ Calculate score from model coefficients. score is 0-1, higher is better """
+    score = 0
+    if "Intercept" in lookup:
+        score = lookup["Intercept"]
+
+    seq = seq[::-1]  # we calculate from PAM in a way: 321PAM123
+
+    if "gc_low" in lookup:
+        gc = seq[:20].count('G') + seq[:20].count('C')
+        if gc < 10:
+            score = score + (abs(gc - 10) * lookup["gc_low"])
+        elif gc > 10:
+            score = score + ((gc - 10) * lookup["gc_high"])
+
+    for i in range(len(seq)):
+        key = seq[i] + str(i + 1)
+        if key in lookup:
+            score += lookup[key]
+
+        if i + 1 < len(seq):
+            double_key = seq[i] + seq[i + 1] + str(i + 1)
+            if double_key in lookup:
+                score += lookup[double_key]
+
+        if i == 0:
+            double_key = PAM[0] + seq[0] + str(0)
+            if double_key in lookup:
+                score += lookup[double_key]
+
+    for i in range(len(PAM)):
+        key = 'PAM' + PAM[i] + str(i + 1)
+        if key in lookup:
+            score += lookup[key]
+
+        if i + 1 < len(PAM):
+            double_key = 'PAM' + PAM[i] + PAM[i + 1] + str(i + 1)
+            if double_key in lookup:
+                score += lookup[double_key]
+
+    for i in range(len(tail)):
+        key = str(i + 1) + tail[i]
+        if key in lookup:
+            score += lookup[key]
+
+        if i + 1 < len(tail):
+            double_key = str(i + 1) + tail[i] + tail[i + 1]
+            if double_key in lookup:
+                score += lookup[double_key]
+
+    score = 1 / (1 + math.e ** -score)
+    return score
+
+
+
 def score_chari_2015(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
     logging.info("Running Chari 2015 scoring method.")
 

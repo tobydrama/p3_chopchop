@@ -4,11 +4,11 @@
     "BOWTIE": "./lib/bowtie/bowtie",
     "TWOBITTOFA": "./lib/twoBitToFa",
     "SVM": "./lib/svm_light/svm_classify",
-    "TWOBIT_INDEX_DIR": "/your/full/path/to/2bit_folder",
-    "BOWTIE_INDEX_DIR": "/your/full/path/to/ebwt_folder",
-    "ISOFORMS_INDEX_DIR": "/your/full/path/to/ebwt_transcriptome_folder_and_2bit_of_genome",
-    "ISOFORMS_MT_DIR": "/your/full/path/to/vienna_MT_folder",
-    "GENE_TABLE_INDEX_DIR": "/your/full/path/to/genePred_folder"
+    "TWOBIT_INDEX_DIR": "./genomes/2bit_folder",
+    "BOWTIE_INDEX_DIR": "./genomes/ebwt_folder",
+    "ISOFORMS_INDEX_DIR": "./genomes/ebwt_transcriptome_folder_and_2bit_of_genome",
+    "ISOFORMS_MT_DIR": "./genomes/vienna_MT_folder",
+    "GENE_TABLE_INDEX_DIR": "./genomes/genePred_folder"
   },
   "THREADS": 1,
   "SCORING": {
