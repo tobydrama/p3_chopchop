@@ -457,7 +457,7 @@ def parse_bowtie(guide_class, bowtie_results_file, check_mismatch, score_GC, sco
                                      elements[6] if len(elements) == 7 else line[9], score_GC, score_self_comp,
                                      backbone, PAM, replace_5prime, scoring_method,
                                      genome, gene, isoform, gene_isoforms,
-                                     isKmaxed=is_kmaxed)
+                                     is_kmaxed=is_kmaxed)
             guide_list.append(curr_guide)
 
         # Adds hit to off-target list of current guide.

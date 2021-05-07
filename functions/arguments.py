@@ -226,10 +226,6 @@ def generate_parser() -> argparse.ArgumentParser:
                         dest="log_level",
                         help="Set logging level.")
 
-    parser.add_argument('--testing',
-                        default=False, action="store_true",
-                        help="Use testing genome directory (./testing/genomes/)")
-
     return parser
 
 
@@ -266,10 +262,6 @@ def parse_arguments() -> argparse.Namespace:
             args.backbone = [str(Seq(el).reverse_complement()) for el in tmp]
         else:
             args.backbone = []
-
-    # Use testing genomes
-    if args.testing:
-        config.use_testing_config()
 
     logging.debug("Finished parsing arguments.")
 

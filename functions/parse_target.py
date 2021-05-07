@@ -1,4 +1,5 @@
 import csv
+import logging
 import re
 import sys
 from subprocess import Popen, PIPE
@@ -315,6 +316,8 @@ def make_vis_coords(starts_v, ends_v, tx, tx_vis, index_dir, genome, output_dir,
 
     tx_vis["exons"].sort(key=lambda x: x[1])  # sort on starts
     # ATG locations
+    logging.debug(f"Running twoBitToFa on file '{index_dir + '/' + genome}.2bit'")
+
     prog = Popen("%s -seq=%s -start=%d -end=%d %s/%s.2bit stdout 2> %s/twoBitToFa.err" % (
         config.path("TWOBITTOFA"), tx[0], int(tx[4]) + 1, int(tx[5]) + 1, index_dir,
         genome, output_dir), stdout=PIPE, shell=True)

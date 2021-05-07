@@ -40,15 +40,6 @@ def get_config_from_file(*paths) -> dict:
 
 
 _config = get_config_from_file(file_path() + '/config_local.json', file_path() + '/config.json')
-
-
-def use_testing_config() -> None:
-    global _config, _paths
-    logging.info("Setting program to use testing config.")
-    _config = get_config_from_file(file_path() + '/testing/config_testing.json')
-    _paths = _config['PATH']
-
-
 _paths = _config['PATH']
 
 # Path safety check

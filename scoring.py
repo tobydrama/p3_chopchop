@@ -1,4 +1,5 @@
 import logging
+import math
 import os
 import subprocess
 import sys
@@ -96,6 +97,12 @@ def score_guides(guides: List[Guide], info: ScoringInfo) -> Tuple[List[Guide], i
             if guide.offTargetsMM[0] > 0:
                 # TODO do something about this constant
                 guide.score -= constants.SINGLE_OFFTARGET_SCORE[0]
+
+    if len(guides) > 0 and type(guides[0]) == Cas9:
+        guides = score_cas9(guides, info)
+
+    if info.scoring_method == ScoringMethod.ALKAN_2018 or info.scoring_method == ScoringMethod.ALL:
+        guides = score_alkan_2018(guides, info)
 
     if info.use_isoforms:
         guides = score_isoforms(guides, info)
