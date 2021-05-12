@@ -199,8 +199,9 @@ def write_individual_results(output_dir, max_off_targets, sorted_output, guide_s
 
                 off_targets_info[best_in_cluster.ID]['restriction sites'] = guide.restrictionSites
 
-    with open(f"{output_dir}/offtargets.json", 'w') as off_target_file:
-        json.dump(off_targets_info, off_target_file)
+    for key, val in off_targets_info.items():
+        with open(f"{output_dir}/{key}.offtargets.json", 'w') as f:
+            json.dump(val, f)
 
     return clusters
 
