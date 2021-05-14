@@ -68,9 +68,12 @@
     "args": "-Target ENST00000417324 -G semirandom -T 1 -isoforms",
     "results": "17.bed"
   },
+    "kim_2018": {
+    "args": "-G semirandom -Target ENST00000607096 --scoringMethod KIM_2018 -T3 -M TTTN",
+    "results": "19.bed"
+  },
     "scoringMethod_ALL": {
     "args": "-G semirandom -Target ENST00000417324 --scoringMethod ALL",
     "results": "18.bed"
   }
-  
 }

@@ -35,3 +35,8 @@ docker build -t chopchop_crisproff .
 cd /path/to/chopchop/dockers/chopchop_doench_2016  # Doench 2016
 docker build -t chopchop_doench_2016 .
 ```
+
+```sh
+cd /path/to/chopchop/dockers/chopchop_kim_2018  # KIM 2018
+docker build -t chopchop_kim_2018 .
+```

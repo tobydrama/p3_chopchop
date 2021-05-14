@@ -18,6 +18,7 @@ import constants
 from classes.Cas9 import Cas9
 from classes.Guide import Guide
 from classes.ProgramMode import ProgramMode
+from dockers.kim_2018_wrapper import run_kim_2018
 from dockers.doench_2016_wrapper import run_doench_2016
 from functions.TALEN_specific_functions import pair_talens, pair_cas9, cluster_pairs
 
@@ -426,6 +427,8 @@ def score_zhang_2019(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
 
 
 def score_kim_2018(guides: List[Guide]) -> List[Guide]:
+
+    """
     logging.info("Running Kim 2018 scoring method.")
 
     try:
@@ -502,7 +505,22 @@ def score_kim_2018(guides: List[Guide]) -> List[Guide]:
         pass
 
     return guides
+    """
 
+    logging.info("Running Kim 2018 scoring method.")
+
+    try:
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore")
+
+            guides = run_kim_2018(guides)
+
+            logging.debug("Finished running Kim 2018.")
+
+    except:  # TODO what exceptions are caught here?
+        logging.warning("Kim 2018 failed!")
+        pass
+    return guides
 
 def score_doench_2016(guides: List[Guide], scoring_method: ScoringMethod) -> List[Guide]:
     logging.info("Running Doench 2016 scoring method.")
