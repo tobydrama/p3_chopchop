@@ -12,8 +12,7 @@ from Bio.SeqRecord import SeqRecord
 
 import config
 from classes.ProgramMode import ProgramMode
-from constants import DOWNSTREAM_NUC, CPF1_DEFAULT, TALEN_DEFAULT, CRISPR_DEFAULT
-from constants import EXIT, NICKASE_DEFAULT
+from constants import DOWNSTREAM_NUC, CPF1_DEFAULT, TALEN_DEFAULT, CRISPR_DEFAULT, EXIT, NICKASE_DEFAULT
 
 
 # Here lies concatenate_feature_sets

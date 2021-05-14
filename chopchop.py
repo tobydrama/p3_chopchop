@@ -11,7 +11,7 @@ import scoring
 from classes.Guide import Guide
 from classes.PAIR import Pair
 from classes.ProgramMode import ProgramMode
-from constants import *
+from constants import EXIT, DOWNSTREAM_NUC
 from functions.arguments import parse_arguments
 from functions.main_functions import coord_to_fasta, run_bowtie
 from functions.main_functions import print_bed, print_genbank, fasta_to_viscoords
