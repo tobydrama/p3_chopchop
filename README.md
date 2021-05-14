@@ -20,9 +20,15 @@
 
 ##### Docker containers:
 To use scoring methods Alkan 2018 & Doench 2016, their respective docker containers must be built by running:
+
+```sh
+cd /path/to/chopchop/dockers/vienna_rna
+docker build -t vienna_rna .  # This takes a very long time
+```
+
 ```sh
 cd /path/to/chopchop/dockers/chopchop_crisproff  # Alkan 2018
-docker build -t chopchop_cripsroff .  # This takes a very long time
+docker build -t chopchop_crisproff .
 ```
 
 ```sh
