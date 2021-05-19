@@ -40,7 +40,7 @@ def recv_tuples():
 
 def tuple_to_cas9(t):
     """
-    Takes a tuple containing all fields of the Cas9Emulation object and returns a Cas9Emmulation object.
+    Takes a tuple containing all fields of the Cas9Emulation object and returns a Cas9Emulation object.
 
     :param t: The tuple representation of a Cas9Emulation object.
     :return: The corresponding Cas9Emulation object.
