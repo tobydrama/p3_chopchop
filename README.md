@@ -40,3 +40,14 @@ docker build -t chopchop_doench_2016 .
 cd /path/to/chopchop/dockers/chopchop_kim_2018  # KIM 2018
 docker build -t chopchop_kim_2018 .
 ```
+
+```sh
+cd /path/to/chopchop/dockers/chopchop_inDelphi  # repair predictions
+docker build -t chopchop_indelphi_2018 .
+```
+
+```sh
+cd /path/to/chopchop/dockers/chopchop_chari_2015  # repair predictions
+docker build -t chopchop_chari_2015 .
+```
+
