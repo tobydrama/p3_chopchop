@@ -4,9 +4,7 @@ import os
 import subprocess
 import sys
 import warnings
-from collections import defaultdict
 from enum import Enum
-from subprocess import Popen
 from typing import Callable, List, Tuple, Dict, Union
 
 import numpy
@@ -303,7 +301,6 @@ def score_grna(seq, PAM, tail, lookup):
     return score
 
 
-
 def score_chari_2015(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
     logging.info("Running Chari 2015 scoring method.")
 
@@ -345,86 +342,6 @@ def score_zhang_2019(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
 
 
 def score_kim_2018(guides: List[Guide]) -> List[Guide]:
-
-    """
-    logging.info("Running Kim 2018 scoring method.")
-
-    try:
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore")
-
-            os.environ['KERAS_BACKEND'] = 'theano'
-
-            # Keras prints welcome message to stderr
-            stderr = sys.stderr
-            sys.stderr = open(os.devnull)
-
-            from keras.models import Model
-            from keras.layers import Input
-            from keras.layers.merge import Multiply
-            from keras.layers.core import Dense, Dropout, Activation, Flatten
-            from keras.layers.convolutional import Convolution1D, AveragePooling1D
-            sys.stderr = stderr
-
-            seq_deep_cpf1_input_seq = Input(shape=(34, 4))
-            seq_deep_cpf1_c1 = Convolution1D(80, 5, activation='relu')(seq_deep_cpf1_input_seq)
-            seq_deep_cpf1_p1 = AveragePooling1D(2)(seq_deep_cpf1_c1)
-            seq_deep_cpf1_f = Flatten()(seq_deep_cpf1_p1)
-            seq_deep_cpf1_do1 = Dropout(0.3)(seq_deep_cpf1_f)
-            seq_deep_cpf1_d1 = Dense(80, activation='relu')(seq_deep_cpf1_do1)
-            seq_deep_cpf1_do2 = Dropout(0.3)(seq_deep_cpf1_d1)
-            seq_deep_cpf1_d2 = Dense(40, activation='relu')(seq_deep_cpf1_do2)
-            seq_deep_cpf1_do3 = Dropout(0.3)(seq_deep_cpf1_d2)
-            seq_deep_cpf1_d3 = Dense(40, activation='relu')(seq_deep_cpf1_do3)
-            seq_deep_cpf1_do4 = Dropout(0.3)(seq_deep_cpf1_d3)
-            seq_deep_cpf1_output = Dense(1, activation='linear')(seq_deep_cpf1_do4)
-            seq_deep_cpf1 = Model(inputs=[seq_deep_cpf1_input_seq], outputs=[seq_deep_cpf1_output])
-            seq_deep_cpf1.load_weights(config.file_path() + '/models/Seq_deepCpf1_weights.h5')
-
-            # process data
-            data_n = len(guides)
-            one_hot = numpy.zeros((data_n, 34, 4), dtype=int)
-
-            for l in range(0, data_n):
-                prim5 = guides[l].downstream5prim[-4:]
-                if len(prim5) < 4:  # cover weird genomic locations
-                    prim5 = "N" * (4 - len(prim5)) + prim5
-                guide_seq = guides[l].strandedGuideSeq
-                prim3 = guides[l].downstream3prim[:6]
-                if len(prim3) < 6:
-                    prim5 = "N" * (6 - len(prim5)) + prim5
-                seq = prim5 + guide_seq + prim3
-
-                for i in range(34):
-                    if seq[i] in "Aa":
-                        one_hot[l, i, 0] = 1
-                    elif seq[i] in "Cc":
-                        one_hot[l, i, 1] = 1
-                    elif seq[i] in "Gg":
-                        one_hot[l, i, 2] = 1
-                    elif seq[i] in "Tt":
-                        one_hot[l, i, 3] = 1
-                    elif seq[i] in "Nn":  # N will activate all nodes
-                        one_hot[l, i, 0] = 1
-                        one_hot[l, i, 1] = 1
-                        one_hot[l, i, 2] = 1
-                        one_hot[l, i, 3] = 1
-
-            seq_deep_cpf1_score = seq_deep_cpf1.predict([one_hot], batch_size=50, verbose=0)
-
-        for i, guide in enumerate(guides):
-            guide.CoefficientsScore = seq_deep_cpf1_score[i][0]
-            guide.score -= (guide.CoefficientsScore / 100) * config.score("COEFFICIENTS")
-
-        logging.debug("Finished running Kim 2018.")
-
-    except:  # TODO what exceptions are caught here?
-        logging.warning("Kim 2018 failed!")
-        pass
-
-    return guides
-    """
-
     logging.info("Running Kim 2018 scoring method.")
 
     try:
@@ -439,6 +356,7 @@ def score_kim_2018(guides: List[Guide]) -> List[Guide]:
         logging.warning("Kim 2018 failed!")
         pass
     return guides
+
 
 def score_doench_2016(guides: List[Guide], scoring_method: ScoringMethod) -> List[Guide]:
     logging.info("Running Doench 2016 scoring method.")
