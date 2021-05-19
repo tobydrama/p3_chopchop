@@ -15,8 +15,8 @@ import Cpf1Emulation
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scoringMethod", choices=["KIM_2018"], required=True,
-                        help="The scoring method being used in the main CHOPCHOP script.")
+    parser.add_argument("-c", "--coefficientScore", required=True, type=int,
+                        help="The coefficient score multiplier")
 
     return parser.parse_args()
 
@@ -57,12 +57,7 @@ def cpf1_to_reduced_tuple(guide):
     return guide.key, guide.score, guide.CoefficientsScore
 
 
-# Stand-in for global SCORE in CHOPCHOP 2.7
-# TODO is this a constant, or can it be redefined?
-SCORE = {"COEFFICIENTS": 100}
-
-
-def score_kim_2018(guides):
+def score_kim_2018(args, guides):
     os.environ['KERAS_BACKEND'] = 'theano'
 
     from keras.models import Model
@@ -119,12 +114,13 @@ def score_kim_2018(guides):
 
     for i, guide in enumerate(guides):
         guide.CoefficientsScore = seq_deep_cpf1_score[i][0]
-        guide.score -= (guide.CoefficientsScore / 100) * SCORE['COEFFICIENTS']
+        guide.score -= (guide.CoefficientsScore / 100) * args.coefficientScore
 
     return guides
 
 
 def main():
+    args = parse_args()
     guides = []
     for t in recv_tuples():
         guides.append(tuple_to_cpf1(t))

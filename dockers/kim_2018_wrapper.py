@@ -2,6 +2,7 @@ import codecs
 import pickle
 import subprocess
 
+import config
 from classes.CPF1 import Cpf1
 
 
@@ -28,7 +29,7 @@ def run_kim_2018(guides: [Cpf1]) -> [Cpf1]:
 
     encoded = codecs.encode(pickle.dumps(keyed_tuples, protocol=2), 'base64').decode()
 
-    command = ['docker', 'run', '-i', 'chopchop_kim_2018']
+    command = ['docker', 'run', '-i', 'chopchop_kim_2018', '-c', str(config.score('COEFFICIENTS'))]
 
     kim_2018 = subprocess.run(command, capture_output=True, text=True, input=encoded)
 
