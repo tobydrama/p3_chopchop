@@ -18,8 +18,10 @@ import constants
 from classes.Cas9 import Cas9
 from classes.Guide import Guide
 from classes.ProgramMode import ProgramMode
+from dockers.chari_2015_wrapper import run_chari_2015
 from dockers.kim_2018_wrapper import run_kim_2018
 from dockers.doench_2016_wrapper import run_doench_2016
+from dockers.inDelphi_wrapper import run_repair_prediction
 from functions.TALEN_specific_functions import pair_talens, pair_cas9, cluster_pairs
 
 
@@ -143,44 +145,6 @@ def score_guides(guides: List[Guide], info: ScoringInfo) -> Tuple[List[Guide], i
     sorted_guides = info.sort_fn(guides)
 
     return sorted_guides, cluster
-
-
-def scoreChari_2015(svm_input_file, svm_output_file, PAM, genome):  # Only one use in main
-    f_p = sys.path[0]
-    """ Calculate score from SVM model as in Chari 2015 20-NGG or 20-NNAGAAW, only for hg19 and mm10"""
-
-    model = f_p + '/models/293T_HiSeq_SP_Nuclease_100_SVM_Model.txt'
-    dist = f_p + '/models/Hg19_RefFlat_Genes_75bp_NoUTRs_SPSites_SVMOutput.txt'
-
-    if PAM == 'NGG' and genome == 'mm10':
-        model = f_p + '/models/293T_HiSeq_SP_Nuclease_100_SVM_Model.txt'
-        dist = f_p + '/models/Mm10_RefFlat_Genes_75bp_NoUTRs_SPSites_SVMOutput.txt'
-    elif PAM == 'NNAGAAW' and genome == 'hg19':
-        model = f_p + '/models/293T_HiSeq_ST1_Nuclease_100_V2_SVM_Model.txt'
-        dist = f_p + '/models/Hg19_RefFlat_Genes_75bp_NoUTRs_ST1Sites_SVMOutput.txt'
-    elif PAM == 'NNAGAAW' and genome == 'mm10':
-        model = f_p + '/models/293T_HiSeq_ST1_Nuclease_100_V2_SVM_Model.txt'
-        dist = f_p + '/models/Mm10_RefFlat_Genes_75bp_NoUTRs_ST1Sites_SVMOutput.txt'
-
-    prog = Popen("%s/svm_light/svm_classify -v 0 %s %s %s" % (f_p, svm_input_file, model, svm_output_file), shell=True)
-    prog.communicate()
-
-    svm_all = open(dist, 'r')
-    svm_this = open(svm_output_file, 'r')
-
-    # first through go all scores and get the max and min
-    all_data = []
-    for line in svm_all:
-        line = line.rstrip('\r\n')
-        all_data.append(float(line))
-    svm_all.close()
-
-    score_array = []
-    for line in svm_this:
-        line = line.rstrip('\r\n')
-        score_array.append(float(line))
-
-    return [ss.percentileofscore(all_data, i) for i in score_array]
 
 
 def tx_relative_coordinates(vis_coords, tx_id, start, end):
@@ -343,53 +307,7 @@ def score_grna(seq, PAM, tail, lookup):
 def score_chari_2015(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
     logging.info("Running Chari 2015 scoring method.")
 
-    try:
-        svm_input_file = "%s/chari_score.SVMInput.txt" % info.output_dir
-        svm_output_file = "%s/chari_score.SVMOutput.txt" % info.output_dir
-
-        encoding = defaultdict(str)
-        encoding['A'] = '0001'
-        encoding['C'] = '0010'
-        encoding['T'] = '0100'
-        encoding['G'] = '1000'
-
-        svm_file = open(svm_input_file, 'w')
-
-        for guide in guides:
-            seq = guide.downstream5prim + guide.strandedGuideSeq[:-len(guide.PAM)]
-            pam = guide.strandedGuideSeq[-len(guide.PAM):]
-            sequence = (seq[-20:] + pam).upper()
-
-            # end index
-            if len(sequence) == 27:
-                end_index = 22
-            else:
-                end_index = 21
-
-            x = 0
-            tw = '-1'
-            while x < end_index:
-                y = 0
-                while y < 4:
-                    tw = tw + ' ' + str(x + 1) + str(y + 1) + ':' + encoding[sequence[x]][y]
-                    y += 1
-                x += 1
-            svm_file.write(tw + '\n')
-        svm_file.close()
-        new_scores = scoreChari_2015(svm_input_file, svm_output_file, info.pam, info.genome)
-
-        for i, guide in enumerate(guides):
-            guide.CoefficientsScore["CHARI_2015"] = new_scores[i]
-            if info.scoring_method == ScoringMethod.CHARI_2015:
-                guide.score -= (guide.CoefficientsScore["CHARI_2015"] / 100) * config.score('COEFFICIENTS')
-
-        logging.debug("Finished running Chari 2015.")
-
-    except:  # TODO what exceptions are caught here?
-        logging.warning("Chari 2015 failed!")
-        pass
-
-    return guides
+    return run_chari_2015(guides, info)
 
 
 def score_zhang_2019(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
@@ -531,43 +449,7 @@ def score_doench_2016(guides: List[Guide], scoring_method: ScoringMethod) -> Lis
 def run_repair_predictions(guides: List[Guide], repair_predictions: str) -> List[Guide]:
     logging.info("Running inDelphi repair predictions on %d guides" % len(guides))
 
-    sys.path.append(config.file_path() + "/models/inDelphi-model/")
-
-    try:
-        import inDelphi
-        inDelphi.init_model(celltype=repair_predictions)
-
-        for i, guide in enumerate(guides):
-            try:
-                left_seq = guide.downstream5prim + guide.strandedGuideSeq[:-(len(guide.PAM) + 3)]
-                left_seq = left_seq[-60:]
-
-                right_seq = guide.strandedGuideSeq[-(len(guide.PAM) + 3):] + guide.downstream3prim
-                right_seq = right_seq[:60]
-
-                seq = left_seq + right_seq
-                cut_site = len(left_seq)
-
-                pred_df, stats = inDelphi.predict(seq, cut_site)
-                pred_df = pred_df.sort_values(pred_df.columns[4], ascending=False)
-
-                guide.repProfile = pred_df
-                guide.repStats = stats
-            except ValueError:
-                # On error, inDelphi.predict returns a string, rather than a tuple.
-                logging.warning("inDelphi.predict returned an error on guide %d." % i)
-                pass
-
-    except ModuleNotFoundError as module_error:
-        logging.error("Failed to import 'inDelphi' module: %s" % module_error)
-        pass
-    except ImportError as import_error:  # TODO what exceptions are caught here?
-        logging.error("Failed to import 'inDelphi' module: %s" % import_error)
-        pass
-
-    logging.debug("Finished running inDelphi repair predictions.")
-
-    return guides
+    return run_repair_prediction(repair_predictions, guides)
 
 
 def get_cluster_pairs(guides: List[Guide], info: ScoringInfo, program_mode: ProgramMode) -> Tuple[int, List[Guide]]:
