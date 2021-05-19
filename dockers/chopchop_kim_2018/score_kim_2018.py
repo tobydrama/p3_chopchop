@@ -125,7 +125,7 @@ def main():
     for t in recv_tuples():
         guides.append(tuple_to_cpf1(t))
 
-    scored_guides = score_kim_2018(guides)
+    scored_guides = score_kim_2018(args, guides)
 
     # If KIM 2018 did not run, return exit code 1
     if not scored_guides:
