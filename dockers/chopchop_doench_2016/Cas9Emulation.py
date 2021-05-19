@@ -11,7 +11,6 @@ class Cas9Emulation(object):
 
         # Unique identifier for each Cas9 object
         self.key = key
-
         # Cas9 fields used by the Doench 2016 algorithm
         self.downstream5prim = downstream_5_prim
         self.downstream3prim = downstream_3_prim

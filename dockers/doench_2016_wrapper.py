@@ -2,6 +2,7 @@ import codecs
 import pickle
 import subprocess
 
+import config
 from classes.Cas9 import Cas9
 
 
@@ -29,7 +30,7 @@ def run_doench_2016(scoring_method: str, guides: [Cas9]) -> [Cas9]:
 
     encoded = codecs.encode(pickle.dumps(keyed_tuples, protocol=2), 'base64').decode()
 
-    command = ['docker', 'run', '-i', 'chopchop_doench_2016', '-s', scoring_method]
+    command = ['docker', 'run', '-i', 'chopchop_doench_2016', '-s', scoring_method, '-c', str(config.score('COEFFICIENTS'))]
 
     doench_2016 = subprocess.run(command, capture_output=True, text=True, input=encoded)
 

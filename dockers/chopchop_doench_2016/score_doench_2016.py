@@ -18,7 +18,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--scoringMethod", choices=["DOENCH_2016", "ALL"], required=True,
                         help="The scoring method being used in the main CHOPCHOP script.")
-
+    parser.add_argument("-c", "--coefficientScore", required=True, type=int,
+                        help="The coefficient score multiplier")
     return parser.parse_args()
 
 
@@ -56,11 +57,6 @@ def cas9_to_reduced_tuple(guide):
     :return: A tuple containing the inout guide's key, score & "DOENCH_"2016" coefficient score.
     """
     return guide.key, guide.score, guide.CoefficientsScore["DOENCH_2016"]
-
-
-# Stand-in for global SCORE in CHOPCHOP 2.7
-# TODO is this a constant, or can it be redefined?
-SCORE = {"COEFFICIENTS": 100}
 
 
 def concatenate_feature_sets(feature_sets):
@@ -143,7 +139,7 @@ def doench_2016_score(args, results):
                 guide.CoefficientsScore["DOENCH_2016"] = outputs[j] * 100
                 j += 1
                 if args.scoringMethod == "DOENCH_2016":
-                    guide.score -= (guide.CoefficientsScore["DOENCH_2016"] / 100) * SCORE['COEFFICIENTS']
+                    guide.score -= (guide.CoefficientsScore["DOENCH_2016"] / 100) * args.coefficientScore
 
         return results
 
