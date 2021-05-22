@@ -13,7 +13,6 @@ class Cas9(Guide):
 
     def __init__(self, *args, **kwargs):
         super(Cas9, self).__init__(*args, **kwargs)
-        self.GCcontent = 0
         self.CoefficientsScore = {"XU_2015": 0,
                                   "DOENCH_2014": 0,
                                   "DOENCH_2016": 0,
