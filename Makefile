@@ -15,4 +15,4 @@ build_docker_%:
 	@echo "BUILDING IMAGE '$*'"
 	docker build -t $* --force-rm dockers/$*/
 
-build_dockers: $(addprefix build_,$(DOCKER_BUILDS))
+build_dockers: $(addprefix build_docker_,$(DOCKER_BUILDS))
