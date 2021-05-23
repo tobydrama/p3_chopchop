@@ -3,7 +3,7 @@ from unittest import TestCase
 from classes.ProgramMode import ProgramMode
 from constants import CPF1_DEFAULT, TALEN_DEFAULT, CRISPR_DEFAULT, NICKASE_DEFAULT
 from functions.main_functions import mode_select
-from functions.set_default_modes import get_allowed_five_prime, get_mismatch_vectors, get_CPF1_mismatch_vectors
+from functions.set_default_modes import get_allowed_five_prime, get_mismatch_vectors, get_cpf1_mismatch_vectors
 
 
 class Test(TestCase):
@@ -26,13 +26,13 @@ class Test(TestCase):
         self.assertEqual(([False], [False]), get_mismatch_vectors("A", 1, None))
 
     def test_getCpf1MismatchVectors(self):
-        self.assertEqual(([False], [False]), get_CPF1_mismatch_vectors("A", 1))
+        self.assertEqual(([False], [False]), get_cpf1_mismatch_vectors("A", 1))
         expected = ([True, False, False, True, True, True, True, True, True, True, True, True, True, True, True, True,
                      True, True, True, True, True, True, True, True, True, True, True],
                     [False, False, False, True, True, True, True, True, True, True, True, True, True, True, True, True,
                      True, True, True, True, True, True, True, True, True, True, True])
-        self.assertEqual(expected, get_CPF1_mismatch_vectors("NGG", 27))
-        self.assertEqual(([True, False, False], [False, False, False]), get_CPF1_mismatch_vectors("NGG", 1))
+        self.assertEqual(expected, get_cpf1_mismatch_vectors("NGG", 27))
+        self.assertEqual(([True, False, False], [False, False, False]), get_cpf1_mismatch_vectors("NGG", 1))
 
     def test_mode_select(self):
         self.assertEqual("?", mode_select("?", 1, None))

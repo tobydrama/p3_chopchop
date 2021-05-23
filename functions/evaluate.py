@@ -5,62 +5,62 @@ import config
 from constants import codes, STEM_LEN
 
 
-def perm_PAM(PAM):
-    PAM = PAM.upper()
+def perm_pam(pam):
+    pam = pam.upper()
     new_comb = [""]  # in case no PAM
-    if len(PAM) == 1:
-        new_comb = codes[PAM]
+    if len(pam) == 1:
+        new_comb = codes[pam]
 
-    for i in range(len(PAM) - 1):
+    for i in range(len(pam) - 1):
         if i == 0:
-            comb = codes[PAM[0]]
+            comb = codes[pam[0]]
             new_comb = []
         else:
             comb = new_comb
             new_comb = []
 
-        for j in codes[PAM[i + 1]]:
+        for j in codes[pam[i + 1]]:
             for c in comb:
                 new_comb.append(c + j)
 
     return new_comb
 
 
-def compare_PAM(base_PAM, base_DNA):
-    if base_PAM == "N":
+def compare_pam(base_pam, base_dna):
+    if base_pam == "N":
         return True
 
-    if base_PAM == base_DNA:
+    if base_pam == base_dna:
         return True
 
-    if base_PAM == "W" and (base_DNA == "A" or base_DNA == "T"):
+    if base_pam == "W" and (base_dna == "A" or base_dna == "T"):
         return True
 
-    if base_PAM == "S" and (base_DNA == "C" or base_DNA == "G"):
+    if base_pam == "S" and (base_dna == "C" or base_dna == "G"):
         return True
 
-    if base_PAM == "M" and (base_DNA == "A" or base_DNA == "C"):
+    if base_pam == "M" and (base_dna == "A" or base_dna == "C"):
         return True
 
-    if base_PAM == "K" and (base_DNA == "G" or base_DNA == "T"):
+    if base_pam == "K" and (base_dna == "G" or base_dna == "T"):
         return True
 
-    if base_PAM == "R" and (base_DNA == "A" or base_DNA == "G"):
+    if base_pam == "R" and (base_dna == "A" or base_dna == "G"):
         return True
 
-    if base_PAM == "Y" and (base_DNA == "C" or base_DNA == "T"):
+    if base_pam == "Y" and (base_dna == "C" or base_dna == "T"):
         return True
 
-    if base_PAM == "B" and base_DNA != "A":
+    if base_pam == "B" and base_dna != "A":
         return True
 
-    if base_PAM == "D" and base_DNA != "C":
+    if base_pam == "D" and base_dna != "C":
         return True
 
-    if base_PAM == "H" and base_DNA != "G":
+    if base_pam == "H" and base_dna != "G":
         return True
 
-    if base_PAM == "V" and base_DNA != "T":
+    if base_pam == "V" and base_dna != "T":
         return True
 
     return False
@@ -78,62 +78,62 @@ def gc_content(seq):
 def self_comp(fwd, backbone):
     rvs = str(fwd.reverse_complement())
     fwd = str(fwd)
-    L = len(fwd) - STEM_LEN - 1
+    l = len(fwd) - STEM_LEN - 1
     folding = 0
     for i in range(0, len(fwd) - STEM_LEN):
         if gc_content(fwd[i:i + STEM_LEN]) >= 0.5:
-            if fwd[i:i + STEM_LEN] in rvs[0:(L - i)] or any(
+            if fwd[i:i + STEM_LEN] in rvs[0:(l - i)] or any(
                     [fwd[i:i + STEM_LEN] in item for item in backbone]):
                 folding += 1
 
     return folding
 
 
-def eval_CPF1_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim, PAM,
-                       filter_GC_min, filter_GC_max, filter_self_comp_max, replace_5prime=None, backbone=None):
+def eval_cpf1_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim, pam,
+                       filter_gc_min, filter_gc_max, filter_self_comp_max, replace_5prime=None, backbone=None):
     """ Evaluates an k-mer as a potential Cpf1 target site """
 
-    g_len = guide_size - len(PAM)
-    rev_comp_PAM = str(Seq(PAM).reverse_complement())
+    g_len = guide_size - len(pam)
+    rev_comp_pam = str(Seq(pam).reverse_complement())
     dna = Seq(dna)
 
     if replace_5prime:
-        fwd = dna[len(PAM):-len(replace_5prime)] + replace_5prime  # Replace the 2 first bases with e.g. "GG"
+        fwd = dna[len(pam):-len(replace_5prime)] + replace_5prime  # Replace the 2 first bases with e.g. "GG"
     else:
-        fwd = dna[len(PAM):]  # Do not include PAM motif in folding calculations
+        fwd = dna[len(pam):]  # Do not include PAM motif in folding calculations
 
     add = True
-    for pos in range(len(PAM)):
-        if compare_PAM(PAM[pos], dna[pos]):
+    for pos in range(len(pam)):
+        if compare_pam(pam[pos], dna[pos]):
             continue
         else:
             add = False
             break
 
-    if add and (filter_GC_min != 0 or filter_GC_max != 100):
-        gc = GC(dna[len(PAM):])
-        if gc < filter_GC_min or gc > filter_GC_max:
+    if add and (filter_gc_min != 0 or filter_gc_max != 100):
+        gc = GC(dna[len(pam):])
+        if gc < filter_gc_min or gc > filter_gc_max:
             add = False
 
     if add and filter_self_comp_max != -1:
         if replace_5prime:
-            fwd = replace_5prime + dna[len(PAM):-len(replace_5prime)]
+            fwd = replace_5prime + dna[len(pam):-len(replace_5prime)]
         else:
-            fwd = dna[len(PAM):]
+            fwd = dna[len(pam):]
         folding = self_comp(fwd, backbone)
         if folding > filter_self_comp_max:
             add = False
 
     if add:
         if config.isoforms:
-            pam_comb = perm_PAM(PAM)
+            pam_comb = perm_pam(pam)
             for p in pam_comb:
                 fasta_file.write('>%s_%d-%d:%s:%s:+:%s:%s\n%s\n' % (
                     name, num, num + guide_size, downstream_5prim, downstream_3prim,
-                    dna, p, p + dna[len(PAM):]))
+                    dna, p, p + dna[len(pam):]))
         else:
             dna = dna.reverse_complement()
-            pam_comb = perm_PAM(rev_comp_PAM)
+            pam_comb = perm_pam(rev_comp_pam)
             for p in pam_comb:
                 fasta_file.write('>%s_%d-%d:%s:%s:+:%s:%s\n%s\n' % (
                     name, num, num + guide_size, downstream_5prim, downstream_3prim,
@@ -142,29 +142,29 @@ def eval_CPF1_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim,
 
     add = True and not config.isoforms
 
-    for pos in range(len(PAM)):
-        if compare_PAM(rev_comp_PAM[pos], dna[g_len + pos]):
+    for pos in range(len(pam)):
+        if compare_pam(rev_comp_pam[pos], dna[g_len + pos]):
             continue
         else:
             add = False
             break
 
-    if add and (filter_GC_min != 0 or filter_GC_max != 100):
-        gc = GC(dna.reverse_complement()[len(PAM):])
-        if gc < filter_GC_min or gc > filter_GC_max:
+    if add and (filter_gc_min != 0 or filter_gc_max != 100):
+        gc = GC(dna.reverse_complement()[len(pam):])
+        if gc < filter_gc_min or gc > filter_gc_max:
             add = False
 
     if add and filter_self_comp_max != -1:
         if replace_5prime:
-            fwd = replace_5prime + dna.reverse_complement()[len(PAM):-len(replace_5prime)]
+            fwd = replace_5prime + dna.reverse_complement()[len(pam):-len(replace_5prime)]
         else:
-            fwd = dna.reverse_complement()[len(PAM):]
+            fwd = dna.reverse_complement()[len(pam):]
         folding = self_comp(fwd, backbone)
         if folding > filter_self_comp_max:
             add = False
 
     if add:
-        pam_comb = perm_PAM(rev_comp_PAM)
+        pam_comb = perm_pam(rev_comp_pam)
         for p in pam_comb:
             # on the reverse strand seq of 5' downstream becomes 3' downstream and vice versa
             fasta_file.write('>%s_%d-%d:%s:%s:-:%s:%s\n%s\n' % (
@@ -177,34 +177,34 @@ def eval_CPF1_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim,
     return False
 
 
-def eval_CRISPR_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim, allowed, PAM,
-                         filter_GC_min, filter_GC_max, filter_self_comp_max, replace_5prime=None, backbone=None):
+def eval_crispr_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim, allowed, pam,
+                         filter_gc_min, filter_gc_max, filter_self_comp_max, replace_5prime=None, backbone=None):
     """ Evaluates an k-mer as a potential CRISPR target site """
 
-    g_len = guide_size - len(PAM)
-    rev_comp_PAM = str(Seq(PAM).reverse_complement())
+    g_len = guide_size - len(pam)
+    rev_comp_pam = str(Seq(pam).reverse_complement())
     dna = Seq(dna)
 
     if str(dna[0:2]) in allowed:
         add = True
-        for pos in range(len(PAM)):
-            if compare_PAM(PAM[pos], dna[g_len + pos]):
+        for pos in range(len(pam)):
+            if compare_pam(pam[pos], dna[g_len + pos]):
                 continue
             else:
                 add = False
                 break
 
-        if add and (filter_GC_min != 0 or filter_GC_max != 100):
+        if add and (filter_gc_min != 0 or filter_gc_max != 100):
             # TODO EVERYWHERE GC content does not assumes 5' replacement
-            gc = GC(dna[0:(None if PAM == "" else -len(PAM))])
-            if gc < filter_GC_min or gc > filter_GC_max:
+            gc = GC(dna[0:(None if pam == "" else -len(pam))])
+            if gc < filter_gc_min or gc > filter_gc_max:
                 add = False
 
         if add and filter_self_comp_max != -1:
             if replace_5prime:
-                fwd = replace_5prime + dna[len(replace_5prime):(None if PAM == "" else -len(PAM))]
+                fwd = replace_5prime + dna[len(replace_5prime):(None if pam == "" else -len(pam))]
             else:
-                fwd = dna[0:(None if PAM == "" else -len(PAM))]
+                fwd = dna[0:(None if pam == "" else -len(pam))]
             folding = self_comp(fwd, backbone)
             if folding > filter_self_comp_max:
                 add = False
@@ -215,7 +215,7 @@ def eval_CRISPR_sequence(name, guide_size, dna, num, fasta_file, downstream_5pri
         # not in isoforms case as we don't search reverse complement
         if add:
             if config.isoforms:
-                pam_comb = perm_PAM(PAM)
+                pam_comb = perm_pam(pam)
                 for p in pam_comb:
                     fasta_file.write('>%s_%d-%d:%s:%s:+:%s:%s\n%s\n' % (
                         name, num, num + guide_size, downstream_5prim, downstream_3prim,
@@ -224,52 +224,52 @@ def eval_CRISPR_sequence(name, guide_size, dna, num, fasta_file, downstream_5pri
             else:
                 # all combinations of possible PAMs
                 dna = dna.reverse_complement()
-                pam_comb = perm_PAM(rev_comp_PAM)
+                pam_comb = perm_pam(rev_comp_pam)
                 for p in pam_comb:
                     fasta_file.write('>%s_%d-%d:%s:%s:+:%s:%s\n%s\n' % (
                         name, num, num + guide_size, downstream_5prim, downstream_3prim,
-                        dna, p, p + dna[len(rev_comp_PAM):]))
+                        dna, p, p + dna[len(rev_comp_pam):]))
                 return True
 
     if str(dna[-2:].reverse_complement()) in allowed and not config.isoforms:
         add = True
 
-        for pos in range(len(PAM)):
-            if compare_PAM(rev_comp_PAM[pos], dna[pos]):
+        for pos in range(len(pam)):
+            if compare_pam(rev_comp_pam[pos], dna[pos]):
                 continue
             else:
                 add = False
                 break
 
-        if add and (filter_GC_min != 0 or filter_GC_max != 100):
-            gc = GC(dna[len(PAM):])
-            if gc < filter_GC_min or gc > filter_GC_max:
+        if add and (filter_gc_min != 0 or filter_gc_max != 100):
+            gc = GC(dna[len(pam):])
+            if gc < filter_gc_min or gc > filter_gc_max:
                 add = False
 
         if add and filter_self_comp_max != -1:
             if replace_5prime:
-                fwd = replace_5prime + dna.reverse_complement()[len(PAM):-len(replace_5prime)]
+                fwd = replace_5prime + dna.reverse_complement()[len(pam):-len(replace_5prime)]
             else:
-                fwd = dna.reverse_complement()[len(PAM):]
+                fwd = dna.reverse_complement()[len(pam):]
             folding = self_comp(fwd, backbone)
             if folding > filter_self_comp_max:
                 add = False
 
         if add:
-            pam_comb = perm_PAM(rev_comp_PAM)
+            pam_comb = perm_pam(rev_comp_pam)
             for p in pam_comb:
                 # on the reverse strand seq of 5' downstream becomes 3' downstream and vice versa
                 fasta_file.write('>%s_%d-%d:%s:%s:-:%s:%s\n%s\n' % (
                     name, num, num + guide_size,
                     Seq(downstream_3prim).reverse_complement(),
                     Seq(downstream_5prim).reverse_complement(),
-                    dna, p, p + dna[len(rev_comp_PAM):]))
+                    dna, p, p + dna[len(rev_comp_pam):]))
             return True
 
     return False
 
 
-def eval_TALENS_sequence(name, target_size, dna, num, fasta_file, downstream_5_prim, downstream_3_prim):
+def eval_talens_sequence(name, target_size, dna, num, fasta_file, downstream_5_prim, downstream_3_prim):
     """ Evaluates an N-mer as a potential TALENs target site """
     del downstream_5_prim, downstream_3_prim
     found = False
@@ -284,5 +284,5 @@ def eval_TALENS_sequence(name, target_size, dna, num, fasta_file, downstream_5_p
     return found
 
 
-__all__ = ["eval_TALENS_sequence", "eval_CRISPR_sequence", "eval_CPF1_sequence", "gc_content", "compare_PAM",
-           "perm_PAM"]
+__all__ = ["eval_talens_sequence", "eval_crispr_sequence", "eval_cpf1_sequence", "gc_content", "compare_pam",
+           "perm_pam"]
