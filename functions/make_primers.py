@@ -16,6 +16,7 @@ from Bio.SeqRecord import SeqRecord
 import config
 from classes.Guide import Guide
 from classes.Hit import Hit
+from classes.ProgramMode import ProgramMode
 from constants import PRIMER3_CONFIG, EXIT, PRIMER_OFF_TARGET_MIN
 
 
@@ -118,8 +119,55 @@ def run_bowtie_primers(primer_fasta_file_name, output_dir, genome, bowtie_index_
         sys.stderr.write("Running bowtie on primers failed\n")
         sys.exit(EXIT['BOWTIE_PRIMER_ERROR'])
 
-    return parse_bowtie(Guide, "%s/primer_results.sam" % output_dir, False, False, False, None, None,
-                        max_off_targets, None, None, False, None, None)
+    return parse_bowtie_primers(Guide, "%s/primer_results.sam" % output_dir, max_off_targets)
+
+
+def parse_bowtie_primers(guide_class, bowtie_results_file, max_off_targets):
+    """ Parses bowtie hits and build list of guides"""
+    logging.info("Parsing primer bowtie file '%s'." % bowtie_results_file)
+
+    curr_guide = None
+    guide_list = []
+
+    if os.stat(bowtie_results_file).st_size == 0:  # file is empty
+        return guide_list
+
+    sam = pandas.read_csv(bowtie_results_file, sep='\t', names=list(range(14)),
+                          header=None, index_col=False,
+                          dtype={0: str, 1: int, 2: str, 3: int, 4: int, 5: str, 6: str, 7: int,
+                                 8: int, 9: str, 10: str, 11: str, 12: str, 13: str, 14: str})
+
+    sam_name = sam.iloc[:, 0].value_counts()
+    sam_name = sam_name >= max_off_targets
+
+    for idx, row in sam.iterrows():
+        line = list(row)
+
+        # Removes NAN values from line
+        if line[12] != line[12]:
+            line = line[:-2]
+
+        #  Encountered a new guide RNA (not a new hit for the same guide)
+        elements = line[0].split(":")  # removes from name 5' and 3' tails
+        name = ":".join(elements[0:3])
+        is_kmaxed = sam_name[line[0]]
+        line[0] = ":".join(elements[0:6])
+        if len(elements) == 7 and line[1] == 16:
+            elements[6] = str(Seq(elements[6]).reverse_complement())
+        if curr_guide is None or name != curr_guide.name:
+            curr_guide = guide_class(line[0], line[1], len(line[9]),
+                                     elements[6] if len(elements) == 7 else line[9], False, False,
+                                     None, None, None, None,
+                                     None, None, None, None,
+                                     is_kmaxed=is_kmaxed)
+            guide_list.append(curr_guide)
+
+        # Adds hit to off-target list of current guide.
+        curr_guide.add_off_target(Hit(line), False, max_off_targets, None)
+
+    logging.debug(f"Parsed {len(parsed_guides)} guides from bowtie file '{bowtie_results_file}'.")
+
+    return guide_list
 
 
 # Used in Nickase, Pair, dump_restriction_sites
@@ -409,15 +457,9 @@ def make_primers_genome(targets, output_dir, flanks, display_seq_len, genome, li
     pair_primers(primers, primer_results, output_dir)
 
 
-# Used in main and runbowtiePrimer
-def parse_bowtie(guide_class, bowtie_results_file, check_mismatch, score_GC, score_self_comp,
-                 backbone, replace_5prime, max_off_targets, count_MM, PAM, mode, scoring_method=None,
-                 genome=None, gene=None, isoform=None, gene_isoforms=None):
+def parse_bowtie(guide_list, bowtie_results_file, check_mismatch, max_off_targets, count_mm, pam, program_mode):
     """ Parses bowtie hits and build list of guides"""
-    logging.info("Parsing bowtie file '%s'." % bowtie_results_file)
-
-    curr_guide = None
-    guide_list = []
+    logging.info(f"Parsing bowtie file '{bowtie_results_file}'.")
 
     if os.stat(bowtie_results_file).st_size == 0:  # file is empty
         return guide_list
@@ -426,11 +468,13 @@ def parse_bowtie(guide_class, bowtie_results_file, check_mismatch, score_GC, sco
                           header=None, index_col=False,
                           dtype={0: str, 1: int, 2: str, 3: int, 4: int, 5: str, 6: str, 7: int,
                                  8: int, 9: str, 10: str, 11: str, 12: str, 13: str, 14: str})
+
     sam_name = sam.iloc[:, 0].value_counts()
     sam_name = sam_name >= max_off_targets
-    if mode:  # Cas9, Cpf1, Nickase and not TALEN
-        sam[14] = sam[0].str[-(len(PAM) + 1):]
-        sam[0] = sam[0].str[:-(len(PAM) + 1)]
+
+    if program_mode != ProgramMode.TALENS:
+        sam[14] = sam[0].str[-(len(pam) + 1):]
+        sam[0] = sam[0].str[:-(len(pam) + 1)]
         sam_name = sam.groupby(0).apply(lambda x, m=max_off_targets: any(x.iloc[:, 14].value_counts() >= m))
         sam = sam.drop([14], axis=1)
 
@@ -440,32 +484,36 @@ def parse_bowtie(guide_class, bowtie_results_file, check_mismatch, score_GC, sco
         sam = sam.sort_values(by=["name", "mm", "str", "chr", "loc"])
         sam = sam.reset_index(drop=True)
 
-    for idx, row in sam.iterrows():
+    guide_ids = {}
+    for guide in guide_list:
+        if guide.uuid not in guide_ids.keys():
+            guide_ids[guide.uuid] = list()
+        guide_ids[guide.uuid].append(guide)
+
+    # Return list
+    parsed_guides = []
+
+    current_guide = None
+    for _, row in sam.iterrows():
         line = list(row)
+
+        # Removes NAN values from line
         if line[12] != line[12]:
             line = line[:-2]
 
-        #  Encountered a new guide RNA (not a new hit for the same guide)
-        elements = line[0].split(":")  # removes from name 5' and 3' tails
-        name = ":".join(elements[0:3])
-        is_kmaxed = sam_name[line[0]]
-        line[0] = ":".join(elements[0:6])
-        if len(elements) == 7 and line[1] == 16:
-            elements[6] = str(Seq(elements[6]).reverse_complement())
-        if curr_guide is None or name != curr_guide.name:
-            curr_guide = guide_class(line[0], line[1], len(line[9]),
-                                     elements[6] if len(elements) == 7 else line[9], score_GC, score_self_comp,
-                                     backbone, PAM, replace_5prime, scoring_method,
-                                     genome, gene, isoform, gene_isoforms,
-                                     is_kmaxed=is_kmaxed)
-            guide_list.append(curr_guide)
+        name = line[0]
+        if current_guide is None or name != current_guide.name:
+            current_guide = [x for x in guide_ids[name] if line[9] in [x.guideSeq,
+                                                                       str(Seq(x.guideSeq).reverse_complement())]][0]
+            current_guide.isKmaxed = sam_name[name]
+            current_guide.reinitialize_flag_sum(line[1])
+            parsed_guides.append(current_guide)
 
-        # Adds hit to off-target list of current guide.
-        curr_guide.add_off_target(Hit(line), check_mismatch, max_off_targets, count_MM)
+        current_guide.add_off_target(Hit(line), check_mismatch, max_off_targets, count_mm)
 
-    logging.debug("Parsed %d guides from bowtie file '%s'." % (len(guide_list), bowtie_results_file))
+    logging.debug(f"Parsed {len(parsed_guides)} guides from bowtie file '{bowtie_results_file}'.")
 
-    return guide_list
+    return parsed_guides
 
 
 __all__ = ["make_primers_genome", "make_primers_fasta", "parse_bowtie", "find_restriction_sites", "has_off_targets"]

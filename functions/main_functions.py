@@ -19,7 +19,7 @@ from constants import DOWNSTREAM_NUC, CPF1_DEFAULT, TALEN_DEFAULT, CRISPR_DEFAUL
 
 # Used in main
 def coord_to_fasta(regions, fasta_file, output_dir, target_size, eval_and_print_func, non_over, index_dir, genome,
-                   strand, ext):
+                   strand, ext, gene=None, isoform=None, gene_isoforms=None):
     """ Extracts the sequence corresponding to genomic coordinates from a FASTA file """
 
     ext = 0 if config.isoforms else ext  # for genomic context for some models
@@ -29,6 +29,8 @@ def coord_to_fasta(regions, fasta_file, output_dir, target_size, eval_and_print_
 
     if config.isoforms and strand == "-":
         regions = regions[::-1]
+
+    bare_guides = []
 
     for region in regions:
         # Extracts chromosome number and region start and end
@@ -76,9 +78,11 @@ def coord_to_fasta(regions, fasta_file, output_dir, target_size, eval_and_print_
             downstream_5prim = ext_dna[num:(num + ext)]
             g_end = num + ext + target_size
             downstream_3prim = ext_dna[g_end:(g_end + ext)]
-            if eval_and_print_func(name, target_size, dna[num:(num + target_size)],
-                                len(dna) - num - target_size if config.isoforms and strand == "-" else num, fasta_file,
-                                   downstream_5prim, downstream_3prim):
+            guides = eval_and_print_func(name, target_size, dna[num:(num + target_size)],
+                                         len(dna) - num - target_size if config.isoforms and strand == "-"
+                                         else num, fasta_file, downstream_5prim, downstream_3prim, gene=gene,
+                                         isoform=isoform, gene_isoforms=gene_isoforms)
+            if guides:
                 if non_over:  # positions overlapping those of this guide
                     for p in range(num, num + target_size):
                         if p in positions:
@@ -87,12 +91,14 @@ def coord_to_fasta(regions, fasta_file, output_dir, target_size, eval_and_print_
                 if name not in sequences:
                     sequences[name] = dna
 
+                bare_guides.extend(guides)
+
     fasta_file.close()
 
     if config.isoforms and strand == "-":
         fasta_seq = str(Seq(fasta_seq).reverse_complement())
 
-    return sequences, fasta_seq
+    return sequences, fasta_seq, bare_guides
 
 
 # Used in main
@@ -225,6 +231,8 @@ def parse_fasta_target(fasta_file, candidate_fasta_file, target_size, eval_and_p
     sequences = {}
     candidate_fasta_file = open(candidate_fasta_file, 'w')
 
+    bare_guides = []
+
     # Loop over sequence, write every k-mer into file in which k-mer ends in as PAM in fasta format
     for num in range(0, len(sequence) - (target_size - 1)):
 
@@ -241,12 +249,15 @@ def parse_fasta_target(fasta_file, candidate_fasta_file, target_size, eval_and_p
         downstream_5prim = sequence[start_5prim:num]
         downstream_3prim = sequence[(num + target_size):end_3prim]
 
-        if eval_and_print(id_name, target_size, sequence[num:(num + target_size)], num,
-                          candidate_fasta_file, downstream_5prim, downstream_3prim):
+        guides = eval_and_print(id_name, target_size, sequence[num:(num + target_size)], num,
+                                candidate_fasta_file, downstream_5prim, downstream_3prim)
+        if guides:
             sequences[id_name] = sequence
 
-    return sequences, [name], [{"exons": [[seq_name, 1, len(sequence), 0, 20, "+"]],
-                                "ATG": [], "name": seq_name}], sequence, "+"
+            bare_guides.extend(guides)
+
+    return sequences, [name], [{"exons": [[seq_name, 1, len(sequence), 0, 20, "+"]], "ATG": [], "name": seq_name}], \
+           sequence, "+", bare_guides
 
 
 # Used in main

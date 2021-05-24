@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import re
+import uuid
 from operator import attrgetter
 
 from Bio.Seq import Seq
@@ -52,7 +53,7 @@ class Guide(object):
 
     def __init__(self, name, flag_sum, guide_size, guide_seq, score_GC, score_self_comp,
                  backbone_regions, PAM, replace_5prime=None, scoring_method=None,
-                 genome=None, gene=None, isoform=None, gene_isoforms=None, is_kmaxed=False):
+                 genome=None, gene=None, isoform=None, gene_isoforms=None, is_kmaxed=False, id=None):
 
         self.GCcontent = 0
         self.isKmaxed = is_kmaxed  # to print possibility of more mismatches
@@ -88,6 +89,12 @@ class Guide(object):
         self.score = 0
         self.ALL_scores = [0, 0, 0, 0, 0, 0]
         self.meanBPP = 0  # in ISOFORM mode median of base pair probabilities
+
+        # Unique identifier
+        if id is None:
+            self.uuid = str(uuid.uuid4())
+        else:
+            self.uuid = str(id)
 
         # Off target count
         self.offTargetsMM = [0] * 4
@@ -136,6 +143,18 @@ class Guide(object):
 
         # Scoring
         self.calc_GC_content(score_GC)
+
+    def reinitialize_flag_sum(self, flag_sum):
+        self.flagSum = flag_sum 
+        
+        if self.flagSum == "16" or config.isoforms:  # due to reverse complementing before alignments
+            self.strandedGuideSeq = self.guideSeq
+            if self.strand is None:
+                self.strand = '+'
+        else:
+            self.strandedGuideSeq = str(Seq(self.guideSeq).reverse_complement())
+            if self.strand is None:
+                self.strand = '-'
 
     def calc_self_complementarity(self, score_self_comp, backbone_regions, PAM, replace5prime=None):
         if replace5prime:

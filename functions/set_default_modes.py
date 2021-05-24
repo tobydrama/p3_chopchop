@@ -7,6 +7,7 @@ from classes.CPF1 import Cpf1
 from classes.Cas9 import Cas9
 from classes.Guide import Guide
 from classes.ProgramMode import ProgramMode
+from functions import evaluate
 from functions.evaluate import eval_TALENS_sequence, eval_CPF1_sequence, eval_CRISPR_sequence
 
 
@@ -102,7 +103,14 @@ def set_default_modes(args):
     elif args.MODE == ProgramMode.TALENS:
         (allowed_mm, count_mm) = get_mismatch_vectors(args.PAM, args.guideSize, None)
         guide_class = Guide
-        eval_sequence = eval_TALENS_sequence
+
+        def eval_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim, gene=None,
+                          isoform=None, gene_isoforms=None):
+            return eval_TALENS_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim,
+                                        args.PAM, args.scoreGC, args.scoreSelfComp, args.backbone, args.replace5P,
+                                        args.scoringMethod, args.genome, gene=gene, isoform=isoform,
+                                        gene_isoforms=gene_isoforms)
+
         sort_output = sort_TALEN_pairs
     else:
         logging.critical("set_default_modes: unknown program mode selected, exiting.")

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 import json
+import logging
 import os
 import subprocess
 import sys
 from operator import itemgetter
 from typing import List, Callable, Union
+
+from Bio import SeqIO
 
 import config
 import scoring
@@ -205,9 +208,11 @@ def main():
             pad_size = args.nickaseMax
         elif args.MODE == ProgramMode.CRISPR or args.MODE == ProgramMode.CPF1:
             pad_size = args.guideSize
+        else:
+            logging.critical("Could not set pad_size. Exiting.")
+            sys.exit(-1)
 
     # Set default functions for different modes
-    # new function
     count_MM, eval_sequence, guide_class, sort_output = set_default_modes(args)
 
     # General ARGPARSE done, upcoming Target parsing
@@ -228,9 +233,8 @@ def main():
         os.mkdir(args.outputDir)
 
     candidate_fasta_file = '%s/sequence.fa' % args.outputDir
-    gene, isoform, gene_isoforms = (None, None, set())
     if args.fasta:
-        sequences, targets, vis_coords, fasta_sequence, strand = parse_fasta_target(
+        sequences, targets, vis_coords, fasta_sequence, strand, bare_guides = parse_fasta_target(
             args.targets, candidate_fasta_file, args.guideSize, eval_sequence)
 
     else:
@@ -240,10 +244,10 @@ def main():
             config.path("TWOBIT_INDEX_DIR") if not config.isoforms else config.path("ISOFORMS_INDEX_DIR"),
             args.outputDir, args.consensusUnion, args.jsonVisualize, args.guideSize)
 
-        sequences, fasta_sequence = coord_to_fasta(
+        sequences, fasta_sequence, bare_guides = coord_to_fasta(
             targets, candidate_fasta_file, args.outputDir, args.guideSize, eval_sequence, args.nonOverlapping,
             config.path("TWOBIT_INDEX_DIR") if not config.isoforms else config.path("ISOFORMS_INDEX_DIR"),
-            args.genome, strand, DOWNSTREAM_NUC)
+            args.genome, strand, DOWNSTREAM_NUC, gene, isoform, gene_isoforms)
 
     # Converts genomic coordinates to fasta file of all possible k-mers
     if len(sequences) == 0:
@@ -254,14 +258,9 @@ def main():
     bowtie_results_file = run_bowtie(len(args.PAM), args.uniqueMethod_Cong, candidate_fasta_file, args.outputDir,
                                    int(args.maxOffTargets),
                                    config.path("ISOFORMS_INDEX_DIR") if config.isoforms else config.path(
-                                       "BOWTIE_INDEX_DIR"),
-                                   args.genome, int(args.maxMismatches))
-
-    results = parse_bowtie(guide_class, bowtie_results_file, True, args.scoreGC, args.scoreSelfComp,
-                           args.backbone, args.replace5P, args.maxOffTargets, count_MM, args.PAM,
-                           args.MODE != ProgramMode.TALENS,
-                           args.scoringMethod, args.genome, gene, isoform,
-                           gene_isoforms)  # TALENS: MAKE_PAIRS + CLUSTER
+                                       "BOWTIE_INDEX_DIR"), args.genome, int(args.maxMismatches))
+    results = parse_bowtie(bare_guides, bowtie_results_file, True, args.maxOffTargets, count_MM, args.PAM,
+                           args.MODE)  # TALENS: MAKE_PAIRS + CLUSTER
 
     # TODO this is a temporary fix, args.scoringMethod should be converted to type ScoringMethod like args.MODE
     scoring_method = scoring.ScoringMethod.G_20

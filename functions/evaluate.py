@@ -1,7 +1,15 @@
+import uuid
+from typing import Union
+
 from Bio.Seq import Seq
 from Bio.SeqUtils import GC
+from typing.io import IO
 
 import config
+from classes.CPF1 import Cpf1
+import classes.Cas9
+from classes.Guide import Guide
+from classes.ProgramMode import ProgramMode
 from constants import codes, STEM_LEN
 
 
@@ -63,7 +71,7 @@ def compare_PAM(base_PAM, base_DNA):
     if base_PAM == "V" and base_DNA != "T":
         return True
 
-    return False
+    return []
 
 
 # Used in Cas9 and selfComp
@@ -103,8 +111,8 @@ def eval_CPF1_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim,
         fwd = dna[len(PAM):]  # Do not include PAM motif in folding calculations
 
     add = True
-    for pos in range(len(PAM)):
-        if compare_PAM(PAM[pos], dna[pos]):
+    for pos in range(len(pam)):
+        if compare_PAM(pam[pos], dna[pos]):
             continue
         else:
             add = False
@@ -125,6 +133,8 @@ def eval_CPF1_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim,
             add = False
 
     if add:
+        guides = []
+        id = uuid.uuid4()
         if config.isoforms:
             pam_comb = perm_PAM(PAM)
             for p in pam_comb:
@@ -133,12 +143,13 @@ def eval_CPF1_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim,
                     dna, p, p + dna[len(PAM):]))
         else:
             dna = dna.reverse_complement()
-            pam_comb = perm_PAM(rev_comp_PAM)
+            pam_comb = perm_PAM(rev_comp_pam)
             for p in pam_comb:
-                fasta_file.write('>%s_%d-%d:%s:%s:+:%s:%s\n%s\n' % (
-                    name, num, num + guide_size, downstream_5prim, downstream_3prim,
-                    dna, p, dna[:g_len] + p))
-        return True
+                guides.append(generate_guide(Cpf1, fasta_file, p, id, name, num, guide_size, downstream_5_prime,
+                                             downstream_3_prime, '+', dna[:g_len] + p, None, score_gc,
+                                             score_self_comp, backbone, pam, replace_5_prime, scoring_method,
+                                             genome, gene, isoform, gene_isoforms, None))
+        return guides
 
     add = True and not config.isoforms
 
@@ -164,7 +175,9 @@ def eval_CPF1_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim,
             add = False
 
     if add:
-        pam_comb = perm_PAM(rev_comp_PAM)
+        guides = []
+        id = uuid.uuid4()
+        pam_comb = perm_PAM(rev_comp_pam)
         for p in pam_comb:
             # on the reverse strand seq of 5' downstream becomes 3' downstream and vice versa
             fasta_file.write('>%s_%d-%d:%s:%s:-:%s:%s\n%s\n' % (
@@ -174,30 +187,30 @@ def eval_CPF1_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim,
                 dna, p, dna[:g_len] + p))
         return True
 
-    return False
+    return []
 
 
 def eval_CRISPR_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim, allowed, PAM,
                          filter_GC_min, filter_GC_max, filter_self_comp_max, replace_5prime=None, backbone=None):
     """ Evaluates an k-mer as a potential CRISPR target site """
 
-    g_len = guide_size - len(PAM)
-    rev_comp_PAM = str(Seq(PAM).reverse_complement())
+    g_len = guide_size - len(pam)
+    rev_comp_pam = str(Seq(pam).reverse_complement())
     dna = Seq(dna)
 
     if str(dna[0:2]) in allowed:
         add = True
-        for pos in range(len(PAM)):
-            if compare_PAM(PAM[pos], dna[g_len + pos]):
+        for pos in range(len(pam)):
+            if compare_PAM(pam[pos], dna[g_len + pos]):
                 continue
             else:
                 add = False
                 break
 
-        if add and (filter_GC_min != 0 or filter_GC_max != 100):
+        if add and (filter_gc_min != 0 or filter_gc_max != 100):
             # TODO EVERYWHERE GC content does not assumes 5' replacement
-            gc = GC(dna[0:(None if PAM == "" else -len(PAM))])
-            if gc < filter_GC_min or gc > filter_GC_max:
+            gc = GC(dna[0:(None if pam == "" else -len(pam))])
+            if gc < filter_gc_min or gc > filter_gc_max:
                 add = False
 
         if add and filter_self_comp_max != -1:
@@ -214,22 +227,31 @@ def eval_CRISPR_sequence(name, guide_size, dna, num, fasta_file, downstream_5pri
         # rather than end of the sequence
         # not in isoforms case as we don't search reverse complement
         if add:
+            guides = []
+            id = uuid.uuid4()
             if config.isoforms:
                 pam_comb = perm_PAM(PAM)
                 for p in pam_comb:
-                    fasta_file.write('>%s_%d-%d:%s:%s:+:%s:%s\n%s\n' % (
-                        name, num, num + guide_size, downstream_5prim, downstream_3prim,
-                        dna, p, dna[:g_len] + p))
-                return True
+                    print(f"1dna[:g_len]: {dna[:g_len]}")
+                    print(f"1p: {p}")
+                    guides.append(generate_guide(Guide, fasta_file, p, None, name, num, guide_size, downstream_5_prime,
+                                                 downstream_3_prime, '+', dna[:g_len] + p, None, score_gc,
+                                                 score_self_comp, backbone, pam, replace_5_prime, scoring_method,
+                                                 genome, gene, isoform, gene_isoforms, None))
             else:
                 # all combinations of possible PAMs
                 dna = dna.reverse_complement()
-                pam_comb = perm_PAM(rev_comp_PAM)
+                pam_comb = perm_PAM(rev_comp_pam)
                 for p in pam_comb:
-                    fasta_file.write('>%s_%d-%d:%s:%s:+:%s:%s\n%s\n' % (
-                        name, num, num + guide_size, downstream_5prim, downstream_3prim,
-                        dna, p, p + dna[len(rev_comp_PAM):]))
-                return True
+                    print(f"2dna[len(rev_comp_pam):]: {dna[len(rev_comp_pam):]}")
+                    print(f"2p: {p}")
+                    guides.append(generate_guide(classes.Cas9.Cas9, fasta_file, p, None, name, num, guide_size,
+                                                 downstream_5_prime, downstream_3_prime, '+',
+                                                 p + dna[len(rev_comp_pam):], None, score_gc, score_self_comp, backbone,
+                                                 pam, replace_5_prime, scoring_method, genome, gene, isoform,
+                                                 gene_isoforms, None))
+
+            return guides
 
     if str(dna[-2:].reverse_complement()) in allowed and not config.isoforms:
         add = True
@@ -256,32 +278,32 @@ def eval_CRISPR_sequence(name, guide_size, dna, num, fasta_file, downstream_5pri
                 add = False
 
         if add:
-            pam_comb = perm_PAM(rev_comp_PAM)
+            guides = []
+            id = uuid.uuid4()
+            pam_comb = perm_PAM(rev_comp_pam)
             for p in pam_comb:
                 # on the reverse strand seq of 5' downstream becomes 3' downstream and vice versa
-                fasta_file.write('>%s_%d-%d:%s:%s:-:%s:%s\n%s\n' % (
-                    name, num, num + guide_size,
-                    Seq(downstream_3prim).reverse_complement(),
-                    Seq(downstream_5prim).reverse_complement(),
-                    dna, p, p + dna[len(rev_comp_PAM):]))
-            return True
+                print(f"3dna[len(rev_comp_pam):]: {dna[len(rev_comp_pam):]}")
+                print(f"3p: {p}")
+                guides.append(generate_guide(classes.Cas9.Cas9, fasta_file, p, None, name, num, guide_size,
+                                             Seq(downstream_3_prime).reverse_complement(),
+                                             Seq(downstream_5_prime).reverse_complement(), '-',
+                                             p + dna[len(rev_comp_pam):], None, score_gc, score_self_comp, backbone,
+                                             pam, replace_5_prime, scoring_method, genome, gene, isoform, gene_isoforms,
+                                             None))
+            return guides
 
-    return False
+    return []
 
 
 def eval_TALENS_sequence(name, target_size, dna, num, fasta_file, downstream_5_prim, downstream_3_prim):
     """ Evaluates an N-mer as a potential TALENs target site """
-    del downstream_5_prim, downstream_3_prim
-    found = False
-    if dna[0] == "T":
-        # dna = Seq(dna).reverse_complement()
-        fasta_file.write('>%s_%d-%d\n%s\n' % (name, num, num + target_size, dna))
-        found = True
-    elif dna[-1] == "A":
-        fasta_file.write('>%s_%d-%d\n%s\n' % (name, num, num + target_size, dna))
-        found = True
-
-    return found
+    if dna[0] == "T" or dna[-1] == "A":
+        return [generate_guide(classes.Cas9.Cas9, fasta_file, None, None, name, num, guide_size,
+                               downstream_5_prime, downstream_3_prime, '+', dna, None, score_gc, score_self_comp,
+                               backbone, pam, replace_5_prime, scoring_method, genome, gene, isoform, gene_isoforms,
+                               None, talens=True)]
+    return []
 
 
 __all__ = ["eval_TALENS_sequence", "eval_CRISPR_sequence", "eval_CPF1_sequence", "gc_content", "compare_PAM",
