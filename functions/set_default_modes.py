@@ -78,11 +78,14 @@ def set_default_modes(args):
         # Set mismatch checking policy
         (allowed_mm, count_mm) = get_mismatch_vectors(args.PAM, args.guideSize, args.uniqueMethod_Cong)
         allowed = get_allowed_five_prime(args.fivePrimeEnd)
-        eval_sequence = lambda name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim: \
-            eval_CRISPR_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim,
-                                 allowed=allowed, PAM=args.PAM, filter_GC_min=args.filterGCmin,
-                                 filter_GC_max=args.filterGCmax, filter_self_comp_max=args.filterSelfCompMax,
-                                 replace_5prime=args.replace5P, backbone=args.backbone)
+
+        def eval_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim, gene=None,
+                          isoform=None, gene_isoforms=None):
+            return eval_CRISPR_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim,
+                                        allowed, args.PAM, args.filterGCmin, args.filterGCmax, args.filterSelfCompMax,
+                                        args.scoreGC, args.scoreSelfComp, args.backbone, args.replace5P,
+                                        args.scoringMethod, args.genome, gene=gene, isoform=isoform,
+                                        gene_isoforms=gene_isoforms)
         if args.MODE == ProgramMode.CRISPR:
             guide_class = Cas9 if not config.isoforms else Guide
             sort_output = sort_CRISPR_guides
@@ -92,11 +95,13 @@ def set_default_modes(args):
 
     elif args.MODE == ProgramMode.CPF1:
         (allowed_mm, count_mm) = get_CPF1_mismatch_vectors(args.PAM, args.guideSize)
-        eval_sequence = lambda name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim: \
-            eval_CPF1_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim,
-                               PAM=args.PAM, filter_GC_min=args.filterGCmin, filter_GC_max=args.filterGCmax,
-                               filter_self_comp_max=args.filterSelfCompMax, replace_5prime=args.replace5P,
-                               backbone=args.backbone)
+
+        def eval_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim, gene=None,
+                          isoform=None, gene_isoforms=None):
+            return eval_CPF1_sequence(name, guide_size, dna, num, fasta_file, downstream_5prim, downstream_3prim,
+                               args.PAM, args.filterGCmin, args.filterGCmax, args.filterSelfCompMax,
+                               args.scoreGC, args.scoreSelfComp, args.backbone, args.replace5P, args.scoringMethod,
+                               args.genome, gene=gene, isoform=isoform, gene_isoforms=gene_isoforms)
         guide_class = Cpf1 if not config.isoforms else Guide
         sort_output = sort_CRISPR_guides
 
