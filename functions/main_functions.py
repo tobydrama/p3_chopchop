@@ -77,8 +77,8 @@ def coord_to_fasta(regions, fasta_file, output_dir, target_size, eval_and_print_
             g_end = num + ext + target_size
             downstream_3prim = ext_dna[g_end:(g_end + ext)]
             if eval_and_print_func(name, target_size, dna[num:(num + target_size)],
-                                len(dna) - num - target_size if config.isoforms and strand == "-" else num, fasta_file,
-                                   downstream_5prim, downstream_3prim):
+                                   len(dna) - num - target_size if config.isoforms and strand == "-" else num,
+                                   fasta_file, downstream_5prim, downstream_3prim):
                 if non_over:  # positions overlapping those of this guide
                     for p in range(num, num + target_size):
                         if p in positions:
@@ -96,7 +96,7 @@ def coord_to_fasta(regions, fasta_file, output_dir, target_size, eval_and_print_
 
 
 # Used in main
-def run_bowtie(PAM_length, unique_method_cong, fasta_file, output_dir,
+def run_bowtie(pam_length, unique_method_cong, fasta_file, output_dir,
                max_off_targets, index_dir, genome, max_mismatches):
     logging.info("Running bowtie.")
 
@@ -107,9 +107,8 @@ def run_bowtie(PAM_length, unique_method_cong, fasta_file, output_dir,
         # -n option. Outside of that seed, up to 2 mismatches are searched.
         # E.g. -l 15 -n 0 will search the first 15 bases with no mismatches, and the rest with up to 3 mismatches
         command = "%s -p %s -l %d -n %d -m %d --sam-nohead -k %d %s/%s -f %s -S %s " % (
-            config.path("BOWTIE"), config.threads(), (PAM_length + 11), max_mismatches, max_off_targets, max_off_targets,
-            index_dir,
-            genome, fasta_file, bwt_results_file)
+            config.path("BOWTIE"), config.threads(), (pam_length + 11), max_mismatches, max_off_targets,
+            max_off_targets, index_dir, genome, fasta_file, bwt_results_file)
     else:
         command = "%s -p %s -v %d --sam-nohead -k %d %s/%s -f %s -S %s " % (
             config.path("BOWTIE"), config.threads(), max_mismatches, max_off_targets, index_dir, genome, fasta_file,
@@ -133,26 +132,26 @@ def run_bowtie(PAM_length, unique_method_cong, fasta_file, output_dir,
 
 
 # Used in main
-def write_individual_results(output_dir, max_off_targets, sorted_output, guide_size, program_mode, total_clusters,
-                             limit_print_results, off_targets_table):
+def write_individual_results(output_dir: str, max_off_targets: int, sorted_output: list, program_mode: ProgramMode,
+                             total_clusters: int, off_targets_table: bool) -> list:
     """ Writes each guide and its offtargets into a file """
 
     # Initiate list of lists for each cluster
-    clusters = [[] for i in range(total_clusters)]
+    clusters = [[] for _ in range(total_clusters)]
 
     # Info to write to 'offtargets.json'
     off_targets_info = dict()
 
     for i, guide in enumerate(sorted_output):
-        guide.ID = i + 1
+        guide.id = i + 1
 
-        if guide.ID not in off_targets_info:
+        if guide.id not in off_targets_info:
             off_targets = guide.as_off_target_string("", max_off_targets)
 
             if not off_targets:
                 off_targets = "There are no predicted off-targets."
 
-            off_targets_info[guide.ID] = {'stranded guide seq': guide.strandedGuideSeq,
+            off_targets_info[guide.id] = {'stranded guide seq': guide.stranded_guide_seq,
                                           'off-targets': off_targets}
 
         # Add the current TALE pair to the appropriate list in the list of lists, depending on its cluster number
@@ -161,20 +160,20 @@ def write_individual_results(output_dir, max_off_targets, sorted_output, guide_s
             clusters[cluster_id - 1].append(guide)
 
         if program_mode == ProgramMode.CRISPR and not config.isoforms:
-            if guide.repStats is not None:
-                stats_file = f"{output_dir}/{guide.ID}_repStats.json"
+            if guide.repair_stats is not None:
+                stats_file = f"{output_dir}/{guide.id}_repStats.json"
 
                 with open(stats_file, 'w') as fp:
-                    json.dump(guide.repStats, fp)
+                    json.dump(guide.repair_stats, fp)
 
-            if guide.repProfile is not None:
-                profile_file = f"{output_dir}/{guide.ID}_repProfile.csv"
-                guide.repProfile.to_csv(profile_file, index=False)
+            if guide.repair_profile is not None:
+                profile_file = f"{output_dir}/{guide.id}_repProfile.csv"
+                guide.repair_profile.to_csv(profile_file, index=False)
 
             if off_targets_table:
                 off_table = f"{output_dir}/offtargetsTable.csv"
-                label = f"{guide.chrom}:{guide.start},{guide.strand},{guide.strandedGuideSeq}"
-                off_for_table = map(lambda x: x.as_off_target_string(label, max_off_targets), guide.offTargets)
+                label = f"{guide.chrom}:{guide.start},{guide.strand},{guide.stranded_guide_seq}"
+                off_for_table = map(lambda x: x.as_off_target_string(label, max_off_targets), guide.off_targets)
 
                 with open(off_table, 'a') as append_file:
                     if len(list(off_for_table)) > 0:
@@ -189,14 +188,14 @@ def write_individual_results(output_dir, max_off_targets, sorted_output, guide_s
 
                 for member in cluster[1:]:
                     # Write the other cluster members to file
-                    off_targets_info[best_in_cluster.ID]['cluster'] = "%s*%s*%s,%s:%s,%s,%s/%s,%s/%s,%s/%s,%s/%s;" % (
-                        member.tale1.guideSeq, member.spacerSeq, member.tale2.guideSeq, member.chrom, member.start,
-                        len(member.offTargetPairs), member.tale1.offTargetsMM[0], member.tale2.offTargetsMM[0],
-                        member.tale1.offTargetsMM[1], member.tale2.offTargetsMM[1], member.tale1.offTargetsMM[2],
-                        member.tale2.offTargetsMM[2], member.tale1.offTargetsMM[3], member.tale2.offTargetsMM[3]
+                    off_targets_info[best_in_cluster.id]['cluster'] = "%s*%s*%s,%s:%s,%s,%s/%s,%s/%s,%s/%s,%s/%s;" % (
+                        member.tale1.guide_seq, member.spacer_seq, member.tale2.guide_seq, member.chrom, member.start,
+                        len(member.off_target_pairs), member.tale1.off_targets_mm[0], member.tale2.off_targets_mm[0],
+                        member.tale1.off_targets_mm[1], member.tale2.off_targets_mm[1], member.tale1.off_targets_mm[2],
+                        member.tale2.off_targets_mm[2], member.tale1.off_targets_mm[3], member.tale2.off_targets_mm[3]
                     )
 
-                off_targets_info[best_in_cluster.ID]['restriction sites'] = guide.restrictionSites
+                off_targets_info[best_in_cluster.id]['restriction sites'] = guide.restriction_sites
 
     for key, val in off_targets_info.items():
         with open(f"{output_dir}/{key}.offtargets.json", 'w') as f:

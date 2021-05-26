@@ -271,17 +271,11 @@ def eval_crispr_sequence(name, guide_size, dna, num, fasta_file, downstream_5pri
 
 def eval_talens_sequence(name, target_size, dna, num, fasta_file, downstream_5_prim, downstream_3_prim):
     """ Evaluates an N-mer as a potential TALENs target site """
-    del downstream_5_prim, downstream_3_prim
-    found = False
-    if dna[0] == "T":
-        # dna = Seq(dna).reverse_complement()
+    if dna[0] == "T" or dna[-1] == "A":
         fasta_file.write('>%s_%d-%d\n%s\n' % (name, num, num + target_size, dna))
-        found = True
-    elif dna[-1] == "A":
-        fasta_file.write('>%s_%d-%d\n%s\n' % (name, num, num + target_size, dna))
-        found = True
+        return True
 
-    return found
+    return False
 
 
 __all__ = ["eval_talens_sequence", "eval_crispr_sequence", "eval_cpf1_sequence", "gc_content", "compare_pam",

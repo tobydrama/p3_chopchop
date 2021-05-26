@@ -30,9 +30,9 @@ def file_path() -> str:
 
 
 def get_config_from_file(*paths) -> dict:
-    for path in paths:
-        if os.path.isfile(path):
-            with open(path) as f:
+    for p in paths:
+        if os.path.isfile(p):
+            with open(p) as f:
                 return json.load(f)
 
     logging.critical(f"Could not find config file with supplied path(s): {paths}! Exiting.")

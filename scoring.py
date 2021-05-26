@@ -95,15 +95,15 @@ def score_guides(guides: List[Guide], info: ScoringInfo) -> Tuple[List[Guide], i
 
     if info.rm1_perf_off and info.use_fasta:
         for guide in guides:
-            if guide.offTargetsMM[0] > 0:
+            if guide.off_targets_mm[0] > 0:
                 # TODO do something about this constant
                 guide.score -= constants.SINGLE_OFFTARGET_SCORE[0]
 
     if len(guides) > 0 and type(guides[0]) == Cas9:
-        guides = score_cas9(guides, info)
+        guides = score_cas9(guides)
 
     if info.scoring_method == ScoringMethod.ALKAN_2018 or info.scoring_method == ScoringMethod.ALL:
-        guides = score_alkan_2018(guides, info)
+        guides = score_alkan_2018(guides)
 
     if info.use_isoforms:
         guides = score_isoforms(guides, info)
@@ -188,44 +188,44 @@ def score_isoforms(guides: List[Guide], info: ScoringInfo) -> List[Guide]:
                 if tx_start != -1:
                     bpp.append(rna_folding_metric(info.genome, tx_id, tx_start, tx_end))
 
-            guide.meanBPP = 100 if len(bpp) == 0 else max(bpp)
+            guide.mean_bpp = 100 if len(bpp) == 0 else max(bpp)
         else:
             if not info.use_fasta:
                 tx_start, tx_end = tx_relative_coordinates(info.vis_coords, guide.isoform,
                                                            guide.start, guide.end)
 
-                guide.meanBPP = rna_folding_metric(info.genome, guide.isoform, tx_start, tx_end)
+                guide.mean_bpp = rna_folding_metric(info.genome, guide.isoform, tx_start, tx_end)
 
-        guide.score += guide.meanBPP / 100 * config.score("COEFFICIENTS")
+        guide.score += guide.mean_bpp / 100 * config.score("COEFFICIENTS")
 
         if guide.isoform in guide.gene_isoforms:
             guide.gene_isoforms.remove(guide.isoform)
 
-        if guide.isoform in guide.offTargetsIso[0]:
-            guide.offTargetsIso[0].remove(guide.isoform)
+        if guide.isoform in guide.off_targets_iso[0]:
+            guide.off_targets_iso[0].remove(guide.isoform)
 
-        guide.constitutive = int(guide.gene_isoforms == guide.offTargetsIso[0])
+        guide.constitutive = int(guide.gene_isoforms == guide.off_targets_iso[0])
 
     return guides
 
 
-def score_cas9(guides: List[Cas9], info: ScoringInfo):
+def score_cas9(guides: List[Cas9]):
     logging.info("Scoring coefficients for Cas9 guides.")
     for guide in guides:
-        if guide.scoringMethod not in ["CHARI_2015", "DOENCH_2016", "ALKAN_2018", "ZHANG_2019", "ALL"]:
-            guide.CoefficientsScore[guide.scoringMethod] = score_grna(
-                guide.downstream5prim + guide.strandedGuideSeq[:-len(guide.PAM)],
-                guide.strandedGuideSeq[-len(guide.PAM):],
-                guide.downstream3prim,
-                constants.scores[guide.scoringMethod]
+        if guide.scoring_method not in ["CHARI_2015", "DOENCH_2016", "ALKAN_2018", "ZHANG_2019", "ALL"]:
+            guide.coefficients_score[guide.scoring_method] = score_grna(
+                guide.downstream_5_prim + guide.stranded_guide_seq[:-len(guide.pam)],
+                guide.stranded_guide_seq[-len(guide.pam):],
+                guide.downstream_3_prim,
+                constants.scores[guide.scoring_method]
             )
-            guide.score -= guide.CoefficientsScore[guide.scoringMethod] * config.score('COEFFICIENTS')
-        elif guide.scoringMethod == "ALL":
+            guide.score -= guide.coefficients_score[guide.scoring_method] * config.score('COEFFICIENTS')
+        elif guide.scoring_method == "ALL":
             for met in ["XU_2015", "DOENCH_2014", "MORENO_MATEOS_2015", "G_20"]:
-                guide.CoefficientsScore[met] = score_grna(
-                    guide.downstream5prim + guide.strandedGuideSeq[:-len(guide.PAM)],
-                    guide.strandedGuideSeq[-len(guide.PAM):],
-                    guide.downstream3prim,
+                guide.coefficients_score[met] = score_grna(
+                    guide.downstream_5_prim + guide.stranded_guide_seq[:-len(guide.pam)],
+                    guide.stranded_guide_seq[-len(guide.pam):],
+                    guide.downstream_3_prim,
                     constants.scores[met]
                 )
 
@@ -233,21 +233,22 @@ def score_cas9(guides: List[Cas9], info: ScoringInfo):
 
     return guides
 
-def score_alkan_2018(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
+
+def score_alkan_2018(guides: List[Cas9]) -> List[Guide]:
     logging.info("Running Alkan 2018 scoring method.")
 
     from dockers.CRISPRoff_wrapper import run_coefficient_score
 
     for guide in guides:
-        guide.CoefficientsScore['ALKAN_2018'] = run_coefficient_score(guide.strandedGuideSeq)
-        guide.score -= guide.CoefficientsScore['ALKAN_2018'] * config.score('COEFFICIENTS')
+        guide.coefficients_score['ALKAN_2018'] = run_coefficient_score(guide.stranded_guide_seq)
+        guide.score -= guide.coefficients_score['ALKAN_2018'] * config.score('COEFFICIENTS')
 
     logging.debug("Finished running Alkan 2018.")
 
     return guides
 
 
-def score_grna(seq, PAM, tail, lookup):
+def score_grna(seq, pam, tail, lookup):
     """ Calculate score from model coefficients. score is 0-1, higher is better """
     score = 0
     if "Intercept" in lookup:
@@ -273,17 +274,17 @@ def score_grna(seq, PAM, tail, lookup):
                 score += lookup[double_key]
 
         if i == 0:
-            double_key = PAM[0] + seq[0] + str(0)
+            double_key = pam[0] + seq[0] + str(0)
             if double_key in lookup:
                 score += lookup[double_key]
 
-    for i in range(len(PAM)):
-        key = 'PAM' + PAM[i] + str(i + 1)
+    for i in range(len(pam)):
+        key = 'PAM' + pam[i] + str(i + 1)
         if key in lookup:
             score += lookup[key]
 
-        if i + 1 < len(PAM):
-            double_key = 'PAM' + PAM[i] + PAM[i + 1] + str(i + 1)
+        if i + 1 < len(pam):
+            double_key = 'PAM' + pam[i] + pam[i + 1] + str(i + 1)
             if double_key in lookup:
                 score += lookup[double_key]
 
@@ -314,7 +315,8 @@ def score_zhang_2019(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
         zhang_input_file = '%s/zhang_score.txt' % info.output_dir
         zhang_file = open(zhang_input_file, 'w')
         for guide in guides:
-            zhang_file.write(guide.downstream5prim[-4:] + guide.strandedGuideSeq + guide.downstream3prim[:3] + '\n')
+            zhang_file.write(guide.downstream_5_prim[-4:] + guide.stranded_guide_seq +
+                             guide.downstream_3_prim[:3] + '\n')
         zhang_file.close()
 
         # TODO kind of hacky file path stuff here
@@ -327,10 +329,10 @@ def score_zhang_2019(guides: List[Cas9], info: ScoringInfo) -> List[Guide]:
         # distribution calculated on 100k random guides
         output = [ss.norm.cdf(float(x.split()[1]), loc=11.92658, scale=0.2803797) for x in output]
         for i, guide in enumerate(guides):
-            guide.CoefficientsScore["ZHANG_2019"] = output[i] * 100
+            guide.coefficients_score["ZHANG_2019"] = output[i] * 100
 
             if info.scoring_method == ScoringMethod.ZHANG_2019:
-                guide.score -= (guide.CoefficientsScore["ZHANG_2019"] / 100) * config.score('COEFFICIENTS')
+                guide.score -= (guide.coefficients_score["ZHANG_2019"] / 100) * config.score('COEFFICIENTS')
 
         logging.debug("Finished running Zhang 2019.")
 
@@ -397,9 +399,9 @@ def get_cluster_pairs(guides: List[Guide], info: ScoringInfo, program_mode: Prog
 
     if info.rm1_perf_off and info.use_fasta:
         for pair in pairs:
-            if pair.diffStrandOffTarget > 0:
+            if pair.diff_strand_off_target > 0:
                 pair.score -= config.score("OFFTARGET_PAIR_DIFF_STRAND")
-            if program_mode == ProgramMode.TALENS and pair.sameStrandOffTarget > 0:
+            if program_mode == ProgramMode.TALENS and pair.same_strand_off_target > 0:
                 pair.score -= config.score("OFFTARGET_PAIR_SAME_STRAND")
 
     cluster, guides = cluster_pairs(pairs)

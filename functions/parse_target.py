@@ -102,7 +102,7 @@ def subset_exons(exons, targets):
 
 
 # Used in parse_targets
-def truncate_to_UTR5(cds_start, exons):
+def truncate_to_utr5(cds_start, exons):
     """ Truncates the gene to only target 5' UTR """
 
     end_exon = 0
@@ -116,7 +116,7 @@ def truncate_to_UTR5(cds_start, exons):
 
 
 # Used in parse_targets
-def truncate_to_PROMOTER(strand, exons, ups_bp, down_bp):
+def truncate_to_promoter(strand, exons, ups_bp, down_bp):
     """ Truncates the gene to only target promoter +-bp TSS """
 
     if strand == "+":
@@ -132,7 +132,7 @@ def truncate_to_PROMOTER(strand, exons, ups_bp, down_bp):
 
 
 # Used in parse_targets
-def truncate_to_UTR3(cds_end, exons):
+def truncate_to_utr3(cds_end, exons):
     """ Truncates the gene to only target 3' UTR """
 
     start_exon = 0
@@ -227,11 +227,11 @@ def gene_to_coord_db(gene, organism, db):
                 gene, organism))
         sys.exit(EXIT['GENE_ERROR'])
 
-    txInfo = []
+    tx_info = []
     for i in range(lines):
-        txInfo.append(db.fetchone())
+        tx_info.append(db.fetchone())
 
-    return txInfo
+    return tx_info
 
 
 # Used in parse_targets
@@ -362,16 +362,16 @@ def truncate_to_region(target_region, tx, coords, ups_bp, down_bp):
         coords = truncate_to_coding(tx[4], tx[5], coords)
     elif target_region == "UTR5":
         if tx[6] == "+":
-            coords = truncate_to_UTR5(tx[4], coords)
+            coords = truncate_to_utr5(tx[4], coords)
         else:
-            coords = truncate_to_UTR3(tx[5], coords)
+            coords = truncate_to_utr3(tx[5], coords)
     elif target_region == "PROMOTER":
-        coords = truncate_to_PROMOTER(tx[6], coords, ups_bp, down_bp)
+        coords = truncate_to_promoter(tx[6], coords, ups_bp, down_bp)
     elif target_region == "UTR3":
         if tx[6] == "+":
-            coords = truncate_to_UTR3(tx[5], coords)
+            coords = truncate_to_utr3(tx[5], coords)
         else:
-            coords = truncate_to_UTR5(tx[4], coords)
+            coords = truncate_to_utr5(tx[4], coords)
     elif target_region == "SPLICE":
         coords = truncate_to_splice(coords)
     elif target_region != "WHOLE":
@@ -492,7 +492,8 @@ def parse_targets(target_string, genome, use_db, data, pad_size, target_region, 
                     del vis_coords[-1]
 
             # compute intersection/union on all exons
-            targets = compute_intersection_union_all_exions(tx_info, tx, coords, targets, use_union, guide_len, isoforms)
+            targets = compute_intersection_union_all_exions(tx_info, tx, coords, targets, use_union, guide_len,
+                                                            isoforms)
 
         target_size = len(targets)
         if target_size < guide_len:

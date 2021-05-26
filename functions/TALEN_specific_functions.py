@@ -5,7 +5,7 @@ from functions.make_primers import has_off_targets
 
 
 def pair_talens(tale_list, fasta_seq, guide_size, tale_min_distance, tale_max_distance,
-                enzyme_co, max_off_targets, g_RVD, min_res_site_len):
+                enzyme_co, max_off_targets, g_rvd, min_res_site_len):
     pairs = []
 
     for i in range(len(tale_list) - 1):
@@ -19,8 +19,8 @@ def pair_talens(tale_list, fasta_seq, guide_size, tale_min_distance, tale_max_di
             if tale1.start + tale_max_distance < tale2.start:
                 break
 
-            elif tale1.start + tale_min_distance < tale2.start and tale1.guideSeq[0] == "T" and \
-                    tale2.guideSeq[guide_size - 1] == "A":
+            elif tale1.start + tale_min_distance < tale2.start and tale1.guide_seq[0] == "T" and \
+                    tale2.guide_seq[guide_size - 1] == "A":
 
                 # EDV: Are all these find calls faster than a regular expression?
                 pos = tale1.name.find('_')
@@ -62,7 +62,7 @@ def pair_talens(tale_list, fasta_seq, guide_size, tale_min_distance, tale_max_di
 
                 # Makes tale1 and tale2 into a Pair object, and adds to list of Pair objects
                 pairs.append(Pair(tale1, tale2, spacer_seq, spacer_size, off_target_pairs, enzyme_co, max_off_targets,
-                                  g_RVD, min_res_site_len))
+                                  g_rvd, min_res_site_len))
 
     return pairs
 
@@ -138,7 +138,7 @@ def cluster_pairs(pairs):
 
         # Specifically, compares location of spacer (by comparing location of tales) to see whether there is overlap,
         # and therefore TALE pairs are redundant
-        if ((cur.spacerStart <= prev.spacerEnd) and (cur.spacerEnd >= prev.spacerStart) and
+        if ((cur.spacer_start <= prev.spacer_end) and (cur.spacer_end >= prev.spacer_start) and
                 in_cluster < PRIMER_OFF_TARGET_MIN):
 
             cur.cluster = cluster

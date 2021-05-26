@@ -106,7 +106,7 @@ def print_scores(sorted_output: Union[List[Guide], List[Pair]],
                       "Off-targets MM0\tOff-targets MM1\tOff-targets MM2\tOff-targets MM3\tRestriction sites\tBest ID")
 
             for i, guide in enumerate(sorted_output):
-                print("%s\t%s\t%s" % (i + 1, guide, guide.ID))
+                print("%s\t%s\t%s" % (i + 1, guide, guide.id))
 
 
 def generate_result_coordinates(sorted_output: Union[List[Guide], List[Pair]],
@@ -117,7 +117,7 @@ def generate_result_coordinates(sorted_output: Union[List[Guide], List[Pair]],
     result_coordinates = []
     if isoforms or mode in [ProgramMode.CRISPR, ProgramMode.CPF1]:
         for i, guide in enumerate(sorted_output):
-            result_coordinates.append([guide.start, guide.score, guide.guideSize, guide.strand])
+            result_coordinates.append([guide.start, guide.score, guide.guide_size, guide.strand])
 
     elif mode in [ProgramMode.TALENS, ProgramMode.NICKASE]:
         final_output = []
@@ -128,8 +128,8 @@ def generate_result_coordinates(sorted_output: Union[List[Guide], List[Pair]],
 
         sorted_output = sort_function(final_output)
         for i, guide in enumerate(sorted_output):
-            result_coordinates.append([i + 1, guide.spacerStart, guide.score, guide.spacerSize, guide.strand, guide.ID,
-                                       guide.tale1.start, guide.tale2.end])
+            result_coordinates.append([i + 1, guide.spacer_start, guide.score, guide.spacer_size, guide.strand,
+                                       guide.id, guide.tale1.start, guide.tale2.end])
 
     return result_coordinates
 
@@ -251,11 +251,11 @@ def main():
         sys.exit()
 
     # Run bowtie and get results
-    bowtie_results_file = run_bowtie(len(args.pam), args.unique_method_cong, candidate_fasta_file, args.output_dir,
-                                   int(args.max_off_targets),
-                                   config.path("ISOFORMS_INDEX_DIR") if config.isoforms else config.path(
-                                       "BOWTIE_INDEX_DIR"),
-                                   args.genome, int(args.max_mismatches))
+    bowtie_results_file = run_bowtie(
+        len(args.pam), args.unique_method_cong, candidate_fasta_file, args.output_dir, int(args.max_off_targets),
+        config.path("ISOFORMS_INDEX_DIR") if config.isoforms else config.path("BOWTIE_INDEX_DIR"),
+        args.genome, int(args.max_mismatches)
+    )
 
     results = parse_bowtie(guide_class, bowtie_results_file, True, args.score_gc, args.score_self_comp,
                            args.backbone, args.replace_5_prime, args.max_off_targets, count_mm, args.pam,
@@ -283,8 +283,7 @@ def main():
 
     # Write individual results to file
     list_of_clusters = write_individual_results(args.output_dir, args.max_off_targets, sorted_output,
-                                                args.guide_size, args.program_mode, cluster,
-                                                args.limit_print_results, args.off_targets_table)
+                                                args.program_mode, cluster, args.off_targets_table)
 
     if args.make_primers:
         if args.fasta:
