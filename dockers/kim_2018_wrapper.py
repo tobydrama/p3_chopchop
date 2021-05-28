@@ -8,11 +8,11 @@ from classes.CPF1 import Cpf1
 
 def convert_CPF1_to_tuple(key: int, guide: Cpf1) -> (int, str, str, str, float, float):
     return (key,
-            guide.downstream5prim,
-            guide.downstream3prim,
-            guide.strandedGuideSeq,
+            guide.downstream_5_prim,
+            guide.downstream_3_prim,
+            guide.stranded_guide_seq,
             guide.score,
-            guide.CoefficientsScore)
+            guide.coefficients_score)
 
 
 def run_kim_2018(guides: [Cpf1]) -> [Cpf1]:
@@ -40,6 +40,6 @@ def run_kim_2018(guides: [Cpf1]) -> [Cpf1]:
     for key, guide in enumerate(guides):
         for t in results:
             if t[0] == key:
-                _, guide.score, guide.CoefficientsScore = t
+                _, guide.score, guide.coefficients_score = t
 
     return guides

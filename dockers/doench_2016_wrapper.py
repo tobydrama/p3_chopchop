@@ -8,12 +8,12 @@ from classes.Cas9 import Cas9
 
 def convert_cas9_to_tuple(key: int, guide: Cas9) -> (int, str, str, str, str, float, float):
     return (key,
-            guide.downstream5prim,
-            guide.downstream3prim,
-            guide.strandedGuideSeq,
-            guide.PAM,
+            guide.downstream_5_prim,
+            guide.downstream_3_prim,
+            guide.stranded_guide_seq,
+            guide.pam,
             guide.score,
-            guide.CoefficientsScore['DOENCH_2016'])
+            guide.coefficients_score['DOENCH_2016'])
 
 
 def run_doench_2016(scoring_method: str, guides: [Cas9]) -> [Cas9]:
@@ -42,6 +42,6 @@ def run_doench_2016(scoring_method: str, guides: [Cas9]) -> [Cas9]:
     for key, guide in enumerate(guides):
         for t in results:
             if t[0] == key:
-                _, guide.score, guide.CoefficientsScore["DOENCH_2016"] = t
+                _, guide.score, guide.coefficients_score["DOENCH_2016"] = t
 
     return guides

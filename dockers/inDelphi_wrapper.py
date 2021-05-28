@@ -8,12 +8,12 @@ from classes.Cas9 import Cas9
 
 def convert_cas9_to_tuple(key: int, guide: Cas9) -> (int, str, str, str, str, any, any):
     return (key,
-            guide.downstream5prim,
-            guide.downstream3prim,
-            guide.strandedGuideSeq,
-            guide.PAM,
-            guide.repProfile,
-            guide.repStats)
+            guide.downstream_5_prim,
+            guide.downstream_3_prim,
+            guide.stranded_guide_seq,
+            guide.pam,
+            guide.repair_profile,
+            guide.repair_stats)
 
 
 def run_repair_prediction(repair_prediction: str, guides: [Cas9]) -> [Cas9]:
@@ -44,6 +44,6 @@ def run_repair_prediction(repair_prediction: str, guides: [Cas9]) -> [Cas9]:
     for key, guide in enumerate(guides):
         for t in results:
             if t[0] == key:
-                _, guide.repProfile, guide.repStats = t
+                _, guide.repair_profile, guide.repair_stats = t
 
     return guides
